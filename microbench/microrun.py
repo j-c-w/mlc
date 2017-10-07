@@ -4,6 +4,7 @@ import argparse
 import datetime
 import fnmatch
 import json
+import numpy as np
 import os
 import subprocess
 import sys
@@ -37,7 +38,7 @@ class Compiler(object):
         # We use a rough approximation to the compilation time here.
         start = time.time()
         subprocess.call(command)
-        return time.time() - time.time()
+        return time.time() - start
 
 
 class CMLC(Compiler):
@@ -60,11 +61,11 @@ class CMLC(Compiler):
 
 
 class MOSML(Compiler):
-    def __init__(self, executable='mosmlc'):
+    def __init__(self, executable=['mosmlc']):
         self.executable = executable
 
     def compile(self, filename, options):
-        return Compiler.compile(self, [self.executable] + options + [filename])
+        return Compiler.compile(self, self.executable + options + [filename])
 
     def run(self, options, use_perf):
         command = ['./a.out']
@@ -72,7 +73,75 @@ class MOSML(Compiler):
         return Compiler.run(self, command, use_perf)
 
 
-class LNTDataItem(object):
+class NumpyMachineDataWrapper(object):
+    """ This is a wrapper that holds multiple instances
+        of NumpyMachineData.  """
+    def __init__(self, datas=[]):
+        self.data = []
+
+        # This is a dictionary of benchmark names.
+        # Each name contains 'execution_time', 'compile_time', etc.
+        # Each of those items is a list of lists.
+        # More specifically, the format is:
+        # {
+        #    'benchmark': [ 
+        #       {'execution_time': [
+        #           {'machine': __, 'time': [...]}}}
+        self.data_by_benchmark = {}
+
+        for data in datas:
+            self.add(data.to_numpy())
+
+    def _init_benchmark_data(self, key):
+        if key not in self.data_by_benchmark:
+            self.data_by_benchmark[key] = {}
+            self.data_by_benchmark[key]['execution_time'] = []
+            self.data_by_benchmark[key]['compile_time'] = []
+
+    def add(self, nmd):
+        self.data.append(nmd)
+
+        for key in nmd.run_times:
+            self._init_benchmark_data(key)
+
+            self.data_by_benchmark[key]['execution_time'].append({
+                'machine': nmd.machine_name,
+                'times': nmd.run_times[key]
+            })
+
+        for key in nmd.compile_times:
+            self._init_benchmark_data(key)
+
+            self.data_by_benchmark[key]['compile_time'].append({
+                'machine': nmd.machine_name,
+                'times': nmd.compile_times[key]
+            })
+
+    def data_for_benchmark(self, benchmark):
+        """ This returns a list of all NumpyMachineDatas held
+            that match the benchmark name.  """
+        return self.data_by_benchmark[benchmark]
+
+
+class NumpyMachineData(object):
+    def __init__(self, machine_name):
+        self.machine_name = machine_name
+        self.run_times = {}
+        self.compile_times = {}
+
+    def add_run(self, test_name, times_list):
+        self.run_times[test_name] = np.array(times_list)
+
+    def add_compile(self, test_name, times_list):
+        self.compile_times[test_name] = np.array(times_list)
+
+    def to_numpy(self):
+        """ This is an empty method so that NumpyMachineDataWrapper can
+            accept lists of this type and of Data type.  """
+        pass
+
+
+class DataItem(object):
     """ This stores the data for individual runs. """
     def __init__(self):
         self.execution_passed = None
@@ -118,17 +187,30 @@ class LNTDataItem(object):
                 self.compile_time is not None
 
 
-class LNTData(object):
+class Data(object):
     def __init__(self, machine_name, project_version):
         self.lnt_items = []
         self.machine_name = machine_name
         self.project_version = project_version
 
     def add(self, item):
-        # Require that all the fields of the LNTDataItem
+        # Require that all the fields of the DataItem
         # are defined.
         assert item.all_defined()
         self.lnt_items.append(item)
+
+    def to_numpy(self):
+        """ This function returns a list of numpy data items.  """
+        dictionary = self.to_dictionary()
+
+        data = NumpyMachineData(dictionary['machine']['name'])
+
+        for test in dictionary['tests']:
+            # Extract the compile times and the runtime separately.
+            data.add_run(test['name'], test['execution_time'])
+            data.add_compile(test['name'], test['compile_time'])
+
+        return data
 
     def to_dictionary(self, starttime=datetime.datetime.now().isoformat()):
         """ This function returns a dictionary in the style the LNT
@@ -207,7 +289,7 @@ class LNTData(object):
 def parse_output(output, used_perf):
     """ Given the output of a program as defined in the README,
         extract that output into a dictionary as expected by LNT.  """
-    lnt_data_item = LNTDataItem()
+    lnt_data_item = DataItem()
 
     if used_perf:
         # To do this, we convert the data to a base64 string as requested
@@ -252,7 +334,7 @@ def execute_benchmarks(compiler, benchmarks_list, compile_options,
 
     Return that data as a list of dictionaries, where each dictionary
     is as LNT expects it in input.  """
-    benchmark_data = LNTData(machine_name, project_version)
+    benchmark_data = Data(machine_name, project_version)
 
     for benchmark_folder in benchmarks_list:
         os.chdir('benchmarks/' + benchmark_folder)
