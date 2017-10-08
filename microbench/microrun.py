@@ -32,12 +32,22 @@ class Compiler(object):
         if use_perf:
             command = ['perf', 'record'] + command
 
-        return subprocess.check_output(['taskset', '-c', '1'] + command)
+        try:
+            return subprocess.check_output(['taskset', '-c', '1'] + command)
+        except CalledProcessError as e:
+            print e
+            return None
 
     def compile(self, command):
         # We use a rough approximation to the compilation time here.
         start = time.time()
-        subprocess.call(command)
+        try:
+            subprocess.call(command)
+        except CalledProcessError as e:
+            print e
+            # We allow any kind of error to fail silently here.
+            # This indicates that the build failed.
+            return None
         return time.time() - start
 
 
@@ -150,6 +160,9 @@ class DataItem(object):
         self.compile_time = None
         self.perf_data = None
 
+        self.compile_failed = True
+        self.run_failed = True
+
     def set_execution_time(self, time):
         self.execution_time = float(time)
 
@@ -179,6 +192,18 @@ class DataItem(object):
 
     def get_perf_data(self):
         return self.perf_data
+
+    def set_run_failed(self, failed):
+        self.run_failed = failed
+
+    def get_run_failed(self):
+        return self.run_failed
+
+    def set_compile_failed(self, failed):
+        self.compile_failed = failed
+
+    def get_compile_failed(self):
+        return self.run_failed
 
     def all_defined(self):
         return self.execution_passed is not None and \
@@ -233,6 +258,9 @@ class Data(object):
         for item in self.lnt_items:
             item_added = False
 
+            if item.get_compile_failed() or item.get_run_failed():
+                print "Benchmark + " item.get_benchmark_name() + " failed"
+
             for benchmark in tests_list:
                 # Scan through the already added items. If the
                 # item is already there, then append to that.
@@ -286,10 +314,20 @@ class Data(object):
         return json.dumps(self.to_dictionary(), sort_keys=True, indent=4)
 
 
-def parse_output(output, used_perf):
+def parse_output(output, compile_time, used_perf):
     """ Given the output of a program as defined in the README,
         extract that output into a dictionary as expected by LNT.  """
     lnt_data_item = DataItem()
+
+    if compile_time == None:
+        # The compile failed. Mark that and return.
+        lnt_data_item.set_compile_failed(True)
+        return lnt_data_item
+
+    if output == None:
+        # The run failed. Mark that and return
+        lnt_data_item.set_run_failed(True)
+        return lnt_data_item
 
     if used_perf:
         # To do this, we convert the data to a base64 string as requested
@@ -304,6 +342,7 @@ def parse_output(output, used_perf):
 
     # See the associated README.  That explains the expected
     # format of the output.
+    lnt_data_item.set_compile_time(compile_time)
 
     for line in output.split('\n'):
         if line.strip(' ').startswith('Execution Time:'):
@@ -345,9 +384,8 @@ def execute_benchmarks(compiler, benchmarks_list, compile_options,
             compile_time = compiler.compile('main.sml', compile_options)
             output = compiler.run(runtime_options, runtime_use_perf)
 
-            lnt_item = parse_output(output, runtime_use_perf)
+            lnt_item = parse_output(output, compile_time, runtime_use_perf)
             lnt_item.set_benchmark_name(name_prefix + benchmark_folder)
-            lnt_item.set_compile_time(compile_time)
 
             benchmark_data.add(lnt_item)
 
