@@ -34,16 +34,20 @@ class Compiler(object):
 
         try:
             return subprocess.check_output(['taskset', '-c', '1'] + command)
-        except CalledProcessError as e:
+        except subprocess.CalledProcessError as e:
             print e
             return None
 
     def compile(self, command):
+        # Delete the old executable if it exists
+        if os.path.exists(self.get_generated_executable()):
+            os.remove(self.get_generated_executable())
+
         # We use a rough approximation to the compilation time here.
         start = time.time()
         try:
             subprocess.call(command)
-        except CalledProcessError as e:
+        except subprocess.CalledProcessError as e:
             print e
             # We allow any kind of error to fail silently here.
             # This indicates that the build failed.
@@ -59,13 +63,16 @@ class CMLC(Compiler):
     def compile(self, filename, options):
         return Compiler.compile(self, self.executable + options + [filename])
 
+    def get_generated_executable(self):
+        return './a.out'
+
     def run(self, options, use_perf):
         command = ['java']
 
         if not self.jit:
             command += ['-Djava.compiler=None']
 
-        command += ['a.out']
+        command += [self.get_generated_executable()]
 
         return Compiler.run(self, command, use_perf)
 
@@ -74,11 +81,14 @@ class MOSML(Compiler):
     def __init__(self, executable=['mosmlc']):
         self.executable = executable
 
+    def get_generated_executable(self):
+        return './a.out'
+
     def compile(self, filename, options):
         return Compiler.compile(self, self.executable + options + [filename])
 
     def run(self, options, use_perf):
-        command = ['./a.out']
+        command = [self.get_generated_executable()]
 
         return Compiler.run(self, command, use_perf)
 
@@ -160,8 +170,8 @@ class DataItem(object):
         self.compile_time = None
         self.perf_data = None
 
-        self.compile_failed = True
-        self.run_failed = True
+        self.compile_failed = False
+        self.run_failed = False
 
     def set_execution_time(self, time):
         self.execution_time = float(time)
@@ -206,7 +216,9 @@ class DataItem(object):
         return self.run_failed
 
     def all_defined(self):
-        return self.execution_passed is not None and \
+        return (self.get_compile_failed() or \
+                self.get_run_failed()) or \
+                self.execution_passed is not None and \
                 self.execution_time is not None and \
                 self.benchmark_name is not None and \
                 self.compile_time is not None
@@ -257,14 +269,18 @@ class Data(object):
 
         for item in self.lnt_items:
             item_added = False
+            test_failed = False
 
             if item.get_compile_failed() or item.get_run_failed():
-                print "Benchmark + " item.get_benchmark_name() + " failed"
+                print "Benchmark " + item.get_benchmark_name() + " failed"
+                test_failed = True
 
             for benchmark in tests_list:
                 # Scan through the already added items. If the
                 # item is already there, then append to that.
                 if benchmark['name'] == item.get_benchmark_name():
+                    benchmark['failed'] = benchmark['failed'] or test_failed
+
                     benchmark['execution_time'].append(
                             item.get_execution_time())
                     benchmark['compile_time'].append(
@@ -286,7 +302,8 @@ class Data(object):
                     'name': item.get_benchmark_name(),
                     'execution_time': [item.get_execution_time()],
                     'compile_time': [item.get_compile_time()],
-                    'hash': item.get_execution_pass()
+                    'hash': item.get_execution_pass(),
+                    'failed': test_failed
                 })
 
         # Add the perf records.
