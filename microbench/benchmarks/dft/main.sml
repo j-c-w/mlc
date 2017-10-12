@@ -1,10 +1,22 @@
+(* The seeds are as from:
+* https://en.wikipedia.org/wiki/Lehmer_random_number_generator *)
+fun random(seed) = ((16807 * seed) mod 2147483647, (16807 * seed) mod 2147483647)
+
+fun randomlist(0, seed) = []
+  | randomlist(len, seed) = 
+  let
+    val (seed', value) = random(seed)
+  in
+    Real.fromInt(value) :: (randomlist(len - 1, seed'))
+  end
+
 fun zip [x] [y] = [(x, y)]
   | zip (x :: xs) (y :: ys) = (x, y) :: (zip xs ys)
 
 fun fft_list (n, random) = 
     let 
-      val x = Random.randomlist(n, random)
-      val y = Random.randomlist(n, random)
+      val x = randomlist(n, random)
+      val y = randomlist(n, random)
     in
       zip x y
     end
@@ -32,8 +44,9 @@ fun fourierElement _ _ ~1 _ = (0.0, 0.0)
   | fourierElement (input: (real * real) list) totalLength k n = 
 let
   val pi = 3.1415926
+  val two = 2.0
   val exponent = complex_times((0.0, 1.0),
-                               (2.0 * pi * Real.fromInt(n) * Real.fromInt(k) /
+                               (two * pi * Real.fromInt(n) * Real.fromInt(k) /
                                Real.fromInt(totalLength), 0.0))
 in 
   complex_sum(complex_times(at(input, k), e_pow(exponent)),
@@ -48,9 +61,10 @@ fun fft x fourierLength 0 = []
 
 fun fft_wrapper (x: (real * real) list) (n: int) = fft x n n
 
-fun check_result ([], sum) = (sum > 650.0) andalso (sum < 750.0)
+fun check_result ([], sum) = (sum > 1e11) andalso (sum < 1e14)
   | check_result ((x :: xs), sum) =
         check_result (xs, (sum + modulus(x)))
+
 
 fun main () =
   let 
@@ -62,7 +76,7 @@ fun main () =
       val length = 1000
       (* This yeilds the reverse of the traditional Fourier Transform. *)
       val result = fft_wrapper
-                    (fft_list(length, (Random.newgenseed(1.0)))) length
+                    (fft_list(length, 1)) length
     in 
       let
         val time = Timer.checkRealTimer(timer)
