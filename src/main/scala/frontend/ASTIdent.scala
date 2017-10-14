@@ -5,10 +5,7 @@ import sext._
 object ASTIdent {
   // This requires a special constructor to simplify the grammar.
   def fromSpecialCharacter(c: String) = c match {
-    case _ => {
-      println("Matching c " + c)
-      ASTIdentVar(c)
-    }
+    case _ => ASTIdentVar(c)
   }
 }
 
@@ -24,5 +21,22 @@ case class ASTLongIdent(val id: List[ASTIdent]) extends ASTIdent {
   def prettyPrint = (id map (_.prettyPrint)) mkString(".")
 }
 
-// TODO -- Add a lot of case classes for the special cases of
-// ASTIdent.
+case class Plus() extends ASTIdent {
+  def prettyPrint = "+"
+}
+
+case class Minus() extends ASTIdent {
+  def prettyPrint = "-"
+}
+
+case class Less() extends ASTIdent {
+  def prettyPrint = "<"
+}
+
+case class Greater() extends ASTIdent {
+  def prettyPrint = ">"
+}
+
+case class Equal() extends ASTIdent {
+  def prettyPrint = "="
+}

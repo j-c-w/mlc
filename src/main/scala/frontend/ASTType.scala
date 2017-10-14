@@ -28,3 +28,23 @@ case class ASTEqualityTypeVar(name: String) extends ASTTypeVar {
 case class ASTUnconstrainedTypeVar(name: String) extends ASTTypeVar {
   def prettyPrint = "'" + name
 }
+
+case class ASTIntType() extends ASTTypeVar {
+  def prettyPrint = "int"
+}
+
+case class ASTRealType() extends ASTTypeVar {
+  def prettyPrint = "real"
+}
+
+case class ASTStringType() extends ASTTypeVar {
+  def prettyPrint = "string"
+}
+
+case class ASTCharType() extends ASTTypeVar {
+  def prettyPrint = "char"
+}
+
+case class ASTDataTypeName(val name: String) extends ASTTypeVar {
+  def prettyPrint = name
+}

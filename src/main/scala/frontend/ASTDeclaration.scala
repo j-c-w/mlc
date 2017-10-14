@@ -12,7 +12,9 @@ sealed trait ASTDeclaration {
 case class ASTValBind(val ident: ASTIdent, val expression: ASTExp)
     extends ASTDeclaration {
   def prettyPrint = """
+
   val %s = %s
+
   """.format(ident.prettyPrint, expression.prettyPrint)
 }
 
@@ -23,14 +25,15 @@ case class ASTFunBind(cases: List[(ASTIdent, List[ASTPat],
     def prettyPrint = """
 
     fun %s
-    """.format(cases map {
+
+    """.format((cases map {
                   case (id, pat, None, exp) =>
                     "| " + id.prettyPrint + " " + (pat map (_.prettyPrint)).
                     mkString(" ") + " = " + exp.prettyPrint
                   case (id, pat, Some(typ), exp) => "| " + id.prettyPrint +
                     " " + (pat map (_.prettyPrint)).mkString(" ") + " : " +
                     typ.prettyPrint + " = " + exp.prettyPrint
-               }).mkString("\n")
+               }).mkString("\n"))
 }
 
 // Datatype definitions
@@ -42,7 +45,9 @@ case class ASTDataType(val ident: ASTIdent,
                        val classes: List[ASTDataConstructor])
                        extends ASTDataConstructor {
   def prettyPrint = """
+
   datatype %s = %s
+
   """.format(ident.prettyPrint, (classes map(_.prettyPrint)).mkString(" | "))
 }
 
@@ -54,5 +59,5 @@ case class ASTDataConstructorDefinition(val ident: ASTIdent)
 case class ASTDataConstructorDefinitionWithType(val ident: ASTIdent,
                                                 val classType: ASTType)
                                                 extends ASTDataConstructor {
-  def prettyPrint = ident.prettyPrint + " of " + classType
+  def prettyPrint = ident.prettyPrint + " of " + classType.prettyPrint
 }

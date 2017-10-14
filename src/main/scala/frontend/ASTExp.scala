@@ -42,6 +42,10 @@ case class ASTExpLetIn(val dec: List[ASTDeclaration], val exp: List[ASTExp])
              (exp map (_.prettyPrint)).mkString(";\n"))
 }
 
+case class ASTExpSeq(val seq: List[ASTExp]) extends ASTExp {
+  def prettyPrint = (seq map (_.prettyPrint)).mkString(";\n")
+}
+
 case class ASTExpTyped(val exp: ASTExp, val typ: ASTType) extends ASTExp {
   def prettyPrint = " %s : %s ".format(exp.prettyPrint, typ.prettyPrint)
 }
@@ -77,6 +81,6 @@ case class ASTExpMatchRow(val pat: ASTPat, val exp: ASTExp) extends ASTExp {
 }
 
 case class ASTExpFn(val body: List[ASTExpMatchRow]) extends ASTExp {
-  def prettyPrint = """(fn %s)""".format((body map (_.prettyPrint))).
-      mkString("\n| ")
+  def prettyPrint = """(fn %s)""".format((body map (_.prettyPrint)).
+      mkString("\n| "))
 }
