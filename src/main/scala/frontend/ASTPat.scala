@@ -33,3 +33,7 @@ case class ASTPatConst(val const: ASTConst, val typ: List[ASTType])
     extends ASTPat {
   def prettyPrint = const prettyPrint
 }
+
+case class ASTPatCons(val head: ASTPat, val tail: ASTPat) extends ASTPat {
+  def prettyPrint = "( %s :: %s )".format(head.prettyPrint, tail.prettyPrint)
+}

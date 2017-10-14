@@ -26,8 +26,18 @@ case class ASTExpInfixApp(val operator: ASTIdent, val operand1: ASTExp,
       operand2.prettyPrint
 }
 
+case class ASTExpUnOpApply(val operator: ASTUnOp, val operand: ASTExp)
+    extends ASTExp {
+  def prettyPrint = operator.prettyPrint + " (" + operand.prettyPrint + ")"
+}
+
+
 case class ASTExpTuple(val elems: List[ASTExp]) extends ASTExp {
   def prettyPrint = "(" + (elems map (_.prettyPrint)).mkString(", ") +  ")"
+}
+
+case class ASTExpList(val elems: List[ASTExp]) extends ASTExp {
+  def prettyPrint = "[" + (elems map (_.prettyPrint)).mkString(", ") +  "]"
 }
 
 case class ASTExpLetIn(val dec: List[ASTDeclaration], val exp: List[ASTExp])

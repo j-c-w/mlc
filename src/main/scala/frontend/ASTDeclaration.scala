@@ -9,13 +9,14 @@ sealed trait ASTDeclaration {
   def prettyPrint: String
 }
 
-case class ASTValBind(val ident: ASTIdent, val expression: ASTExp)
+case class ASTValBind(val ident: List[ASTIdent], val expression: ASTExp)
     extends ASTDeclaration {
   def prettyPrint = """
 
   val %s = %s
 
-  """.format(ident.prettyPrint, expression.prettyPrint)
+  """.format((ident map (_.prettyPrint)).mkString(", "),
+              expression.prettyPrint)
 }
 
 sealed trait ASTFun extends ASTDeclaration

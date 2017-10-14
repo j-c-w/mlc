@@ -21,22 +21,54 @@ case class ASTLongIdent(val id: List[ASTIdent]) extends ASTIdent {
   def prettyPrint = (id map (_.prettyPrint)) mkString(".")
 }
 
-case class Plus() extends ASTIdent {
+case class ASTConsIdent() extends ASTIdent {
+  def prettyPrint = "::"
+}
+
+case class ASTEmptyListIdent() extends ASTIdent {
+  def prettyPrint = "[]"
+}
+
+case class ASTUnitIdent() extends ASTIdent {
+  def prettyPrint = "()"
+}
+
+case class ASTPlusIdent() extends ASTIdent {
   def prettyPrint = "+"
 }
 
-case class Minus() extends ASTIdent {
+case class ASTMinusIdent() extends ASTIdent {
   def prettyPrint = "-"
 }
 
-case class Less() extends ASTIdent {
+case class ASTTimesIdent() extends ASTIdent {
+  def prettyPrint = "*"
+}
+
+case class ASTDivIdent() extends ASTIdent {
+  def prettyPrint = "/"
+}
+
+case class ASTStringCatIdent() extends ASTIdent {
+  def prettyPrint = "^"
+}
+
+case class ASTLTIdent() extends ASTIdent {
   def prettyPrint = "<"
 }
 
-case class Greater() extends ASTIdent {
+case class ASTLEQIdent() extends ASTIdent {
+  def prettyPrint = "<="
+}
+
+case class ASTGTIdent() extends ASTIdent {
   def prettyPrint = ">"
 }
 
-case class Equal() extends ASTIdent {
+case class ASTGEQIdent() extends ASTIdent {
+  def prettyPrint = ">="
+}
+
+case class ASTEqIdent() extends ASTIdent {
   def prettyPrint = "="
 }

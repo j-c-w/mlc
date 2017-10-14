@@ -29,12 +29,20 @@ case class ASTUnconstrainedTypeVar(name: String) extends ASTTypeVar {
   def prettyPrint = "'" + name
 }
 
+case class ASTListType() extends ASTTypeVar {
+  def prettyPrint = "list"
+}
+
 case class ASTIntType() extends ASTTypeVar {
   def prettyPrint = "int"
 }
 
 case class ASTRealType() extends ASTTypeVar {
   def prettyPrint = "real"
+}
+
+case class ASTBoolType() extends ASTTypeVar {
+  def prettyPrint = "bool"
 }
 
 case class ASTStringType() extends ASTTypeVar {
