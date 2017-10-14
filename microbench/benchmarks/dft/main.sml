@@ -5,9 +5,9 @@ fun random(seed) = ((16807 * seed) mod 2147483647, (16807 * seed) mod 2147483647
 fun randomlist(0, seed) = []
   | randomlist(len, seed) = 
   let
-    val (seed', value) = random(seed)
+    val (seed', rand) = random(seed)
   in
-    Real.fromInt(value) :: (randomlist(len - 1, seed'))
+    Real.fromInt(rand) :: (randomlist(len - 1, seed'))
   end
 
 fun zip [x] [y] = [(x, y)]
@@ -41,7 +41,7 @@ fun at ((x :: xs), 0) = x
   | at ((_ :: xs), n) = at(xs, (n - 1))
 
 fun fourierElement _ _ ~1 _ = (0.0, 0.0)
-  | fourierElement (input: (real * real) list) totalLength k n = 
+  | fourierElement (input) totalLength k n = 
 let
   val pi = 3.1415926
   val two = 2.0
@@ -59,7 +59,7 @@ fun fft x fourierLength 0 = []
                    Real.fromInt(fourierLength)))
       :: (fft x fourierLength (n - 1))
 
-fun fft_wrapper (x: (real * real) list) (n: int) = fft x n n
+fun fft_wrapper (x) (n: int) = fft x n n
 
 fun check_result ([], sum) = (sum > 1e11) andalso (sum < 1e14)
   | check_result ((x :: xs), sum) =
@@ -88,4 +88,4 @@ fun main () =
     end
   end
 
-val _ = main ();
+val a = main ()

@@ -65,10 +65,10 @@ fun do_test 0 = true
 
 fun main () = 
   let 
-    val timer = Timer.startRealTimer();
+    val timer = Timer.startRealTimer()
   in
     let
-      val result = do_test 100000;
+      val result = do_test 100000
       val res_str = if (result) then "pass" else "fail"
     in 
       let
@@ -80,4 +80,4 @@ fun main () =
     end
   end
 
-val _ = main ();
+val a = main ()
