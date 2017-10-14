@@ -1,0 +1,3 @@
+(* t-compile: *)
+
+val x = ()
