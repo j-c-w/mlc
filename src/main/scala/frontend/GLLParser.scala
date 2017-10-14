@@ -114,6 +114,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     | "-"               ^^ { (_) => ASTMinusIdent() }
     | "*"               ^^ { (_) => ASTTimesIdent() }
     | "/"               ^^ { (_) => ASTDivIdent() }
+    | "@"               ^^ { (_) => ASTAppendIdent() }
   )
 
   lazy val restrictedID: Parser[ASTIdent] = (

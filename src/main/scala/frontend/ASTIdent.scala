@@ -49,6 +49,10 @@ case class ASTDivIdent() extends ASTIdent {
   def prettyPrint = "/"
 }
 
+case class ASTAppendIdent() extends ASTIdent {
+  def prettyPrint = "@"
+}
+
 case class ASTStringCatIdent() extends ASTIdent {
   def prettyPrint = "^"
 }
