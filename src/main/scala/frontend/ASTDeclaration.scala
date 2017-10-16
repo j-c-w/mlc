@@ -1,13 +1,11 @@
 package frontend
 
-import sext._
+import toplev.GenericPrintable
 
 object ASTDeclaration
 
 // Top level definitions
-sealed trait ASTDeclaration {
-  def prettyPrint: String
-}
+sealed trait ASTDeclaration extends GenericPrintable
 
 case class ASTValBind(val ident: List[ASTIdent], val expression: ASTExp)
     extends ASTDeclaration {

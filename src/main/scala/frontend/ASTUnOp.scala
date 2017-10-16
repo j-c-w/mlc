@@ -1,12 +1,10 @@
 package frontend
 
-import sext._
+import toplev.GenericPrintable
 
 object ASTUnOp
 
-sealed trait ASTUnOp {
-  def prettyPrint: String
-}
+sealed trait ASTUnOp extends GenericPrintable
 
 case class ASTUnOpNegate() extends ASTUnOp {
   def prettyPrint = "~"

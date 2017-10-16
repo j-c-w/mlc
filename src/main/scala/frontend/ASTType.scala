@@ -1,12 +1,10 @@
 package frontend
 
-import sext._
+import toplev.GenericPrintable
 
 object ASTType
 
-sealed trait ASTType {
-  def prettyPrint: String
-}
+sealed trait ASTType extends GenericPrintable
 
 case class ASTTypeFunction(val arg: ASTType, val result: ASTType)
     extends ASTType {

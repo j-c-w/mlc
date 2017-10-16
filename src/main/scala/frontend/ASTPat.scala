@@ -1,12 +1,10 @@
 package frontend
 
-import sext._
+import toplev.GenericPrintable
 
 object ASTPat
 
-sealed trait ASTPat {
-  def prettyPrint: String
-}
+sealed trait ASTPat extends GenericPrintable
 
 case class ASTPatWildcard(val typ: List[ASTType]) extends ASTPat {
   def prettyPrint = "_"

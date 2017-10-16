@@ -1,17 +1,10 @@
 package frontend
 
-import sext._
+import toplev.GenericPrintable
 
-object ASTIdent {
-  // This requires a special constructor to simplify the grammar.
-  def fromSpecialCharacter(c: String) = c match {
-    case _ => ASTIdentVar(c)
-  }
-}
+object ASTIdent
 
-sealed trait ASTIdent {
-  def prettyPrint: String
-}
+sealed trait ASTIdent extends GenericPrintable
 
 case class ASTIdentVar(val id: String) extends ASTIdent {
   def prettyPrint = id

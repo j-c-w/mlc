@@ -2,14 +2,11 @@ package frontend
 
 import java.math.BigInteger
 import java.math.BigDecimal
-
-import sext._
+import toplev.GenericPrintable
 
 object ASTConst
 
-sealed trait ASTConst {
-  def prettyPrint: String
-}
+sealed trait ASTConst extends GenericPrintable
 
 // We use the really large formats so that the compiler
 // doesn't crash on input.
