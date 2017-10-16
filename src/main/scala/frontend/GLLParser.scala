@@ -14,12 +14,25 @@ import toplev.Pass
  * as do references to Omitted, Refactored etc.
  */
 
+/* Known issues:
+ *    We could be more acceptiong of ';'. The current parser
+ *    rejects them where they are harmless (but not useful).
+ *    It just means that other implementations compile things that
+ *    CMLC does not compile.
+ *
+ *    We could accept more variable names. Currently, any variable name
+ *    with a prefix that is a keyword is rejected.
+ *
+ *    Nested comments are currently not supported. They probably should
+ *    be.
+ */
+
 object GLLParser extends Pass[String, ASTProgram]("ast")
   with Parsers with RegexParsers {
   // This is used as a preliminary pass to strip comments
   // and excess whitespace.
   override def skipWhitespace = true
-  override val whiteSpace = """(\s|\(\*([^*]|\*[^)])*\*\))+"""r
+  override val whiteSpace = """(\s|\(\*(.*)\*\))+"""r
 
   // Constants
 
@@ -98,11 +111,9 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   lazy val id: Parser[ASTIdent] = (
     // Since these characters all have special meaning, we 
     // interpret them individually.
-      restrictedID
     // Note that these are ordered so as to keep any
     // that prefix any others at the bottom
-    | "::"              ^^ { (_) => ASTConsIdent() }
-    | "[" ~ "]"         ^^ { case (_ ~ _) => ASTEmptyListIdent() }
+      "::"              ^^ { (_) => ASTConsIdent() }
     | "(" ~ ")"         ^^ { case (_ ~ _) => ASTUnitIdent() }
     | "<="              ^^ { (_) => ASTLEQIdent() }
     | ">="              ^^ { (_) => ASTGEQIdent() }
@@ -115,12 +126,19 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     | "*"               ^^ { (_) => ASTTimesIdent() }
     | "/"               ^^ { (_) => ASTDivIdent() }
     | "@"               ^^ { (_) => ASTAppendIdent() }
+    | restrictedIDAllowList
+  )
+
+  lazy val restrictedIDAllowList: Parser[ASTIdent] = (
+      "[" ~ "]"         ^^ { case (_ ~ _) => ASTEmptyListIdent() }
+    | "nil"             ^^ { (_) => ASTEmptyListIdent() }
+    | restrictedID
   )
 
   lazy val restrictedID: Parser[ASTIdent] = (
     // We add the restrictions on the front as
     // keywords are not valid identifiers.
-    ("(?!fun|val|int|real|char|list|string|case|of|if|then|else|fn)" +
+    ("(?!fun|val|int|real|char|list|string|case|of|if|then|else|fn|nil)" +
       "[A-Za-z][A-Za-z0-9_']*").r
                          ^^  { (str) => ASTIdentVar(str) }
   )
@@ -278,7 +296,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
             => patTail._1(ASTPatWildcard(patTail._2)) }
     // Restricted here as special characters may not appear
     // in pat lists.
-    | restrictedID  ~ patTail           ^^ { case (id ~ patTail)
+    | restrictedIDAllowList  ~ patTail  ^^ { case (id ~ patTail)
             => patTail._1(ASTPatVariable(id, patTail._2)) }
     // Omitted: (op) longid (pat); construction
     // Omitted: (pat) id (pat)
@@ -399,7 +417,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     //  Omitted funmatch and funbind
   )
 
-  lazy val funmatch: Parser[ASTFun] = (
+  lazy val funmatch: Parser[ASTFunBind] = (
     // Omitted: (op) prefix
     // Restructured: replace pat1 ... patn with patN parser.
       restrictedID ~ patN ~ "=" ~ exp ~ "|" ~ funmatch             ^^ {

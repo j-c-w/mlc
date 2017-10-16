@@ -19,11 +19,10 @@ case class ASTValBind(val ident: List[ASTIdent], val expression: ASTExp)
               expression.prettyPrint)
 }
 
-sealed trait ASTFun extends ASTDeclaration
-
-case class ASTFunBind(cases: List[(ASTIdent, List[ASTPat],
-                                   Option[ASTType], ASTExp)]) extends ASTFun {
-    def prettyPrint = """
+case class ASTFunBind(val cases: List[(ASTIdent, List[ASTPat],
+                                       Option[ASTType], ASTExp)])
+      extends ASTDeclaration {
+  def prettyPrint = """
 
     fun %s
 
