@@ -4,7 +4,6 @@ import scala.util.parsing.combinator._
 import scala.util.parsing.input._
 import java.math.BigDecimal
 import java.math.BigInteger
-import sext._
 import toplev.Pass
 
 /* This file contains the parser description.  It has been
@@ -32,7 +31,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   // This is used as a preliminary pass to strip comments
   // and excess whitespace.
   override def skipWhitespace = true
-  override val whiteSpace = """(\s|\(\*(.*)\*\))+"""r
+  override val whiteSpace = """(?s)(\s|\(\*(.*)\*\))+"""r
 
   // Constants
 
@@ -398,18 +397,31 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
       // Omitted rec valbind
   )
 
-  lazy val valIDs: Parser[List[ASTIdent]] = (
+  lazy val valIDs: Parser[ASTIdentTuple] = (
       "(" ~> restrictedIDList <~ ")"
-    | restrictedID                    ^^ { (id) => List(id) }
+    | restrictedValID                    ^^ { (id) => ASTIdentTuple(List(id)) }
   )
 
-  lazy val restrictedIDList: Parser[List[ASTIdent]] = (
-      restrictedID ~ "," ~ restrictedIDList ^^ { case (id ~ _ ~ idList) =>
-              id :: idList
+  lazy val restrictedIDList: Parser[ASTIdentTuple] = (
+      "(" ~ restrictedIDList ~ ")" ~ "," ~ restrictedIDList ^^ {
+            case (_ ~ innerTuple ~ _ ~ _ ~ ASTIdentTuple(rest)) =>
+              ASTIdentTuple(innerTuple :: rest)
       }
-      | restrictedID                        ^^ { case (id) =>
-              List[ASTIdent](id)
+      | "(" ~> restrictedIDList <~ ")"             ^^ { case (innerTuple) =>
+              innerTuple
       }
+      | restrictedValID ~ "," ~ restrictedIDList   ^^ {
+            case (id ~ _ ~ ASTIdentTuple(idList)) =>
+              ASTIdentTuple(id :: idList)
+      }
+      | restrictedValID                            ^^ { case (id) =>
+              ASTIdentTuple(List(id))
+      }
+  )
+
+  lazy val restrictedValID: Parser[ASTIdent] = (
+      "_"                 ^^ { (_) => ASTUnderscoreIdent() }
+    | restrictedID
   )
 
   lazy val funbind: Parser[ASTDeclaration] = (
