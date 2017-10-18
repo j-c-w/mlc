@@ -1,4 +1,4 @@
-package exception
+package exceptions
 
 class UnreachableException(val reason: String)
     extends RuntimeException(reason) {
