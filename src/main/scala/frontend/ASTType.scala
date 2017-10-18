@@ -1,10 +1,11 @@
 package frontend
 
 import toplev.GenericPrintable
+import toplev.GenericType
 
 object ASTType
 
-sealed trait ASTType extends GenericPrintable
+sealed trait ASTType extends GenericPrintable with GenericType[ASTType]
 
 case class ASTTypeFunction(val arg: ASTType, val result: ASTType)
     extends ASTType {

@@ -5,16 +5,19 @@ import toplev.GenericPrintable
 object ASTDeclaration
 
 // Top level definitions
-sealed trait ASTDeclaration extends GenericPrintable
+sealed trait ASTDeclaration extends GenericPrintable {
+  def getIdent: ASTIdent
+}
 
-case class ASTValBind(val ident: List[ASTIdent], val expression: ASTExp)
+case class ASTValBind(val ident: ASTIdentTuple, val expression: ASTExp)
     extends ASTDeclaration {
   def prettyPrint = """
 
   val %s = %s
 
-  """.format((ident map (_.prettyPrint)).mkString(", "),
-              expression.prettyPrint)
+  """.format(ident.prettyPrint, expression.prettyPrint)
+
+  def getIdent = ident
 }
 
 case class ASTFunBind(val cases: List[(ASTIdent, List[ASTPat],
@@ -32,6 +35,15 @@ case class ASTFunBind(val cases: List[(ASTIdent, List[ASTPat],
                     " " + (pat map (_.prettyPrint)).mkString(" ") + " : " +
                     typ.prettyPrint + " = " + exp.prettyPrint
                }).mkString("\n"))
+
+  def getIdent = {
+    assert(cases.length > 0)
+
+    // Note that this may be called before typechecking.
+    // Therefore, we may not assume that all the function names
+    // are the same.
+    cases(0)._1
+  }
 }
 
 // Datatype definitions
@@ -47,15 +59,21 @@ case class ASTDataType(val ident: ASTIdent,
   datatype %s = %s
 
   """.format(ident.prettyPrint, (classes map(_.prettyPrint)).mkString(" | "))
+
+  def getIdent = ident
 }
 
 case class ASTDataConstructorDefinition(val ident: ASTIdent)
                                         extends ASTDataConstructor {
   def prettyPrint = ident.prettyPrint
+
+  def getIdent = ident
 }
 
 case class ASTDataConstructorDefinitionWithType(val ident: ASTIdent,
                                                 val classType: ASTType)
                                                 extends ASTDataConstructor {
   def prettyPrint = ident.prettyPrint + " of " + classType.prettyPrint
+
+  def getIdent = ident
 }

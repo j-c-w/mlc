@@ -14,6 +14,14 @@ case class ASTLongIdent(val id: List[ASTIdent]) extends ASTIdent {
   def prettyPrint = (id map (_.prettyPrint)) mkString(".")
 }
 
+case class ASTIdentTuple(val ids: List[ASTIdent]) extends ASTIdent {
+  def prettyPrint = (ids map (_.prettyPrint)) mkString(", ")
+}
+
+case class ASTUnderscoreIdent() extends ASTIdent {
+  def prettyPrint = "_"
+}
+
 case class ASTConsIdent() extends ASTIdent {
   def prettyPrint = "::"
 }
