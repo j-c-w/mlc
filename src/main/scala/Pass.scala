@@ -1,7 +1,7 @@
 package toplev
 
 import utils.FileUtils
-import exception.UnreachableException
+import exceptions.UnreachableException
 
 /*
  * This is a class that provides a base class for

@@ -1,6 +1,8 @@
 package toplev
 
 import scala.collection.mutable.{Map,HashMap}
+
+import exceptions._
 /*
  *
  * This is a generic type environment. It provides
@@ -14,8 +16,9 @@ import scala.collection.mutable.{Map,HashMap}
  * a nesting level are unique.
  */
 
-abstract class GenericTypeEnv[TypeEnvClass, From <: GenericPrintable,
-                              To <: GenericPrintable]
+abstract class GenericTypeEnv[TypeEnvClass,
+                              From <: GenericPrintable,
+                              To <: GenericPrintable with GenericType[To]]
                (val parent: Option[GenericTypeEnv[TypeEnvClass, From, To]]) {
   def this() = this(None)
 
@@ -30,6 +33,37 @@ abstract class GenericTypeEnv[TypeEnvClass, From <: GenericPrintable,
 
   def hasType(id: From): Boolean = 
     map.contains(id) || parent.map(_.hasType(id)).getOrElse(false)
+
+  def add(id: From, typ: To): Unit = {
+    map(id) = typ
+  }
+
+  /* This function automatically validates that the variable it is
+   * replacing is OK to replace with the one replacing it.
+   *
+   * Throw a runtime exception if that is not OK.
+   *
+   * This should be used unless you are really sure that it is OK.
+   */
+  def updateId(id: From, newTyp: To): Unit = {
+    if (map(id).specializesTo(newTyp))
+      map(id) = newTyp
+    else
+      throw new TypeAssignmentException()
+  }
+
+  def updateIdNoValidate(id: From, newTyp: To): Unit = {
+    map(id) = newTyp
+  }
+
+  /* This method finds all instances of 'oldTyp' and replaces
+   * them with instances of 'newTyp'.
+   */
+  def updateTyp(oldTyp: To, newTyp: To): Unit = {
+
+  }
+
+
   
   // Todo -- implement more methods as required. Will definitely need
   // a set function. A get function is likely to be needed for function
