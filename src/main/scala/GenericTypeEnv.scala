@@ -9,7 +9,7 @@ import exceptions._
  *
  * Note that  the map is inherently mutable.
  *
- * The parent stores the parent type environment, 
+ * The parent stores the parent type environment,
  * to allow for variable name overloading. Note
  * that since typechecking has already occured, we
  * can assume that all variables identifiers within
@@ -31,7 +31,7 @@ abstract class GenericTypeEnv[TypeEnvClass,
   """.format(map.map(pair => pair._1.prettyPrint + ": " + pair._2.prettyPrint)
              .mkString("\n"))
 
-  def hasType(id: From): Boolean = 
+  def hasType(id: From): Boolean =
     map.contains(id) || parent.map(_.hasType(id)).getOrElse(false)
 
   def add(id: From, typ: To): Unit = {
@@ -63,8 +63,9 @@ abstract class GenericTypeEnv[TypeEnvClass,
 
   }
 
+  def get(id: From): Option[To] =
+    map.get(id)
 
-  
   // Todo -- implement more methods as required. Will definitely need
   // a set function. A get function is likely to be needed for function
   // specialization.
