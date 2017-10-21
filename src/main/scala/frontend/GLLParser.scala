@@ -36,7 +36,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   // This is used as a preliminary pass to strip comments
   // and excess whitespace.
   override def skipWhitespace = true
-  override val whiteSpace = """(?s)(\s|\(\*(.*)\*\))+"""r
+  override val whiteSpace = """(?s)(\s|\(\*(.*?)\*\))+"""r
 
   // Constants
 
