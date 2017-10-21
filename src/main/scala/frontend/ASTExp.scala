@@ -40,6 +40,10 @@ case class ASTExpList(val elems: List[ASTExp]) extends ASTExp {
 
 case class ASTExpLetIn(val dec: List[ASTDeclaration], val exp: List[ASTExp])
     extends ASTExp {
+  // Nodes that restrict scope must have their own typing environments.
+  // These are filled during the typecheck pass.
+  var typeEnv: Option[ASTTypeEnv] = None
+
   def prettyPrint = """
   let
     %s

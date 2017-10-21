@@ -47,13 +47,13 @@ case class ASTFunBind(val cases: List[(ASTIdent, List[ASTPat],
 }
 
 // Datatype definitions
-sealed trait ASTDataConstructor extends ASTDeclaration {
+sealed trait ASTDataConstructor {
   def prettyPrint: String
 }
 
 case class ASTDataType(val ident: ASTIdent,
                        val classes: List[ASTDataConstructor])
-                       extends ASTDataConstructor {
+                       extends ASTDeclaration {
   def prettyPrint = """
 
   datatype %s = %s

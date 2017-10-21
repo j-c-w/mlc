@@ -24,6 +24,11 @@ import toplev.Pass
  *
  *    Nested comments are currently not supported. They probably should
  *    be.
+ *
+ *    Type annotations on patterns are currently not supported. They probably
+ *    should be.
+ *
+ *    'list' may not be used as a type annotation.
  */
 
 object GLLParser extends Pass[String, ASTProgram]("ast")
@@ -178,9 +183,11 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     | "bool"                               ^^ { (_) =>
                 ASTBoolType()
     }
-    | "list"                               ^^ { (_) =>
-                ASTListType()
-    }
+    // We currently don't support using lists explicitly
+    // as types. To be fixed in future
+    // | "list"                               ^^ { (_) =>
+    //             ASTListType()
+    // }
     | "[A-Za-z][A-Za-z0-9_']*".r           ^^ { (name) =>
                 ASTDataTypeName(name)
     }

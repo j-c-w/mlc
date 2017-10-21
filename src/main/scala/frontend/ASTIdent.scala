@@ -77,3 +77,13 @@ case class ASTGEQIdent() extends ASTIdent {
 case class ASTEqIdent() extends ASTIdent {
   def prettyPrint = "="
 }
+
+sealed trait ASTUnOp extends ASTIdent
+
+case class ASTUnOpNegate() extends ASTUnOp {
+  def prettyPrint = "~"
+}
+
+case class ASTUnOpNot() extends ASTUnOp {
+  def prettyPrint = "not"
+}
