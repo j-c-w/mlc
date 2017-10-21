@@ -6,4 +6,4 @@
 val x = 1
 val y = 1 + x
 
-(* t-scan-not: ASTLongIdent: short_id.sml.0.ast *)
+(* t-scan-not: ASTLongIdent: ast *)

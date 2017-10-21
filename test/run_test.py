@@ -6,6 +6,7 @@
 import argparse
 import atexit
 import fnmatch
+import glob
 import os
 import re
 import shutil
@@ -58,11 +59,24 @@ class Test(object):
 
 
     def run_scans(self, directory, filename):
+        """ Filename points  to the original location of the
+        test for the sake of the log message. 'source_name' points
+        to the compiled source for the sake of scanner.  """
         print 'running scans in ', directory
         print 'for filename ', filename
         results = []
 
-        for regex, dumpfile, times in self.scans:
+        for regex, dumpfile_affix, times in self.scans:
+            filename_only = os.path.basename(os.path.normpath(filename))
+            dumpfiles = glob.glob(filename_only + "*" + dumpfile_affix)
+
+            if len(dumpfiles) != 1:
+                results += ['FAIL: Dumpfiles specified by ' + dumpfile_affix +
+                            ' not unique. Files were : ' + str(dumpfiles)]
+                continue
+
+            dumpfile = dumpfiles[0]
+
             if not os.path.exists(dumpfile):
                 results += ["FAIL: No dumpfile " + dumpfile + " for filename " \
                            + filename]
@@ -136,6 +150,8 @@ def extract_information(filename):
         (* t-scan-times-N: [pattern] : dumpfilename *)
 
         Where in the last 'N' is some natural.
+        'dumpfilename' is the name of the last part of the dumpfile,
+        e.g. in test.sml.0.ast, dumpfilename should be 'ast'
         """
 
     test_data = Test()

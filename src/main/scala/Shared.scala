@@ -8,4 +8,5 @@ package toplev
 
 object Shared {
   var filename: String = null
+  var debug: Boolean = false
 }

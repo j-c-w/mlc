@@ -18,6 +18,7 @@ object Toplev extends App {
   }
 
   Shared.filename = file.toString
+  Shared.debug = cli.debug()
 
   val code = FileUtils.readFileToString(file, StandardCharsets.UTF_8)
   val tree = GLLParser.execute(code, cli.dumpAst())
