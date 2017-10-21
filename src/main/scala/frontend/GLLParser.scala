@@ -205,7 +205,11 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     | unOp ~ exp ~ expTail           ^^ { case (unop ~ exp ~ expTail)
             => expTail(ASTExpUnOpApply(unop, exp)) }
     | longid ~ expTail               ^^ { case (id ~ expTail)
-            => expTail(ASTExpIdent(id)) }
+      => id match {
+          case ASTLongIdent(id :: Nil) => expTail(ASTExpIdent(id))
+          case ASTLongIdent(ids) => expTail(ASTExpIdent(ASTLongIdent(ids)))
+      }
+    }
     // Note that () and [] are treated as special values are so
     // are not considered as part of these expressions.
     | "(" ~ exp ~ ")" ~ expTail      ^^ { case (_ ~ exp ~ _ ~ expTail) =>
