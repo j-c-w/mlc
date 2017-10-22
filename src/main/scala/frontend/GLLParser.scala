@@ -526,7 +526,6 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
         null
       }
       case Success(tree, _) => {
-        println("Success")
         new ASTProgram(tree)
       }
     }
