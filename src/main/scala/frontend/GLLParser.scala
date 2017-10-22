@@ -19,9 +19,6 @@ import toplev.Pass
  *    It just means that other implementations compile things that
  *    CMLC does not compile.
  *
- *    We could accept more variable names. Currently, any variable name
- *    with a prefix that is a keyword is rejected.
- *
  *    Nested comments are currently not supported. They probably should
  *    be.
  *
@@ -142,8 +139,12 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   lazy val restrictedID: Parser[ASTIdent] = (
     // We add the restrictions on the front as
     // keywords are not valid identifiers.
-    ("(?!fun|val|int|real|char|list|string|case|of|if|then|else|fn|nil)" +
-      "[A-Za-z][A-Za-z0-9_']*").r
+    ("(?!fun[^A-Za-z0-9_']|val[^A-Za-z0-9_']|int[^A-Za-z0-9_']|" +
+      "real[^A-Za-z0-9_']|char[^A-Za-z0-9_']|list[^A-Za-z0-9_']|" +
+      "string[^A-Za-z0-9_']|case[^A-Za-z0-9_']|of[^A-Za-z0-9_']|" +
+      "if[^A-Za-z0-9_']|then[^A-Za-z0-9_']|else[^A-Za-z0-9_']|" +
+      "fn[^A-Za-z0-9_']|nil[^A-Za-z0-9_']|let[^A-Za-z0-9_']|" +
+      "in[^A-Za-z0-9_']|end[^A-Za-z0-9_'])([A-Za-z][A-Za-z0-9_']*)").r
                          ^^  { (str) => ASTIdentVar(str) }
   )
 
@@ -204,12 +205,6 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     // Inserted: UnOp ~ exp for dealing with unary operations
     | unOp ~ exp ~ expTail           ^^ { case (unop ~ exp ~ expTail)
             => expTail(ASTExpUnOpApply(unop, exp)) }
-    | longid ~ expTail               ^^ { case (id ~ expTail)
-      => id match {
-          case ASTLongIdent(id :: Nil) => expTail(ASTExpIdent(id))
-          case ASTLongIdent(ids) => expTail(ASTExpIdent(ASTLongIdent(ids)))
-      }
-    }
     // Note that () and [] are treated as special values are so
     // are not considered as part of these expressions.
     | "(" ~ exp ~ ")" ~ expTail      ^^ { case (_ ~ exp ~ _ ~ expTail) =>
@@ -243,6 +238,14 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     | "case" ~ exp ~ "of" ~ matchPat ^^ { case (_ ~ exp ~ _ ~ matchPat) =>
               ASTExpCase(exp, matchPat) }
     | "fn" ~ matchPat        ^^ { case (_ ~ body) => ASTExpFn(body) }
+    // This is moved here from it's location in the original grammar
+    // to avoid picking up 'fn', 'case', 'if', etc as IDs
+    | longid ~ expTail               ^^ { case (id ~ expTail)
+      => id match {
+          case ASTLongIdent(id :: Nil) => expTail(ASTExpIdent(id))
+          case ASTLongIdent(ids) => expTail(ASTExpIdent(ASTLongIdent(ids)))
+      }
+    }
   )
 
   lazy val expTail: Parser[ASTExp => ASTExp] = (
