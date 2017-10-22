@@ -41,7 +41,7 @@ case class ASTTypeFunction(val arg: ASTType,
   def prettyPrint = " %s -> %s ".format(arg, result)
   def contains(other: ASTType) =
     arg.contains(other) || result.contains(other)
-  def unify(other: ASTType) = other match {
+  override def unify(other: ASTType) = other match {
     case (ASTTypeFunction(a1, r1)) =>
       ASTTypeFunction((arg unify a1), (result unify r1))
     case (ASTUnconstrainedTypeVar(name)) =>
@@ -54,10 +54,10 @@ case class ASTTypeFunction(val arg: ASTType,
 // To avoid ambiguity, there must be at least two
 // types in this type.
 case class ASTTypeTuple(val args: List[ASTType]) extends ASTType {
-  def prettyPrint = " " + args.mkString(" * ") + " "
+  def prettyPrint = " " + (args.map(_.prettyPrint)).mkString(" * ") + " "
   def contains(other: ASTType) =
     args.exists((x) => x.contains(other))
-  def unify(other: ASTType) = other match {
+  override def unify(other: ASTType) = other match {
     case (ASTTypeTuple(typeSeq)) => {
       if (args.length != typeSeq.length) {
         throw new UnificationError(ASTTypeTuple(args),
@@ -97,7 +97,7 @@ case class ASTEqualityTypeVar(name: String) extends ASTTypeVar {
    * this function pushes the unification of that into most other
    * types.
    */
-  def unify(other: ASTType) = other match {
+  override def unify(other: ASTType) = other match {
     case ASTEqualityTypeVar(otherName) =>
       this
     case other => other.unify(this)
@@ -111,7 +111,7 @@ case class ASTUnconstrainedTypeVar(name: String) extends ASTTypeVar {
     case ASTUnconstrainedTypeVar(otherName) => otherName == name
     case _ => false
   }
-  def unify(other: ASTType) =
+  override def unify(other: ASTType) =
     if (other.contains(this))
       throw new UnificationError(this, other)
     else
@@ -122,7 +122,7 @@ case class ASTUnconstrainedTypeVar(name: String) extends ASTTypeVar {
 case class ASTListType(subType: ASTType) extends ASTTypeVar {
   def prettyPrint = subType.prettyPrint + " list"
   def contains(other: ASTType) = subType.contains(other)
-  def unify(other: ASTType) = other match {
+  override def unify(other: ASTType) = other match {
     case ASTListType(typ) => ASTListType(subType.unify(typ))
     case ASTEqualityTypeVar(name) => {
       ASTListType(subType.unify(TypeVariableGenerator.getEqualityVar()))
@@ -132,6 +132,7 @@ case class ASTListType(subType: ASTType) extends ASTTypeVar {
         throw new UnificationError(this, tyVar)
       else
         this
+    case _ => throw new UnificationError(this, other)
   }
   val isAtomic = false
 }
@@ -150,7 +151,7 @@ case class ASTNumberType() extends ASTTypeVar {
   def contains(other: ASTType) = false
   val isAtomic = true
 
-  def unify(other: ASTType) = other match {
+  override def unify(other: ASTType) = other match {
     case ASTNumberType() => this
     case ASTRealType() => other
     case ASTIntType() => other
@@ -165,7 +166,7 @@ case class ASTIntType() extends ASTTypeVar {
   def contains(other: ASTType) = false
   val isAtomic = true
 
-  def unify(other: ASTType) = other match {
+  override def unify(other: ASTType) = other match {
     case ASTNumberType() => this
     case ASTIntType() => this
     case ASTUnconstrainedTypeVar(name) => this
@@ -179,7 +180,7 @@ case class ASTRealType() extends ASTTypeVar {
   def contains(other: ASTType) = false
   val isAtomic = true
 
-  def unify(other: ASTType) = other match {
+  override def unify(other: ASTType) = other match {
     case ASTNumberType() => this
     case ASTRealType() => this
     case ASTUnconstrainedTypeVar(name) => this
@@ -191,7 +192,7 @@ case class ASTBoolType() extends ASTTypeVar {
   def prettyPrint = "bool"
   def contains(other: ASTType) = false
   val isAtomic = true
-  def unify(other: ASTType) = other match {
+  override def unify(other: ASTType) = other match {
     case ASTBoolType() => this
     case ASTUnconstrainedTypeVar(name) => this
     case ASTEqualityTypeVar(name) => this
@@ -203,7 +204,7 @@ case class ASTStringType() extends ASTTypeVar {
   def prettyPrint = "string"
   def contains(other: ASTType) = false
   val isAtomic = true
-  def unify(other: ASTType) = other match {
+  override def unify(other: ASTType) = other match {
     case ASTStringType() => this
     case ASTUnconstrainedTypeVar(name) => this
     case ASTEqualityTypeVar(name) => this
@@ -215,7 +216,7 @@ case class ASTCharType() extends ASTTypeVar {
   def prettyPrint = "char"
   def contains(other: ASTType) = false
   val isAtomic = true
-  def unify(other: ASTType) = other match {
+  override def unify(other: ASTType) = other match {
     case ASTCharType() => this
     case ASTUnconstrainedTypeVar(name) => this
     case ASTEqualityTypeVar(name) => this
@@ -227,7 +228,7 @@ case class ASTDataTypeName(val name: String) extends ASTTypeVar {
   def prettyPrint = name
   def contains(other: ASTType) = false
   val isAtomic = true
-  def unify(other: ASTType) = other match {
+  override def unify(other: ASTType) = other match {
     case ASTDataTypeName(otherName) => 
       if (name == otherName)
         this
