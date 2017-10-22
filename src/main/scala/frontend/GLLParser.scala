@@ -164,34 +164,38 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   lazy val tyvar: Parser[ASTTypeVar] = (
     // Restructure: Avoid ambiguity between unconstrained and
     // equality types. Use regex to avoid various space issues.
-      "'[A-Za-z][A-Za-z0-9_']*".r          ^^ { (name) =>
-                ASTUnconstrainedTypeVar(name) }
-    | "''[A-Za-z0-9_']+".r                 ^^ { (name) =>
-                ASTEqualityTypeVar(name) }
+    "'[A-Za-z][A-Za-z0-9_']*".r ~ tyvarTail  ^^ { case (name ~ tail) =>
+                tail(ASTUnconstrainedTypeVar(name)) }
+    | "''[A-Za-z0-9_']+".r ~ tyvarTail       ^^ { case (name ~ tail) =>
+                tail(ASTEqualityTypeVar(name)) }
     // These are inserted as the grammar has omitted them.
-    | "int"                                ^^ { (_) =>
-                ASTIntType()
+    | "int" ~ tyvarTail                      ^^ { case (_ ~ tail) =>
+                tail(ASTIntType())
     }
-    | "real"                               ^^ { (_) =>
-                ASTRealType()
+    | "real" ~ tyvarTail                     ^^ { case (_ ~ tail) =>
+                tail(ASTRealType())
     }
-    | "string"                             ^^ { (_) =>
-                ASTStringType()
+    | "string" ~ tyvarTail                   ^^ { case (_ ~ tail) =>
+                tail(ASTStringType())
     }
-    | "char"                               ^^ { (_) =>
-                ASTCharType()
+    | "char" ~ tyvarTail                     ^^ { case (_ ~ tail) =>
+                tail(ASTCharType())
     }
-    | "bool"                               ^^ { (_) =>
-                ASTBoolType()
+    | "bool" ~ tyvarTail                     ^^ { case (_ ~ tail) =>
+                tail(ASTBoolType())
     }
-    // We currently don't support using lists explicitly
-    // as types. To be fixed in future
-    // | "list"                               ^^ { (_) =>
-    //             ASTListType()
-    // }
-    | "[A-Za-z][A-Za-z0-9_']*".r           ^^ { (name) =>
-                ASTDataTypeName(name)
+    // Refactored: Lists are the tail here because they are
+    // left recursive
+    | "[A-Za-z][A-Za-z0-9_']*".r ~ tyvarTail ^^ { case (name ~ tail) =>
+                tail(ASTDataTypeName(name))
     }
+  )
+
+  lazy val tyvarTail: Parser[ASTTypeVar => ASTTypeVar] = (
+    "list" ~ tyvarTail                     ^^ { case (_ ~ tail) =>
+      ((ty: ASTTypeVar) => tail(ASTListType(ty)))
+    }
+    | ""                                   ^^ { (_) => ((x: ASTTypeVar) => x) }
   )
 
   // Omitted: letter, digit. They cause issues with the lexing and
