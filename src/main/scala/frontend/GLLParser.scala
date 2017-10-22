@@ -14,7 +14,7 @@ import toplev.Pass
  */
 
 /* Known issues:
- *    We could be more acceptiong of ';'. The current parser
+ *    We could be more accepting of ';'. The current parser
  *    rejects them where they are harmless (but not useful).
  *    It just means that other implementations compile things that
  *    CMLC does not compile.
@@ -24,8 +24,6 @@ import toplev.Pass
  *
  *    Type annotations on patterns are currently not supported. They probably
  *    should be.
- *
- *    'list' may not be used as a type annotation.
  */
 
 object GLLParser extends Pass[String, ASTProgram]("ast")
@@ -144,7 +142,8 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
       "string[^A-Za-z0-9_']|case[^A-Za-z0-9_']|of[^A-Za-z0-9_']|" +
       "if[^A-Za-z0-9_']|then[^A-Za-z0-9_']|else[^A-Za-z0-9_']|" +
       "fn[^A-Za-z0-9_']|nil[^A-Za-z0-9_']|let[^A-Za-z0-9_']|" +
-      "in[^A-Za-z0-9_']|end[^A-Za-z0-9_'])([A-Za-z][A-Za-z0-9_']*)").r
+      "in[^A-Za-z0-9_']|end[^A-Za-z0-9_']|orelse[^A-Aa-z0-9_']|" +
+      "andalso[^A-Za-z0-9_'])([A-Za-z][A-Za-z0-9_']*)").r
                          ^^  { (str) => ASTIdentVar(str) }
   )
 
