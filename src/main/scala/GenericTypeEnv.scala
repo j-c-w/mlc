@@ -66,7 +66,6 @@ abstract class GenericTypeEnv[TypeEnvClass,
   def get(id: From): Option[To] =
     map.get(id)
 
-  // Todo -- implement more methods as required. Will definitely need
-  // a set function. A get function is likely to be needed for function
-  // specialization.
+  def apply(id: From): Option[To] =
+    get(id)
 }

@@ -32,6 +32,21 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
   }
 
   /*
+   * We also provide a per variable type unification.
+   * This is required for some intermediate stages in the type
+   * checking
+   */
+  def apply(from: TypeVariable) = {
+    if (hasType(from))
+      map(from)
+    else
+      // This is the chosen semantics here because it means that
+      // if this map specializes the type, then it specializes it,
+      // and otherwise it does nothing.
+      from
+  }
+
+  /*
    * This must do two things. It must first check whether the specialization
    * makes sense. It must further check that the specialization is on
    * atomic types only (i.e. 'a -> int). All other unifications make no
@@ -60,4 +75,7 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
   def specializeNV(from: TypeVariable, to: TypeVariable) = {
     map(from) = to
   }
+
+  private def hasType(typ: TypeVariable) =
+    map.contains(typ)
 }
