@@ -11,4 +11,7 @@ class ASTUnifier extends GenericUnifier[ASTType] {
   override def isValidSpecialization(from: ASTType, to: ASTType) = {
     from.isAtomic && ASTType.isValidSpecialization(from, to)
   }
+
+  override def unify(t: ASTType, u: ASTType) =
+    ASTType.unify(t, u)
 }
