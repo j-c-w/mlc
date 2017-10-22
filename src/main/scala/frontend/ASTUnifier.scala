@@ -4,6 +4,11 @@ import toplev.GenericUnifier
 
 object ASTUnifier {
   def apply() = new ASTUnifier()
+  def apply(from: ASTType, to: ASTType) = {
+    val unifier = new ASTUnifier()
+    unifier.specialize(from, to)
+    unifier
+  }
 }
 
 class ASTUnifier extends GenericUnifier[ASTType] {
@@ -14,4 +19,7 @@ class ASTUnifier extends GenericUnifier[ASTType] {
 
   override def unify(t: ASTType, u: ASTType) =
     ASTType.unify(t, u)
+
+  override def specializeTo(from: ASTType, to: ASTType) =
+    from specializeTo to
 }
