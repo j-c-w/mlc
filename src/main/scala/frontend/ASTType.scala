@@ -53,6 +53,12 @@ sealed trait ASTType extends GenericPrintable with GenericType[ASTType] {
   // each type variable leaf.
   def typeClone: ASTType
 
+  /* This takes all instances of 'subFor' in this type and
+   * replaces them with 'subIn'.
+   */
+  def substitueFor(subFor: ASTType, subIn: ASTType): ASTType
+
+
   /* Note that this is a little bit of a trick case. It may throw
    * exceptions! Consider if you call ASTNumberType.admitsEquality..
    * What should the result be?
@@ -108,6 +114,13 @@ case class ASTTypeFunction(val arg: ASTType,
         ASTUnifier(other, this)
     case _ => throw new UnificationError(this, other)
   }
+
+  def substitueFor(subFor: ASTType, subIn: ASTType) =
+    if (this.equals(subFor))
+      subIn
+    else
+      new ASTTypeFunction(arg.substitueFor(subFor, subIn),
+                          result.substitueFor(subFor, subIn))
 
   def typeClone = new ASTTypeFunction(arg.typeClone, result.typeClone)
 
@@ -183,6 +196,12 @@ case class ASTTypeTuple(val args: List[ASTType]) extends ASTType {
     case _ => throw new UnificationError(this, other)
   }
 
+  def substitueFor(subFor: ASTType, subIn: ASTType) =
+    if (this.equals(subFor))
+      subIn
+    else
+      new ASTTypeTuple(args.map(x => x.substitueFor(subFor, subIn)))
+
   def typeClone = new ASTTypeTuple(args.map(_.typeClone))
 
   def admitsEquality = throw new ICE(""" Tuple.admitsEquality may not
@@ -232,6 +251,12 @@ case class ASTEqualityTypeVar(name: String) extends ASTTypeVar {
     case _ => other.unify(this)
   }
 
+  def substitueFor(subFor: ASTType, subIn: ASTType) =
+    if (this.equals(subFor))
+      subIn
+    else
+      this
+
   def typeClone = TypeVariableGenerator.getEqualityVar()
 
   def admitsEquality = true
@@ -259,6 +284,12 @@ case class ASTUnconstrainedTypeVar(name: String) extends ASTTypeVar {
         ASTUnifier(this, other)
     case _ => ASTUnifier(this, other)
   }
+
+  def substitueFor(subFor: ASTType, subIn: ASTType) =
+    if (this.equals(subFor))
+      subIn
+    else
+      this
 
   def typeClone = TypeVariableGenerator.getVar()
 
@@ -296,6 +327,12 @@ case class ASTListType(subType: ASTType) extends ASTTypeVar {
     case _ => throw new UnificationError(this, other)
   }
 
+  def substitueFor(subFor: ASTType, subIn: ASTType) =
+    if (this.equals(subFor))
+      subIn
+    else
+      ASTListType(subType.substitueFor(subFor, subIn))
+
   def typeClone = new ASTListType(subType.typeClone)
   
   def admitsEquality = false
@@ -319,6 +356,12 @@ case class ASTNumberType(id: String) extends ASTTypeVar {
     case ASTNumberType(otherID) => otherID == id
     case _ => false
   }
+
+  def substitueFor(subFor: ASTType, subIn: ASTType) =
+    if (this.equals(subFor))
+      subIn
+    else
+      this
 
   def typeClone = TypeVariableGenerator.getNumberTypeVar()
 
@@ -366,6 +409,12 @@ case class ASTIntType() extends ASTTypeVar {
 
   def contains(other: ASTType) = other.isInstanceOf[ASTIntType]
 
+  def substitueFor(subFor: ASTType, subIn: ASTType) =
+    if (this.equals(subFor))
+      subIn
+    else
+      this
+
   def typeClone = new ASTIntType()
 
   def admitsEquality = true
@@ -391,6 +440,12 @@ case class ASTRealType() extends ASTTypeVar {
 
   def contains(other: ASTType) = other.isInstanceOf[ASTRealType]
 
+  def substitueFor(subFor: ASTType, subIn: ASTType) =
+    if (this.equals(subFor))
+      subIn
+    else
+      this
+
   def typeClone = new ASTRealType()
 
   def admitsEquality = false
@@ -414,6 +469,12 @@ case class ASTBoolType() extends ASTTypeVar {
   def prettyPrint = "bool"
 
   def contains(other: ASTType) = other.isInstanceOf[ASTBoolType]
+
+  def substitueFor(subFor: ASTType, subIn: ASTType) =
+    if (this.equals(subFor))
+      subIn
+    else
+      this
 
   def typeClone = new ASTBoolType()
 
@@ -439,6 +500,12 @@ case class ASTStringType() extends ASTTypeVar {
 
   def contains(other: ASTType) = other.isInstanceOf[ASTStringType]
 
+  def substitueFor(subFor: ASTType, subIn: ASTType) =
+    if (this.equals(subFor))
+      subIn
+    else
+      this
+
   def typeClone = new ASTStringType()
 
   def admitsEquality = true
@@ -463,6 +530,12 @@ case class ASTCharType() extends ASTTypeVar {
 
   def contains(other: ASTType) = other.isInstanceOf[ASTCharType]
 
+  def substitueFor(subFor: ASTType, subIn: ASTType) =
+    if (this.equals(subFor))
+      subIn
+    else
+      this
+
   def typeClone = new ASTCharType()
 
   def admitsEquality = true
@@ -486,6 +559,12 @@ case class ASTDataTypeName(val name: String) extends ASTTypeVar {
   def prettyPrint = name
 
   def contains(other: ASTType) = ???
+
+  def substitueFor(subFor: ASTType, subIn: ASTType) =
+    if (this.equals(subFor))
+      subIn
+    else
+      this
 
   def typeClone = new ASTDataTypeName(name)
 
