@@ -12,6 +12,10 @@ trait GenericType[TypeClass <: GenericPrintable
                                with GenericType[TypeClass]] {
   def unify(typ: TypeClass): GenericUnifier[TypeClass]
 
+  def contains(otherType: TypeClass): Boolean
+
+  def substitueFor(subFor: TypeClass, subIn: TypeClass): TypeClass
+
   def specializesTo(otherType: TypeClass): Boolean
 
 }

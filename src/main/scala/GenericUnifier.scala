@@ -24,10 +24,37 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
         specializeNV(key, value)
       }
     }
+
+    selfApply()
+  }
+
+  /* This function applies the map to itself, removing any redundancies.
+   *
+   * For example, in the map:
+   *
+   *  'a -> int
+   *  'b -> 'a list
+   *
+   * This updates the map with:
+   *
+   *  'a -> int
+   *  'b -> int list
+   *
+   * It is costly O(n^2), so is only applied when it has to be.
+   */
+  private def selfApply(): Unit = {
+    for ((key, value) <- map) {
+      for ((otherKey, otherValue) <- map) {
+        if (otherValue.contains(key)) {
+          map(otherKey) = otherValue.substitueFor(key, value)
+        }
+      }
+    }
   }
 
   def apply[TypeEnvClass, From <: GenericPrintable]
         (env: GenericTypeEnv[TypeEnvClass, From, TypeVariable]) = {
+    selfApply()
     for ((key, value) <- map) {
       // We get all the elements of the map that are sufficiently
       // set.
@@ -35,6 +62,8 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
       // A trivial optimization if this is running too slowly is
       // to not recompute this every time and just compute the differences
       // in the maps
+      //
+      // TODO -- TAKE NOTE OF POLYTYPES HERE
       env.map.map{ case (k, e) => (k, e) }.foreach[Unit] {
         case (envKey: From, envValue: TypeVariable) =>
           if (envValue == value) {
