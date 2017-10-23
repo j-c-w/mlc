@@ -8,9 +8,10 @@ package toplev
  *
  */
 
-trait GenericType[TypeClass] {
-  def unify(typ: TypeClass): TypeClass = ???
+trait GenericType[TypeClass <: GenericPrintable
+                               with GenericType[TypeClass]] {
+  def unify(typ: TypeClass): GenericUnifier[TypeClass]
 
-  def specializesTo(otherType: TypeClass): Boolean = ???
+  def specializesTo(otherType: TypeClass): Boolean
 
 }

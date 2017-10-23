@@ -22,7 +22,7 @@ abstract class GenericTypeEnv[TypeEnvClass,
                (val parent: Option[GenericTypeEnv[TypeEnvClass, From, To]]) {
   def this() = this(None)
 
-  private val map: Map[From, To] = HashMap[From, To]()
+  val map: Map[From, To] = HashMap[From, To]()
 
   def prettyPrint = """
 

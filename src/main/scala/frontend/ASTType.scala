@@ -6,16 +6,10 @@ import toplev.GenericType
 import typecheck.TypeVariableGenerator
 
 object ASTType {
-  def unify(t1: ASTType, t2: ASTType): ASTType = t1 unify t2
+  def unify(t1: ASTType, t2: ASTType): ASTUnifier = t1 unify t2
 
   def isValidSpecialization(from: ASTType, to: ASTType) = {
-    // This is implemented in terms of the unify function. The logic
-    // is as follows:
-    //    if we can unify the two types, and the result is the same
-    //    as the 'to', then from must specialize to to.
-    val resType = from unify to
-
-    (resType equals to)
+    from.specializesTo(to)
   }
 }
 
@@ -28,10 +22,29 @@ sealed trait ASTType extends GenericPrintable with GenericType[ASTType] {
   /* This was originally in the companion object. However, due to the vast
    * number of special cases, this is no longer put there.
    */
-  def unify(other: ASTType): ASTType
+  override def unify(other: ASTType): ASTUnifier = {
+    if (this.contains(other) || other.contains(this)) {
+      if (other equals this)
+        ASTUnifier()
+      else
+        throw new UnificationError(this, other)
+    } else {
+      mguNoCyclicCheck(other)
+    }
+  }
+
+  /* This finds MGUs. However, id does not do the cyclic check.
+   * For that, the unify function should be called.
+   */
+  def mguNoCyclicCheck(other: ASTType): ASTUnifier
 
   // This specializes one type to another.
   def specializeTo(other: ASTType): ASTUnifier
+
+  def specializesTo(other: ASTType): Boolean = {
+    specializeTo(other)
+    true
+  }
 
   def equals(other: ASTType): Boolean =
     this.contains(other) && other.contains(this)
@@ -79,11 +92,20 @@ case class ASTTypeFunction(val arg: ASTType,
     case _ => throw new SpecializationError(this, other)
   }
 
-  override def unify(other: ASTType) = other match {
-    case (ASTTypeFunction(a1, r1)) =>
-      ASTTypeFunction((arg unify a1), (result unify r1))
+  override def mguNoCyclicCheck(other: ASTType): ASTUnifier = other match {
+    case ASTTypeFunction(otherArg, otherResult) => {
+      val argUnifier = arg.unify(otherArg)
+      val resUnifier = argUnifier(result).unify(argUnifier(otherResult))
+
+      argUnifier mgu resUnifier
+
+      argUnifier
+    }
     case (ASTUnconstrainedTypeVar(name)) =>
-      this
+      if (this.contains(other)) 
+        throw new UnificationError(this, other)
+      else
+        ASTUnifier(other, this)
     case _ => throw new UnificationError(this, other)
   }
 
@@ -109,7 +131,7 @@ case class ASTTypeTuple(val args: List[ASTType]) extends ASTType {
 
   override def specializeTo(other: ASTType): ASTUnifier = other match {
     case ASTTypeTuple(otherArgs) => {
-      if (args.length == otherArgs.length) {
+      if (args.length != otherArgs.length) {
         throw new SpecializationError(this, other)
       } else {
         val unifiers = (args zip otherArgs) map {
@@ -125,28 +147,40 @@ case class ASTTypeTuple(val args: List[ASTType]) extends ASTType {
     case _ => throw new SpecializationError(this, other)
   }
 
-  override def unify(other: ASTType) = other match {
+  override def mguNoCyclicCheck(other: ASTType): ASTUnifier = other match {
     case (ASTTypeTuple(typeSeq)) => {
-      if (args.length != typeSeq.length) {
-        throw new UnificationError(ASTTypeTuple(args),
-                                   ASTTypeTuple(typeSeq))
-      } else {
-        ASTTypeTuple(((args zip typeSeq) map {
-            case (x: ASTType, y: ASTType) => x unify y
-        }))
+      if (args.length != typeSeq.length)
+        throw new UnificationError(this, other)
+      else {
+        val mgu = ASTUnifier()
+
+        (args zip typeSeq) foreach {
+          case (arg, otherArg) => {
+            val intermediateUnifier = mgu(arg).unify(mgu(otherArg))
+            mgu.mgu(intermediateUnifier)
+          }
+        }
+
+        mgu
       }
     }
-    case (ASTUnconstrainedTypeVar(name)) =>
-      this
-    case (ASTEqualityTypeVar(name)) => {
-      // This is a hard case.
-      // We approach it by generating a tuple of equality type
-      // variables, and attempting to unify those two.
+    case ASTUnconstrainedTypeVar(name) => {
+      ASTUnifier(other, this)
+    }
+    case ASTEqualityTypeVar(name) => {
+      // This is a hard case again.
       val equalityTyps = TypeVariableGenerator.getEqualityVars(args.length)
 
-      this.unify(ASTTypeTuple(equalityTyps))
+      val unifier = this.unify(ASTTypeTuple(equalityTyps))
+
+      // If that did not crash, we still need that MGU as it might
+      // require some specializations from within the tuple
+      // It is OK to have all the superfluous mappings as the variables
+      // they map from won't be used again.
+      unifier.specializeNV(other, this)
+      unifier
     }
-    case (_) => throw new UnificationError(this, other)
+    case _ => throw new UnificationError(this, other)
   }
 
   def typeClone = new ASTTypeTuple(args.map(_.typeClone))
@@ -189,14 +223,13 @@ case class ASTEqualityTypeVar(name: String) extends ASTTypeVar {
         throw new SpecializationError(this, other)
   }
 
-  /* Because deciding whether some type admits equality or not,
-   * this function pushes the unification of that into most other
-   * types.
-   */
-  override def unify(other: ASTType) = other match {
+  override def mguNoCyclicCheck(other: ASTType) = other match {
     case ASTEqualityTypeVar(otherName) =>
-      this
-    case other => other.unify(this)
+      if (this.name == otherName)
+        ASTUnifier()
+      else
+        ASTUnifier(this, other)
+    case _ => other.unify(this)
   }
 
   def typeClone = TypeVariableGenerator.getEqualityVar()
@@ -218,11 +251,14 @@ case class ASTUnconstrainedTypeVar(name: String) extends ASTTypeVar {
     case _ => ASTUnifier(this, other)
   }
 
-  override def unify(other: ASTType) =
-    if (other.contains(this))
-      throw new UnificationError(this, other)
-    else
-      other
+  override def mguNoCyclicCheck(other: ASTType) = other match {
+    case ASTUnconstrainedTypeVar(otherName) =>
+      if (otherName == this.name)
+        ASTUnifier()
+      else
+        ASTUnifier(this, other)
+    case _ => ASTUnifier(this, other)
+  }
 
   def typeClone = TypeVariableGenerator.getVar()
 
@@ -242,20 +278,21 @@ case class ASTListType(subType: ASTType) extends ASTTypeVar {
   }
 
   override def specializeTo(other: ASTType) = other match {
-    case ASTListType(otherSubType) => subType specializeTo other
+    case ASTListType(otherSubType) => subType specializeTo otherSubType
     case _ => throw new SpecializationError(this, other)
   }
 
-  override def unify(other: ASTType) = other match {
-    case ASTListType(typ) => ASTListType(subType.unify(typ))
+  override def mguNoCyclicCheck(other: ASTType) = other match {
+    case ASTListType(typ) => subType unify typ
     case ASTEqualityTypeVar(name) => {
-      ASTListType(subType.unify(TypeVariableGenerator.getEqualityVar()))
+      val typVar = TypeVariableGenerator.getEqualityVar()
+
+      val mgu = subType.unify(typVar)
+      mgu.specializeNV(other, this)
+      mgu
     }
-    case tyVar @ ASTUnconstrainedTypeVar(name) =>
-      if (this.contains(tyVar))
-        throw new UnificationError(this, tyVar)
-      else
-        this
+    case ASTUnconstrainedTypeVar(name) =>
+      ASTUnifier(other, this)
     case _ => throw new UnificationError(this, other)
   }
 
@@ -299,15 +336,27 @@ case class ASTNumberType(id: String) extends ASTTypeVar {
 
   override def specializeTo(other: ASTType) = other match {
     case ASTNumberType(otherID) => ASTUnifier(this, other)
+    case ASTRealType() => ASTUnifier(this, other)
+    case ASTIntType() => ASTUnifier(this, other)
     case _ => throw new SpecializationError(this, other)
   }
 
-  override def unify(other: ASTType) = other match {
-    case ASTNumberType(otherID) => this
-    case ASTRealType() => other
-    case ASTIntType() => other
-    case ASTUnconstrainedTypeVar(name) => this
-    case ASTEqualityTypeVar(name) => ASTIntType()
+  override def mguNoCyclicCheck(other: ASTType) = other match {
+    case ASTNumberType(otherID) =>
+      if (id == otherID)
+        ASTUnifier()
+      else
+        ASTUnifier(other, this)
+    case ASTRealType() => ASTUnifier(this, other)
+    case ASTIntType() => ASTUnifier(this, other)
+    case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
+    case ASTEqualityTypeVar(name) => {
+      val unifier = ASTUnifier()
+
+      unifier.specializeNV(other, ASTRealType())
+      unifier.specializeNV(this, ASTRealType())
+      unifier
+    }
     case _ => throw new UnificationError(this, other)
   }
 }
@@ -328,11 +377,11 @@ case class ASTIntType() extends ASTTypeVar {
     case _ => throw new SpecializationError(this, other)
   }
 
-  override def unify(other: ASTType) = other match {
-    case ASTNumberType(_) => this
-    case ASTIntType() => this
-    case ASTUnconstrainedTypeVar(name) => this
-    case ASTEqualityTypeVar(name) => this
+  override def mguNoCyclicCheck(other: ASTType) = other match {
+    case ASTNumberType(_) => ASTUnifier(other, this)
+    case ASTIntType() => ASTUnifier()
+    case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
+    case ASTEqualityTypeVar(name) => ASTUnifier(other, this)
     case _ => throw new UnificationError(this, other)
   }
 }
@@ -353,10 +402,10 @@ case class ASTRealType() extends ASTTypeVar {
     case _ => throw new SpecializationError(this, other)
   }
 
-  override def unify(other: ASTType) = other match {
-    case ASTNumberType(_) => this
-    case ASTRealType() => this
-    case ASTUnconstrainedTypeVar(name) => this
+  override def mguNoCyclicCheck(other: ASTType) = other match {
+    case ASTNumberType(_) => ASTUnifier(other, this)
+    case ASTRealType() => ASTUnifier()
+    case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
     case _ => throw new UnificationError(this, other)
   }
 }
@@ -377,10 +426,10 @@ case class ASTBoolType() extends ASTTypeVar {
     case _ => throw new SpecializationError(this, other)
   }
 
-  override def unify(other: ASTType) = other match {
-    case ASTBoolType() => this
-    case ASTUnconstrainedTypeVar(name) => this
-    case ASTEqualityTypeVar(name) => this
+  override def mguNoCyclicCheck(other: ASTType) = other match {
+    case ASTBoolType() => ASTUnifier()
+    case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
+    case ASTEqualityTypeVar(name) => ASTUnifier(other, this)
     case _ => throw new UnificationError(this, other)
   }
 }
@@ -401,10 +450,10 @@ case class ASTStringType() extends ASTTypeVar {
     case _ => throw new SpecializationError(this, other)
   }
 
-  override def unify(other: ASTType) = other match {
-    case ASTStringType() => this
-    case ASTUnconstrainedTypeVar(name) => this
-    case ASTEqualityTypeVar(name) => this
+  override def mguNoCyclicCheck(other: ASTType) = other match {
+    case ASTStringType() => ASTUnifier()
+    case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
+    case ASTEqualityTypeVar(name) => ASTUnifier(other, this)
     case _ => throw new UnificationError(this, other)
   }
 }
@@ -425,10 +474,10 @@ case class ASTCharType() extends ASTTypeVar {
     case _ => throw new SpecializationError(this, other)
   }
 
-  override def unify(other: ASTType) = other match {
-    case ASTCharType() => this
-    case ASTUnconstrainedTypeVar(name) => this
-    case ASTEqualityTypeVar(name) => this
+  override def mguNoCyclicCheck(other: ASTType) = other match {
+    case ASTCharType() => ASTUnifier()
+    case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
+    case ASTEqualityTypeVar(name) => ASTUnifier(other, this)
     case _ => throw new UnificationError(this, other)
   }
 }
@@ -448,14 +497,14 @@ case class ASTDataTypeName(val name: String) extends ASTTypeVar {
     case _ => ???
   }
 
-  override def unify(other: ASTType) = other match {
+  override def mguNoCyclicCheck(other: ASTType) = other match {
     case ASTDataTypeName(otherName) => 
       if (name == otherName)
-        this
+        ASTUnifier()
       else
         throw  new UnificationError(this, other)
-    case ASTUnconstrainedTypeVar(name) => this
-    case ASTEqualityTypeVar(name) => this
+    case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
+    case ASTEqualityTypeVar(name) => ASTUnifier(other, this)
     case _ => throw new UnificationError(this, other)
   }
 }

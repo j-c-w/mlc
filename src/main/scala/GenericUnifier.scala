@@ -17,9 +17,9 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
     for ((key, value) <- other.map) {
       if (map.contains(key)) {
         // Then we must check that any specialzation is valid.
-        val enteredType = unify(value, map(key))
+        // val enteredType = unify(value, map(key))
 
-        specializeNV(key, enteredType)
+        specializeNV(key, value)
       } else {
         specializeNV(key, value)
       }
@@ -28,7 +28,20 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
 
   def apply[TypeEnvClass, From <: GenericPrintable]
         (env: GenericTypeEnv[TypeEnvClass, From, TypeVariable]) = {
-                                                      ???
+    for ((key, value) <- map) {
+      // We get all the elements of the map that are sufficiently
+      // set.
+
+      // A trivial optimization if this is running too slowly is
+      // to not recompute this every time and just compute the differences
+      // in the maps
+      env.map.map{ case (k, e) => (k, e) }.foreach[Unit] {
+        case (envKey: From, envValue: TypeVariable) =>
+          if (envValue == value) {
+            env.add(envKey, value)
+          }
+      }
+    }
   }
 
   /*
@@ -47,6 +60,28 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
   }
 
   /*
+   * Function specialization is more difficult as it requires
+   * preserving the types on the function.
+   *
+   * This function takes 'from' and 'to' and inserts the mappings
+   * required in 'to' to give it a type that is compatable with from.
+   *
+   * Example usage is:
+   *
+   *    specializeTo(FunType(int, int), FunType('a, 'a))
+   *
+   * Would add the mappings 'a -> int in.
+   *
+   * But, something like
+   *
+   *    specializeTo(FunType('a, 'a), FunType(int, int))
+   *
+   * adds the EMPTY unifier. (since the 'to' argument does not
+   * need to be specialized).
+   */
+  def specializeTo(from: TypeVariable, to: TypeVariable): Unit
+
+  /*
    * This must do two things. It must first check whether the specialization
    * makes sense. It must further check that the specialization is on
    * atomic types only (i.e. 'a -> int). All other unifications make no
@@ -54,19 +89,11 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
    */
   def isValidSpecialization(from: TypeVariable, to: TypeVariable): Boolean
 
-  // This is a function that is used locally to implement the MGU algorithm.
-  // It is generally implementable by a single large case statement.
-  // This is allowed (and expected) to fail.
-  protected def unify(t: TypeVariable, u: TypeVariable): TypeVariable
-
   // This function adds the specialization TYP -> TYP into the 
   // unifier.
-  def specialize(from: TypeVariable, to: TypeVariable) = {
+  def specializeVerify(from: TypeVariable, to: TypeVariable) =
     if (isValidSpecialization(from, to))
       specializeNV(from, to)
-    else
-      throw new ICE("Error: Specialize verification failed. This is a bug.")
-  }
 
   // This adds the specilaiztion Typ -> Typ into the unifier
   // without verification that it is a sensible thing to do.
@@ -78,4 +105,11 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
 
   private def hasType(typ: TypeVariable) =
     map.contains(typ)
+
+  def mapSize() = map.size
+
+  def prettyPrint =  """Unifying
+  %s
+  """.format(map.map{ case (from, to) =>
+      from.prettyPrint +  " -> " + to.prettyPrint }.mkString("\n"))
 }

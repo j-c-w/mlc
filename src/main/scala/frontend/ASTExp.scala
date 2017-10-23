@@ -15,7 +15,7 @@ case class ASTExpIdent(val ident: ASTIdent) extends ASTExp {
 }
 
 case class ASTExpFunApp(val fun: ASTExp, val app: ASTExp) extends ASTExp {
-  def prettyPrint = "(" + fun.prettyPrint + ")" + "(" + app + ")"
+  def prettyPrint = "(" + fun.prettyPrint + ")" + "(" + app.prettyPrint + ")"
 
   // This stores the call type. It is set by the type inference.
   // For example, if this is +(1,  2), then the type
