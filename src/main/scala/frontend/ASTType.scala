@@ -3,6 +3,7 @@ package frontend
 import exceptions._
 import toplev.GenericPrintable
 import toplev.GenericType
+import toplev.TypeClassSet
 import typecheck.TypeVariableGenerator
 
 object ASTType {
@@ -34,6 +35,11 @@ sealed trait ASTType extends GenericPrintable with GenericType[ASTType] {
    * This ONLY WORKS if the type 'other' is atomic
    */
   def containsAtomic(other: ASTType): Boolean
+
+  /* This returns a set of all the type variables contained
+   * within this type.
+   */
+  def getTypeVars(): TypeClassSet[ASTType]
 
   /* This was originally in the companion object. However, due to the vast
    * number of special cases, this is no longer put there.
@@ -105,6 +111,9 @@ case class ASTTypeFunction(val arg: ASTType,
   override def containsAtomic(other: ASTType) =
     arg.containsAtomic(other) || result.containsAtomic(other)
 
+  override def getTypeVars() =
+    (arg.getTypeVars()) union (result.getTypeVars())
+
   override def specializeTo(other: ASTType): ASTUnifier = other match {
     case ASTTypeFunction(otherArg, otherResult) => {
       val argUnifier = arg.specializeTo(otherArg)
@@ -163,6 +172,10 @@ case class ASTTypeTuple(val args: List[ASTType]) extends ASTType {
 
   override def containsAtomic(other: ASTType) =
     args.exists(_.containsAtomic(other))
+
+  override def getTypeVars() =
+    args.foldRight (ASTTypeSet()) {
+        case (typ, set) => set union (typ.getTypeVars()) }
 
   override def specializeTo(other: ASTType): ASTUnifier = other match {
     case ASTTypeTuple(otherArgs) => {
@@ -244,6 +257,9 @@ case class ASTEqualityTypeVar(name: String) extends ASTTypeVar {
 
   override def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
+  override def getTypeVars() =
+    ASTTypeSet(this)
+
   override def specializeTo(other: ASTType) = other match {
     case ASTTypeTuple(typs) => {
       // We cheat in this case. We create N new type equality vars
@@ -298,6 +314,8 @@ case class ASTUnconstrainedTypeVar(name: String) extends ASTTypeVar {
 
   override def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
+  override def getTypeVars() =
+    ASTTypeSet(this)
 
   override def specializeTo(other: ASTType) = other match {
     case _ => ASTUnifier(this, other)
@@ -337,6 +355,9 @@ case class ASTListType(subType: ASTType) extends ASTTypeVar {
 
   override def containsAtomic(other: ASTType) =
     subType.containsAtomic(other)
+
+  override def getTypeVars() =
+    subType.getTypeVars()
 
   override def specializeTo(other: ASTType) = other match {
     case ASTListType(otherSubType) => subType specializeTo otherSubType
@@ -409,6 +430,9 @@ case class ASTNumberType(id: String) extends ASTTypeVar {
 
   val isAtomic = true
 
+  override def getTypeVars() =
+    ASTTypeSet(this)
+
   override def specializeTo(other: ASTType) = other match {
     case ASTNumberType(otherID) => ASTUnifier(this, other)
     case ASTRealType() => ASTUnifier(this, other)
@@ -455,6 +479,8 @@ case class ASTIntType() extends ASTTypeVar {
 
   val isAtomic = true
 
+  override def getTypeVars() = ASTTypeSet()
+
   override def specializeTo(other: ASTType) = other match {
     case ASTIntType() => ASTUnifier()
     case _ => throw new SpecializationError(this, other)
@@ -488,6 +514,8 @@ case class ASTRealType() extends ASTTypeVar {
 
   val isAtomic = true
 
+  override def getTypeVars() = ASTTypeSet()
+
   override def specializeTo(other: ASTType) = other match {
     case ASTRealType() => ASTUnifier()
     case _ => throw new SpecializationError(this, other)
@@ -519,6 +547,8 @@ case class ASTBoolType() extends ASTTypeVar {
   def admitsEquality = true
 
   val isAtomic = true
+
+  override def getTypeVars() = ASTTypeSet()
 
   override def specializeTo(other: ASTType) = other match {
     case ASTBoolType() => ASTUnifier()
@@ -552,6 +582,8 @@ case class ASTStringType() extends ASTTypeVar {
 
   val isAtomic = true
 
+  override def getTypeVars() = ASTTypeSet()
+
   override def specializeTo(other: ASTType) = other match {
     case ASTStringType() => ASTUnifier()
     case _ => throw new SpecializationError(this, other)
@@ -584,6 +616,8 @@ case class ASTCharType() extends ASTTypeVar {
 
   val isAtomic = true
 
+  override def getTypeVars() = ASTTypeSet()
+
   override def specializeTo(other: ASTType) = other match {
     case ASTCharType() => ASTUnifier()
     case _ => throw new SpecializationError(this, other)
@@ -615,6 +649,8 @@ case class ASTDataTypeName(val name: String) extends ASTTypeVar {
   def admitsEquality = ???
 
   val isAtomic = true
+
+  override def getTypeVars() = ASTTypeSet()
 
   override def specializeTo(other: ASTType) = other match {
     case _ => ???

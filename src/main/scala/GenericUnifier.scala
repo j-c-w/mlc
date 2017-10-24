@@ -9,6 +9,11 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
                                               with GenericType[TypeVariable]] {
   private val map = new HashMap[TypeVariable, TypeVariable]()
 
+  // This keeps track of any newly entered variables so
+  // that only variables that are relevant are applied to each
+  // other.
+  private var newMap = new HashMap[TypeVariable, Boolean]()
+
   /* This function MODIFIES THIS UNIFIER!
    * The unifier returned is a new unifier
    * representing both this and the passed unifier.
@@ -39,14 +44,54 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
    * It is costly O(n^2), so is only applied when it has to be.
    */
   private def selfApply(): Unit = {
+    if (noneNew()) {
+      // If there are no new entires, it is not worth going
+      // through the table.
+      return
+    }
+
     for ((key, value) <- map) {
       for ((otherKey, otherValue) <- map) {
-        if (otherValue.contains(key)) {
+        if ((isNew(otherKey) || isNew(key)) && otherValue.contains(key)) {
           map(otherKey) = otherValue.substitueFor(key, value)
         }
       }
     }
+
+    setNoneNew()
   }
+
+  def selfApply(from: TypeVariable) = {
+    var newType = map(from)
+    var tyVars = newType.getTypeVars()
+
+    while (tyVars.size > 0) {
+      tyVars.filter(x => map.contains(x))
+      // We do this to empty the set and fill
+      // it up appropriately
+
+      for (tyVar <- tyVars) {
+        newType = newType.substitueFor(tyVar, map(tyVar))
+      }
+
+      tyVars = newType.getTypeVars()
+    }
+
+    map(from) = newType
+  }
+
+  private def isNew(variable: TypeVariable) =
+    newMap.contains(variable)
+
+  private def setNoneNew() = {
+    newMap = new HashMap[TypeVariable, Boolean]()
+  }
+
+  private def setNew(variable: TypeVariable) =
+    newMap(variable) = true
+
+  private def noneNew(): Boolean =
+    newMap.size == 0
 
   def apply[TypeEnvClass, From <: GenericPrintable]
         (env: GenericTypeEnv[TypeEnvClass, From, TypeVariable]) = {
@@ -75,8 +120,10 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
    * checking
    */
   def apply(from: TypeVariable) = {
-    if (hasType(from))
+    if (hasType(from)) {
+      selfApply(from)
       map(from)
+    }
     else
       // This is the chosen semantics here because it means that
       // if this map specializes the type, then it specializes it,
@@ -126,6 +173,7 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
   // Only atomic specializations are allowed.
   def specializeNV(from: TypeVariable, to: TypeVariable) = {
     map(from) = to
+    newMap(from) = true
   }
 
   private def hasType(typ: TypeVariable) =
