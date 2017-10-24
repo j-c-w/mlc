@@ -18,11 +18,29 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
    * The unifier returned is a new unifier
    * representing both this and the passed unifier.
    */
-  def mgu(other: GenericUnifier[TypeVariable]): Unit = {
+  def mguSpecialize(other: GenericUnifier[TypeVariable]): Unit = {
     for ((key, value) <- other.map) {
       if (map.contains(key)) {
         // Then we must check that any specialzation is valid.
-        specializeTo(map(key), value)
+        // This specializes any sub parts of the type
+        // that need to be specialized. This unifier then
+        // needs to be unified with this unifier.
+        val unifier = specializeTo(map(key), value)
+        map(key) = unifier(map(key))
+      } else {
+        specializeNV(key, value)
+      }
+    }
+  }
+
+  def mguUnify(other: GenericUnifier[TypeVariable]): Unit = {
+    for ((key, value) <- other.map) {
+      if (map.contains(key)) {
+        // This specializes any sub parts of the type
+        // that need to be specialized. This unifier then
+        // needs to be unified with this unifier.
+        val unifier = unifyTo(map(key), value)
+        map(key) = unifier(map(key))
       } else {
         specializeNV(key, value)
       }
@@ -149,7 +167,16 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
    * adds the EMPTY unifier. (since the 'to' argument does not
    * need to be specialized).
    */
-  def specializeTo(from: TypeVariable, to: TypeVariable): Unit
+  def specializeTo(from: TypeVariable,
+                   to: TypeVariable): GenericUnifier[TypeVariable]
+
+  /* This is the same as 'specializeTo', but it unifies
+   * (i.e. bi-directional rather than unidirectional)
+   *
+   * Again, this modifies the state.
+   */
+  def unifyTo(from: TypeVariable,
+              to: TypeVariable): GenericUnifier[TypeVariable]
 
   /*
    * This must do two things. It must first check whether the specialization

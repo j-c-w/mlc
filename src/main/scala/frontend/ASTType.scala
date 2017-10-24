@@ -119,7 +119,7 @@ case class ASTTypeFunction(val arg: ASTType,
       val argUnifier = arg.specializeTo(otherArg)
       val resUnifier = result.specializeTo(otherResult)
 
-      argUnifier.mgu(resUnifier)
+      argUnifier.mguUnify(resUnifier)
 
       return argUnifier
     }
@@ -131,7 +131,7 @@ case class ASTTypeFunction(val arg: ASTType,
       val argUnifier = arg.unify(otherArg)
       val resUnifier = argUnifier(result).unify(argUnifier(otherResult))
 
-      argUnifier mgu resUnifier
+      argUnifier mguUnify resUnifier
 
       argUnifier
     }
@@ -188,7 +188,7 @@ case class ASTTypeTuple(val args: List[ASTType]) extends ASTType {
 
         val mgu = ASTUnifier()
 
-        unifiers foreach (mgu.mgu(_))
+        unifiers foreach (mgu.mguUnify(_))
         return mgu
       }
     }
@@ -205,7 +205,7 @@ case class ASTTypeTuple(val args: List[ASTType]) extends ASTType {
         (args zip typeSeq) foreach {
           case (arg, otherArg) => {
             val intermediateUnifier = mgu(arg).unify(mgu(otherArg))
-            mgu.mgu(intermediateUnifier)
+            mgu.mguUnify(intermediateUnifier)
           }
         }
 

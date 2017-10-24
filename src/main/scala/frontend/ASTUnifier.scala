@@ -20,4 +20,8 @@ class ASTUnifier extends GenericUnifier[ASTType] {
   override def specializeTo(from: ASTType, to: ASTType) = {
     from specializeTo to
   }
+
+  override def unifyTo(from: ASTType, to: ASTType) = {
+    from unify to
+  }
 }
