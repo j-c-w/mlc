@@ -17,9 +17,7 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
     for ((key, value) <- other.map) {
       if (map.contains(key)) {
         // Then we must check that any specialzation is valid.
-        // val enteredType = unify(value, map(key))
-
-        specializeNV(key, value)
+        specializeTo(map(key), value)
       } else {
         specializeNV(key, value)
       }
