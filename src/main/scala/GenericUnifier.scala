@@ -22,8 +22,6 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
         specializeNV(key, value)
       }
     }
-
-    selfApply()
   }
 
   /* This function applies the map to itself, removing any redundancies.

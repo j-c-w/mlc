@@ -17,7 +17,23 @@ sealed trait ASTType extends GenericPrintable with GenericType[ASTType] {
   /* This returns true if the other type is contained within this type.
    * This is used to prevent infinite types from coming about.
    */
-  def contains(other: ASTType): Boolean
+  def contains(other: ASTType): Boolean = {
+    if (other.isAtomic)
+      this.containsAtomic(other)
+    else
+      this.containsNonAtomic(other)
+  }
+
+  /* This should be called when the other type is not atomic.
+   * It is much slower.
+   */
+  def containsNonAtomic(other: ASTType): Boolean
+
+  /* This returns true if the other type is contained within this type.
+   *
+   * This ONLY WORKS if the type 'other' is atomic
+   */
+  def containsAtomic(other: ASTType): Boolean
 
   /* This was originally in the companion object. However, due to the vast
    * number of special cases, this is no longer put there.
@@ -80,11 +96,14 @@ case class ASTTypeFunction(val arg: ASTType,
                            val result: ASTType) extends ASTType {
   def prettyPrint = " %s -> %s ".format(arg.prettyPrint, result.prettyPrint)
 
-  override def contains(other: ASTType) = other match {
+  override def containsNonAtomic(other: ASTType) = other match {
     case ASTTypeFunction(arg1, res1) =>
       (arg equals arg1) && (result equals res1)
     case _ => arg.contains(other) || result.contains(other)
   }
+
+  override def containsAtomic(other: ASTType) =
+    arg.containsAtomic(other) || result.containsAtomic(other)
 
   override def specializeTo(other: ASTType): ASTUnifier = other match {
     case ASTTypeFunction(otherArg, otherResult) => {
@@ -108,7 +127,7 @@ case class ASTTypeFunction(val arg: ASTType,
       argUnifier
     }
     case (ASTUnconstrainedTypeVar(name)) =>
-      if (this.contains(other)) 
+      if (this.containsAtomic(other)) 
         throw new UnificationError(this, other)
       else
         ASTUnifier(other, this)
@@ -134,13 +153,16 @@ case class ASTTypeFunction(val arg: ASTType,
 case class ASTTypeTuple(val args: List[ASTType]) extends ASTType {
   def prettyPrint = " " + (args.map(_.prettyPrint)).mkString(" * ") + " "
 
-  def contains(other: ASTType) = other match {
+  override def containsNonAtomic(other: ASTType) = other match {
     case ASTTypeTuple(otherArgs) if otherArgs.length == args.length => 
       (otherArgs zip args).forall{
         case (x: ASTType, y: ASTType) => x equals y } ||
       args.exists((x) => x.contains(other))
     case _ => args.exists((x) => x.contains(other))
   }
+
+  override def containsAtomic(other: ASTType) =
+    args.exists(_.containsAtomic(other))
 
   override def specializeTo(other: ASTType): ASTUnifier = other match {
     case ASTTypeTuple(otherArgs) => {
@@ -215,10 +237,12 @@ sealed trait ASTTypeVar extends ASTType
 case class ASTEqualityTypeVar(name: String) extends ASTTypeVar {
   def prettyPrint = "''" + name
 
-  def contains(other: ASTType) = other match {
+  override def containsNonAtomic(other: ASTType) = other match {
     case ASTEqualityTypeVar(otherName) => otherName == name
     case _ => false
   }
+
+  override def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   override def specializeTo(other: ASTType) = other match {
     case ASTTypeTuple(typs) => {
@@ -265,12 +289,15 @@ case class ASTEqualityTypeVar(name: String) extends ASTTypeVar {
 }
 
 case class ASTUnconstrainedTypeVar(name: String) extends ASTTypeVar {
-  def prettyPrint = "'" + name
+  override def prettyPrint = "'" + name
 
-  def contains(other: ASTType) = other match {
+  override def containsNonAtomic(other: ASTType) = other match {
     case ASTUnconstrainedTypeVar(otherName) => otherName == name
     case _ => false
   }
+
+  override def containsAtomic(other: ASTType) = containsNonAtomic(other)
+
 
   override def specializeTo(other: ASTType) = other match {
     case _ => ASTUnifier(this, other)
@@ -302,11 +329,14 @@ case class ASTUnconstrainedTypeVar(name: String) extends ASTTypeVar {
 case class ASTListType(subType: ASTType) extends ASTTypeVar {
   def prettyPrint = subType.prettyPrint + " list"
 
-  override def contains(other: ASTType) = other match {
+  override def containsNonAtomic(other: ASTType) = other match {
     case ASTListType(otherSubType) =>
       (otherSubType equals subType) || (subType contains otherSubType)
     case _ => subType.contains(other)
   }
+
+  override def containsAtomic(other: ASTType) =
+    subType.containsAtomic(other)
 
   override def specializeTo(other: ASTType) = other match {
     case ASTListType(otherSubType) => subType specializeTo otherSubType
@@ -352,10 +382,12 @@ case class ASTListType(subType: ASTType) extends ASTTypeVar {
 case class ASTNumberType(id: String) extends ASTTypeVar {
   def prettyPrint = "(" + id + ": {int, real} )"
 
-  def contains(other: ASTType) = other match {
+  def containsNonAtomic(other: ASTType) = other match {
     case ASTNumberType(otherID) => otherID == id
     case _ => false
   }
+
+  def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substitueFor(subFor: ASTType, subIn: ASTType) =
     if (this.equals(subFor))
@@ -407,7 +439,9 @@ case class ASTNumberType(id: String) extends ASTTypeVar {
 case class ASTIntType() extends ASTTypeVar {
   def prettyPrint = "int"
 
-  def contains(other: ASTType) = other.isInstanceOf[ASTIntType]
+  def containsNonAtomic(other: ASTType) = other.isInstanceOf[ASTIntType]
+
+  def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substitueFor(subFor: ASTType, subIn: ASTType) =
     if (this.equals(subFor))
@@ -438,7 +472,9 @@ case class ASTIntType() extends ASTTypeVar {
 case class ASTRealType() extends ASTTypeVar {
   def prettyPrint = "real"
 
-  def contains(other: ASTType) = other.isInstanceOf[ASTRealType]
+  def containsNonAtomic(other: ASTType) = other.isInstanceOf[ASTRealType]
+
+  def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substitueFor(subFor: ASTType, subIn: ASTType) =
     if (this.equals(subFor))
@@ -468,7 +504,9 @@ case class ASTRealType() extends ASTTypeVar {
 case class ASTBoolType() extends ASTTypeVar {
   def prettyPrint = "bool"
 
-  def contains(other: ASTType) = other.isInstanceOf[ASTBoolType]
+  def containsNonAtomic(other: ASTType) = other.isInstanceOf[ASTBoolType]
+
+  def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substitueFor(subFor: ASTType, subIn: ASTType) =
     if (this.equals(subFor))
@@ -498,7 +536,9 @@ case class ASTBoolType() extends ASTTypeVar {
 case class ASTStringType() extends ASTTypeVar {
   def prettyPrint = "string"
 
-  def contains(other: ASTType) = other.isInstanceOf[ASTStringType]
+  def containsNonAtomic(other: ASTType) = other.isInstanceOf[ASTStringType]
+
+  def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substitueFor(subFor: ASTType, subIn: ASTType) =
     if (this.equals(subFor))
@@ -528,7 +568,9 @@ case class ASTStringType() extends ASTTypeVar {
 case class ASTCharType() extends ASTTypeVar {
   def prettyPrint = "char"
 
-  def contains(other: ASTType) = other.isInstanceOf[ASTCharType]
+  def containsNonAtomic(other: ASTType) = other.isInstanceOf[ASTCharType]
+
+  def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substitueFor(subFor: ASTType, subIn: ASTType) =
     if (this.equals(subFor))
@@ -558,7 +600,9 @@ case class ASTCharType() extends ASTTypeVar {
 case class ASTDataTypeName(val name: String) extends ASTTypeVar {
   def prettyPrint = name
 
-  def contains(other: ASTType) = ???
+  def containsNonAtomic(other: ASTType) = ???
+
+  def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substitueFor(subFor: ASTType, subIn: ASTType) =
     if (this.equals(subFor))
