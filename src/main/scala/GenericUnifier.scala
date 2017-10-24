@@ -64,17 +64,15 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
   def selfApply(from: TypeVariable) = {
     var newType = map(from)
     var tyVars = newType.getTypeVars()
+    tyVars = tyVars.filter(x => map.contains(x))
 
     while (tyVars.size > 0) {
-      tyVars.filter(x => map.contains(x))
-      // We do this to empty the set and fill
-      // it up appropriately
-
       for (tyVar <- tyVars) {
         newType = newType.substitueFor(tyVar, map(tyVar))
       }
 
       tyVars = newType.getTypeVars()
+      tyVars = tyVars.filter(x => map.contains(x))
     }
 
     map(from) = newType

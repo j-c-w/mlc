@@ -12,8 +12,8 @@ object ASTTypeSet {
   }
 }
 
-class ASTTypeSet() extends TypeClassSet[ASTType] {
-  val set = HashSet[ASTType]()
+class ASTTypeSet(val set: HashSet[ASTType]) extends TypeClassSet[ASTType] {
+  def this() = this(new HashSet[ASTType]())
 
   def in(typ: ASTType) = set.contains(typ)
 
@@ -29,13 +29,12 @@ class ASTTypeSet() extends TypeClassSet[ASTType] {
 
   def getMembers = set.toList
 
-  def filter(f: ASTType => Boolean) = {
-    set.filter(f)
-    this
-  }
-  def foreach(f: ASTType => Unit) = {
-    set.foreach(f)
-    this
-  }
+  def filter(f: ASTType => Boolean) = new ASTTypeSet(set.filter(f))
+
+  def foreach(f: ASTType => Unit) = set.foreach(f)
+
   def size = set.size
+
+  def prettyPrint =
+    "(" + getMembers().map(_.prettyPrint).mkString(", ") + ")"
 }

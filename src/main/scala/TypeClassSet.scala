@@ -1,6 +1,6 @@
 package toplev
 
-abstract class TypeClassSet[TypeClass] {
+abstract class TypeClassSet[TypeClass] extends GenericPrintable {
   def union(other: TypeClassSet[TypeClass]): TypeClassSet[TypeClass]
   def in(typ: TypeClass): Boolean
   def insert(typ: TypeClass): TypeClassSet[TypeClass]
