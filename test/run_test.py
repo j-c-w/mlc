@@ -113,7 +113,7 @@ def find_tests(filter=None, root='.'):
     matches = []
     for path, dirname, filenames in os.walk(root):
         for filename in fnmatch.filter(filenames, '*.sml'):
-            if not filter or re.match(filter, filename):
+            if not filter or re.match(filter, path + '/' + filename):
                 matches.append(os.path.join(path, filename))
 
     return matches
