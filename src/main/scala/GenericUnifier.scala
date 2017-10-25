@@ -39,12 +39,8 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
         // This specializes any sub parts of the type
         // that need to be specialized. This unifier then
         // needs to be unified with this unifier.
-        println("MGU Unifying ")
-        println(map(key).prettyPrint)
         val unifier = unifyTo(map(key), value)
-        println(unifier.prettyPrint)
         map(key) = unifier(map(key))
-        println(map(key).prettyPrint)
       } else {
         specializeNV(key, value)
       }
