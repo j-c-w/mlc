@@ -39,8 +39,12 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
         // This specializes any sub parts of the type
         // that need to be specialized. This unifier then
         // needs to be unified with this unifier.
+        println("MGU Unifying ")
+        println(map(key).prettyPrint)
         val unifier = unifyTo(map(key), value)
+        println(unifier.prettyPrint)
         map(key) = unifier(map(key))
+        println(map(key).prettyPrint)
       } else {
         specializeNV(key, value)
       }
@@ -111,40 +115,52 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
 
   def apply[TypeEnvClass, From <: GenericPrintable]
         (env: GenericTypeEnv[TypeEnvClass, From, TypeVariable]) = {
-    selfApply()
-    for ((key, value) <- map) {
-      // We get all the elements of the map that are sufficiently
-      // set.
+    // We must check every type in the environment.
+    env.foreach({ case (name, envTyp) => {
+        val atomicList = envTyp.getTypeVars()
+        var typ = envTyp
 
-      // A trivial optimization if this is running too slowly is
-      // to not recompute this every time and just compute the differences
-      // in the maps
-      //
-      // TODO -- TAKE NOTE OF POLYTYPES HERE
-      env.map.map{ case (k, e) => (k, e) }.foreach[Unit] {
-        case (envKey: From, envValue: TypeVariable) =>
-          if (envValue == value) {
-            env.add(envKey, value)
+        for (atomicVar <- atomicList) {
+          if (map.contains(atomicVar)) {
+            // Make sure all the types in the map are
+            // substituted into the atomicVar so that
+            // the substitution is complete
+            selfApply(atomicVar)
+            typ = typ.substitueFor(atomicVar, map(atomicVar))
           }
-      }
-    }
+        }
+
+        env.add(name, typ)
+    }})
   }
 
   /*
    * We also provide a per variable type unification.
    * This is required for some intermediate stages in the type
-   * checking
+   * checking.
+   *
+   * This is used as a utility method to implement an
+   * environment unification.
+   *
+   * It takes non-atomic types as 'from'. It will look
+   * through the type and make the apppropriate substitutions.
    */
   def apply(from: TypeVariable) = {
-    if (hasType(from)) {
-      selfApply(from)
-      map(from)
+    val atomicVars = from.getTypeVars()
+    var newType = from
+
+    for (atomicVar <- atomicVars) {
+      if (hasType(atomicVar)) {
+        // This check is needed so that we only have
+        // to do one loop. It runs through and makes
+        // sure that the variable in question is not
+        // going to reduce to something else in the unifier.
+        selfApply(atomicVar)
+        newType = newType.substitueFor(atomicVar, map(atomicVar))
+      }
     }
-    else
-      // This is the chosen semantics here because it means that
-      // if this map specializes the type, then it specializes it,
-      // and otherwise it does nothing.
-      from
+
+    newType
   }
 
   /*

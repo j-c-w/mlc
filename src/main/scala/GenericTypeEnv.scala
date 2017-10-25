@@ -68,4 +68,9 @@ abstract class GenericTypeEnv[TypeEnvClass,
 
   def apply(id: From): Option[To] =
     get(id)
+
+  def foreach(f: (((From, To)) => Unit)): Unit = {
+    map.foreach(f)
+    parent.map(_.foreach(f))
+  }
 }

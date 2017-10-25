@@ -202,9 +202,12 @@ case class ASTTypeTuple(val args: List[ASTType]) extends ASTType {
       else {
         val mgu = ASTUnifier()
 
+        println(args.length)
         (args zip typeSeq) foreach {
           case (arg, otherArg) => {
             val intermediateUnifier = mgu(arg).unify(mgu(otherArg))
+            println("Intermediate " + intermediateUnifier.prettyPrint + 
+              "from" + mgu(arg).prettyPrint + "-" +mgu(otherArg).prettyPrint)
             mgu.mguUnify(intermediateUnifier)
           }
         }
@@ -365,7 +368,12 @@ case class ASTListType(subType: ASTType) extends ASTTypeVar {
   }
 
   override def mguNoCyclicCheck(other: ASTType) = other match {
-    case ASTListType(typ) => subType unify typ
+    case ASTListType(typ) => {
+      println("Unifying subtyps of " + subType.prettyPrint  + " and "  + typ.prettyPrint)
+      val unifier = subType unify typ
+      println("returning " + unifier.prettyPrint)
+      unifier
+    }
     case ASTEqualityTypeVar(name) => {
       val typVar = TypeVariableGenerator.getEqualityVar()
 
