@@ -60,11 +60,17 @@ abstract class GenericTypeEnv[TypeEnvClass,
    * them with instances of 'newTyp'.
    */
   def updateTyp(oldTyp: To, newTyp: To): Unit = {
-
+    ???
   }
 
-  def get(id: From): Option[To] =
-    map.get(id)
+  /* We assume that all types in the map are polytypes.
+   *
+   * Return values for those types are therefore deduced
+   * by cloning.
+   */
+  def get(id: From): Option[To] = {
+    map.get(id).map(_.typeClone())
+  }
 
   def apply(id: From): Option[To] =
     get(id)
