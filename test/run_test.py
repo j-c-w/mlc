@@ -104,23 +104,8 @@ class Test(object):
         return results
 
 
-def find_tests(filter=None, root='.'):
-    """ Taking a filter, list all the files in the subdirectory
-        of this directory.  Return a list of all such files.
-        If filter is set, then return only files that match that.
-    """
-
-    matches = []
-    for path, dirname, filenames in os.walk(root):
-        for filename in fnmatch.filter(filenames, '*.sml'):
-            if not filter or re.match(filter, path + '/' + filename):
-                matches.append(os.path.join(path, filename))
-
-    return matches
-
-
-def extract_information(filename):
-    """ This takes the filename and extracts the arguments and
+def docstring():
+    return """ This takes the filename and extracts the arguments and
         scanning passes needed for it.
 
         Each file should have either a 'compile' and/or a 'run' directive.
@@ -153,6 +138,24 @@ def extract_information(filename):
         'dumpfilename' is the name of the last part of the dumpfile,
         e.g. in test.sml.0.ast, dumpfilename should be 'ast'
         """
+
+
+def find_tests(filter=None, root='.'):
+    """ Taking a filter, list all the files in the subdirectory
+        of this directory.  Return a list of all such files.
+        If filter is set, then return only files that match that.
+    """
+
+    matches = []
+    for path, dirname, filenames in os.walk(root):
+        for filename in fnmatch.filter(filenames, '*.sml'):
+            if not filter or re.match(filter, path + '/' + filename):
+                matches.append(os.path.join(path, filename))
+
+    return matches
+
+
+def extract_information(filename):
 
     test_data = Test()
 
@@ -260,21 +263,22 @@ def cleanup():
 if __name__ == "__main__":
     atexit.register(cleanup)
 
-    parser = argparse.ArgumentParser(description='Run the testsuite')
+    parser = argparse.ArgumentParser(description='Run the testsuite\n\n\n' +
+                                                 docstring())
 
     parser.add_argument('--filter', dest='regex_filter', action='store',
                         default=None, help=('Only run tests whose name matches'
                                             ' the regex passed'))
     parser.add_argument('--dir', dest='root', action='store',
                         default='.', help=('The  home directory to start'
-                                             ' looking for tests in. "." by'
-                                             '  default.'))
+                                           ' looking for tests in. "." by'
+                                           '  default.'))
     parser.add_argument('--executable', dest='executable', action='store',
                         required=True, help=('The compiler executabe to use'
-                                              ' to run these tests'))
+                                             ' to run these tests'))
     parser.add_argument('--output', dest='output_file', action='store',
                         default='test.res', help=('Output file to dump'
-                                                      ' test results into'))
+                                                  ' test results into'))
     args = parser.parse_args()
 
     print "Executable is", args.executable
