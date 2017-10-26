@@ -35,6 +35,18 @@ class ASTTypeSet(val set: HashSet[ASTType]) extends TypeClassSet[ASTType] {
 
   def size = set.size
 
+  def -(other: TypeClassSet[ASTType]) = {
+    val newSet = new ASTTypeSet()
+
+    for (item <- set) {
+      if (!other.in(item)) {
+        newSet.insert(item)
+      }
+    }
+
+    newSet
+  }
+
   def prettyPrint =
     "(" + getMembers().map(_.prettyPrint).mkString(", ") + ")"
 }

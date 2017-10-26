@@ -8,4 +8,7 @@ abstract class TypeClassSet[TypeClass] extends GenericPrintable {
   def filter(f: (TypeClass) => Boolean): TypeClassSet[TypeClass]
   def foreach(f: (TypeClass) => Unit): Unit
   def size: Int
+  /* Computes the difference between sets
+   */
+  def -(other: TypeClassSet[TypeClass]): TypeClassSet[TypeClass]
 }
