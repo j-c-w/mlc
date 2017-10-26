@@ -210,18 +210,17 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
             => expTail(ASTExpUnOpApply(unop, exp)) }
     // Note that () and [] are treated as special values are so
     // are not considered as part of these expressions.
-    | "(" ~ exp ~ ")" ~ expTail      ^^ { case (_ ~ exp ~ _ ~ expTail) =>
-          expTail(exp) }
-    | "[" ~ exp ~ "]" ~ expTail      ^^ { case (_ ~ exp ~ _ ~ expTail) => {
-      exp match {
-        // We do this as the list of exps are returned assuming
-        // that they are to be put in a tuple. This extracts them and
-        // puts them in the right type. Any other type is a singleton
-        // list.
-        case ASTExpTuple(list) => expTail(ASTExpList(list)) 
-        case other => expTail(ASTExpList(List(other)))
-      }
-    } }
+    // A single bracketing has to be treated as a special case.
+    | "(" ~ expSeq ~ ")" ~ expTail      ^^ { case (_ ~ exp ~ _ ~ expTail) =>
+          expTail(ASTExpSeq(exp)) }
+    | "(" ~ expTuple ~ ")" ~ expTail ^^ { case (_ ~ exp ~ _ ~ expTail) =>
+          expTail(ASTExpTuple(exp)) }
+    // We use this rather than expTuple because expList allows
+    // for singleton lists whereas expTuple excludes tuples
+    // of size 1
+    | "[" ~ expList ~ "]" ~ expTail ^^ { case (_ ~ exp ~ _ ~ expTail) =>
+          expTail(ASTExpList(exp))
+    }
     // Refactored: (exp1 dots expn) replaced by the above
     // Omitted: raise exp
     // Omitted: exp handle match
@@ -264,25 +263,18 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
           ((e1: ASTExp) => ASTExpOr(e1, e2)) }
     | "andalso" ~ exp  ^^ { case (_ ~ e2) =>
           ((e1: ASTExp) => ASTExpAnd(e1, e2)) }
-    | "," ~ exp        ^^ { case (_ ~ tail) =>
-          ((first: ASTExp) => tail match {
-            case ASTExpTuple(astExp) => ASTExpTuple(first :: astExp)
-            case notList => ASTExpTuple(List(first, notList))
-          })}
-    | ";" ~ exp        ^^ { case (_ ~ tail) =>
-          ((first: ASTExp) => tail match {
-            case ASTExpSeq(last) => ASTExpSeq(first :: last)
-            case otherExp => ASTExpSeq(List(first, otherExp))
-          })}
     | ""               ^^ { (_) => (x: ASTExp) => x }
   )
 
-  // Inserted. To deal with the restriction that (epx1, ..., expN)
-  // is a tuple iff N != 1 (but can be 0)
-  lazy val anyLengthExpList: Parser[List[ASTExp]] = (
-      ""                               ^^ { _ => List[ASTExp]() }
-    | exp ~ "," ~ anyLengthExpList     ^^ { case (e1 ~ _ ~ rest) =>
-        e1 :: rest }
+  lazy val expTuple: Parser[List[ASTExp]] = (
+    exp ~ "," ~ expList        ^^ {
+      case (e ~ _ ~ list) => e :: list
+    }
+  )
+
+  lazy val expList: Parser[List[ASTExp]] = (
+    exp ~ "," ~ expList        ^^ { case (e ~ _ ~ list) => e :: list }
+    | exp                      ^^ { (x) => List(x) }
   )
 
   // This accepts seqs of one or more.
