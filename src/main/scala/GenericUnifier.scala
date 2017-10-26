@@ -1,7 +1,7 @@
 package toplev
 
 import scala.collection.mutable.HashMap
-import exceptions.ICE
+import exceptions._
 
 /* This is a class that contains a generic unifier.  */
 
@@ -40,7 +40,7 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
         // that need to be specialized. This unifier then
         // needs to be unified with this unifier.
         val unifier = unifyTo(map(key), value)
-        map(key) = unifier(map(key))
+        specializeNV(key, unifier(map(key)))
       } else {
         specializeNV(key, value)
       }
@@ -210,6 +210,8 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
   def specializeVerify(from: TypeVariable, to: TypeVariable) =
     if (isValidSpecialization(from, to))
       specializeNV(from, to)
+    else
+      throw new SpecializationError(from, to)
 
   // This adds the specilaiztion Typ -> Typ into the unifier
   // without verification that it is a sensible thing to do.
