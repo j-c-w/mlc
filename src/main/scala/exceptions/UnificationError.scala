@@ -1,8 +1,9 @@
 package exceptions
 
-import frontend.ASTType
+import toplev.GenericType
 
-class UnificationError(val t1: ASTType, val t2: ASTType) extends Exception("""
+class UnificationError(val t1: GenericType[_], val t2: GenericType[_])
+    extends Exception("""
   Error: could not unify types:
 
     %s

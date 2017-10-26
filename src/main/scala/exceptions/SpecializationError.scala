@@ -1,8 +1,9 @@
 package exceptions
 
-import frontend._
+import toplev.GenericType
 
-class SpecializationError(t1: ASTType, t2: ASTType) extends Exception("""
+class SpecializationError(t1: GenericType[_], t2: GenericType[_])
+    extends Exception("""
   Error: Could not specialize
 
   %s

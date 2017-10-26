@@ -9,7 +9,8 @@ package toplev
  */
 
 trait GenericType[TypeClass <: GenericPrintable
-                               with GenericType[TypeClass]] {
+                               with GenericType[TypeClass]]
+    extends GenericPrintable {
   def unify(typ: TypeClass): GenericUnifier[TypeClass]
 
   def contains(otherType: TypeClass): Boolean
