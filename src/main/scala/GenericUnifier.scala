@@ -113,7 +113,7 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
         (env: GenericTypeEnv[TypeEnvClass, From, TypeVariable]) = {
     // We must check every type in the environment.
     env.foreach({ case (name, (typ, qualifiedTypes)) => {
-        val atomicList = env.getUnquantifiedTypesFor(name)
+        val atomicList = typ.getTypeVars()
         var newTyp = typ
 
         for (atomicVar <- atomicList) {
@@ -181,6 +181,9 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
    *
    * adds the EMPTY unifier. (since the 'to' argument does not
    * need to be specialized).
+   *
+   * This does not modify the state, but returns a new
+   * unifier that (can) be unified with this one.
    */
   def specializeTo(from: TypeVariable,
                    to: TypeVariable): GenericUnifier[TypeVariable]
@@ -188,7 +191,8 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
   /* This is the same as 'specializeTo', but it unifies
    * (i.e. bi-directional rather than unidirectional)
    *
-   * Again, this modifies the state.
+   * This does not modify the state, but returns a new
+   * unifier that (can) be unified with this one.
    */
   def unifyTo(from: TypeVariable,
               to: TypeVariable): GenericUnifier[TypeVariable]
