@@ -71,7 +71,7 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
     for ((key, value) <- map) {
       for ((otherKey, otherValue) <- map) {
         if ((isNew(otherKey) || isNew(key)) && otherValue.contains(key)) {
-          map(otherKey) = otherValue.substitueFor(key, value)
+          map(otherKey) = otherValue.substituteFor(key, value)
         }
       }
     }
@@ -86,7 +86,7 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
 
     while (tyVars.size > 0) {
       for (tyVar <- tyVars) {
-        newType = newType.substitueFor(tyVar, map(tyVar))
+        newType = newType.substituteFor(tyVar, map(tyVar))
       }
 
       tyVars = newType.getTypeVars()
@@ -112,9 +112,9 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
   def apply[TypeEnvClass, From <: GenericPrintable]
         (env: GenericTypeEnv[TypeEnvClass, From, TypeVariable]) = {
     // We must check every type in the environment.
-    env.foreach({ case (name, envTyp) => {
-        val atomicList = envTyp.getTypeVars()
-        var typ = envTyp
+    env.foreach({ case (name, (typ, qualifiedTypes)) => {
+        val atomicList = env.getUnquantifiedTypesFor(name)
+        var newTyp = typ
 
         for (atomicVar <- atomicList) {
           if (map.contains(atomicVar)) {
@@ -122,11 +122,14 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
             // substituted into the atomicVar so that
             // the substitution is complete
             selfApply(atomicVar)
-            typ = typ.substitueFor(atomicVar, map(atomicVar))
+            newTyp = newTyp.substituteFor(atomicVar, map(atomicVar))
           }
         }
 
-        env.add(name, typ)
+        // If this is too slow, this could (in theory) be done
+        // with a no validate here.
+        // TODO --- MAKE SURE THE TYPES ARE SENSIBLE HERE
+        env.updateId(name, newTyp, qualifiedTypes)
     }})
   }
 
@@ -152,7 +155,7 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
         // sure that the variable in question is not
         // going to reduce to something else in the unifier.
         selfApply(atomicVar)
-        newType = newType.substitueFor(atomicVar, map(atomicVar))
+        newType = newType.substituteFor(atomicVar, map(atomicVar))
       }
     }
 

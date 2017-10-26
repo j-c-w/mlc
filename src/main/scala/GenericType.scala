@@ -14,11 +14,13 @@ trait GenericType[TypeClass <: GenericPrintable
 
   def contains(otherType: TypeClass): Boolean
 
-  def substitueFor(subFor: TypeClass, subIn: TypeClass): TypeClass
+  def substituteFor(subFor: TypeClass, subIn: TypeClass): TypeClass
 
   def specializesTo(otherType: TypeClass): Boolean
 
   def getTypeVars(): TypeClassSet[TypeClass]
 
   def typeClone(): TypeClass
+  
+  def typeClone(types: TypeClassSet[TypeClass]): TypeClass
 }
