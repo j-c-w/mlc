@@ -229,8 +229,9 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     // Note that none of these have EXP tails. This is intentional
     // as I do not believe that that is a meaningful grammar.
     // This may be subject to change.
-    | "let" ~ dec ~ "in" ~ expSeq ~ "end" ^^ { case (_ ~ dec ~ _ ~ seq ~ _) =>
-            ASTExpLetIn(dec, seq) }
+    | "let" ~ decs ~ "in" ~ expSeq ~ "end" ^^ {
+          case (_ ~ decs ~ _ ~ seq ~ _) =>
+             ASTExpLetIn(decs, seq) }
     // Note that since 'else' is associated with all ifs, this avoids
     // the dangling else ambiguity.
     | "if" ~ exp ~ "then" ~ exp ~ "else" ~ exp ^^ {
@@ -385,14 +386,14 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
 
   //  Declarations
 
-  lazy val dec: Parser[List[ASTDeclaration]] = (
+  lazy val dec: Parser[ASTDeclaration] = (
     // Omitted: val (val)(,) valbind
-      "val" ~ valbind                ^^ { case (_ ~ valbind) => List(valbind) }
+      "val" ~ valbind                ^^ { case (_ ~ valbind) => valbind }
     // Omitted: val (val)(,) funbind
-    | "fun" ~ funbind                ^^ { case (_ ~ funbind) => List(funbind) }
+    | "fun" ~ funbind                ^^ { case (_ ~ funbind) => funbind }
     // Omitted: type typebind
     // Omitted: (with typebind)
-    | "datatype" ~ datbind           ^^ { case (_ ~ datbind) => List(datbind) }
+    | "datatype" ~ datbind           ^^ { case (_ ~ datbind) => datbind }
     // Omitted: abstype datbind (withtype typbind) with dec end
     // Omitted: exnbind
     // Omitted: structure
@@ -401,6 +402,13 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     // Omitted nonfix id1 ... idN
     // Omitted infix id1 ... idN
     // Omitted infixr id1 ... idN
+  )
+
+  // Inserted: This pattern is inserted to avoid left recursion
+  // in dec.
+  lazy val decs: Parser[List[ASTDeclaration]] = (
+    dec ~ decs                  ^^ { case (hd ~ tail) => hd :: tail }
+    | ""                        ^^ { (_) => List[ASTDeclaration]() }
   )
 
   lazy val valbind: Parser[ASTDeclaration] = (
@@ -493,8 +501,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   // Programs
 
   lazy val prog: Parser[List[ASTDeclaration]] = (
-    dec ~ prog  ^^ { case (dec ~ prog) => dec ::: prog }
-    | "\0"   ^^ { (_) => List[ASTDeclaration]() }
+    decs ~ "\0" ^^ { case (decs ~ _) => decs }
   )
 
   def treeToString(input: ASTProgram) =
