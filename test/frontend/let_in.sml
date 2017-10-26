@@ -6,4 +6,4 @@ in
   1
 end
 
-(* t-scan: ASTLetIn: ast*)
+(* t-scan: ASTExpLetIn: ast*)
