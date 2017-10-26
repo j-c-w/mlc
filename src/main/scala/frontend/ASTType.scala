@@ -6,6 +6,8 @@ import toplev.GenericType
 import toplev.TypeClassSet
 import typecheck.TypeVariableGenerator
 
+import scala.collection.mutable.{HashMap,Map}
+
 object ASTType {
   def unify(t1: ASTType, t2: ASTType): ASTUnifier = t1 unify t2
 
@@ -71,14 +73,45 @@ sealed trait ASTType extends GenericPrintable with GenericType[ASTType] {
   def equals(other: ASTType): Boolean =
     this.contains(other) && other.contains(this)
 
-  // This typeClones the ASTType, creating new type variables for
-  // each type variable leaf.
-  def typeClone: ASTType
+  /* This clones a type, creating a new type at each
+   * but mainitaing the relationships between already unified
+   * variables.
+   */
+  def typeClone: ASTType = typeClone(getTypeVars())
+
+  /* This does the same thing as the other typeClone,
+   * but the only types changed are those that belong to the
+   * set passed as an argument.
+   */
+  def typeClone(set: TypeClassSet[ASTType]): ASTType = {
+    val substitutionMap = new HashMap[ASTType, ASTType]()
+
+    for (typ <- set) {
+      val targetType = typ.atomicClone
+      substitutionMap(typ) = targetType
+    }
+
+    substituteFor(substitutionMap)
+  }
+
+  /* If the type that this is called on is a clonable atomic type
+   * (i.e. a tyvar), then a new tyvar of the same type but with
+   * a different name is returned. Otherwise this raises an ICE.
+   */
+  def atomicClone: ASTType
 
   /* This takes all instances of 'subFor' in this type and
    * replaces them with 'subIn'.
    */
-  def substitueFor(subFor: ASTType, subIn: ASTType): ASTType
+  def substituteFor(subFor: ASTType, subIn: ASTType): ASTType = {
+    val map = new HashMap[ASTType, ASTType]()
+    map(subFor) = subIn
+    substituteFor(map)
+  }
+
+  /* Given a map of substitutions to make, make those substitutions.
+   */
+  def substituteFor(substitutionMap: Map[ASTType, ASTType]): ASTType
 
 
   /* Note that this is a little bit of a trick case. It may throw
@@ -143,14 +176,15 @@ case class ASTTypeFunction(val arg: ASTType,
     case _ => throw new UnificationError(this, other)
   }
 
-  def substitueFor(subFor: ASTType, subIn: ASTType) =
-    if (this.equals(subFor))
-      subIn
-    else
-      new ASTTypeFunction(arg.substitueFor(subFor, subIn),
-                          result.substitueFor(subFor, subIn))
+  def atomicClone = throw new ICE("""Attempted type clone of
+    uncloneable type %s""".format(this.prettyPrint))
 
-  def typeClone = new ASTTypeFunction(arg.typeClone, result.typeClone)
+  def substituteFor(map: Map[ASTType, ASTType]) =
+    if (map.contains(this))
+      map(this)
+    else
+      new ASTTypeFunction(arg.substituteFor(map),
+                          result.substituteFor(map))
 
   def admitsEquality = false
 
@@ -231,13 +265,14 @@ case class ASTTypeTuple(val args: List[ASTType]) extends ASTType {
     case _ => throw new UnificationError(this, other)
   }
 
-  def substitueFor(subFor: ASTType, subIn: ASTType) =
-    if (this.equals(subFor))
-      subIn
+  def substituteFor(map: Map [ASTType, ASTType]) =
+    if (map.contains(this))
+      map(this)
     else
-      new ASTTypeTuple(args.map(x => x.substitueFor(subFor, subIn)))
+      new ASTTypeTuple(args.map(x => x.substituteFor(map)))
 
-  def typeClone = new ASTTypeTuple(args.map(_.typeClone))
+  def atomicClone = throw new ICE("""Attempted type clone of
+    uncloneable type %s""".format(this.prettyPrint))
 
   def admitsEquality = throw new ICE(""" Tuple.admitsEquality may not
     be called as that is not nessecarily a well defined concept.""")
@@ -291,13 +326,13 @@ case class ASTEqualityTypeVar(name: String) extends ASTTypeVar {
     case _ => other.unify(this)
   }
 
-  def substitueFor(subFor: ASTType, subIn: ASTType) =
-    if (this.equals(subFor))
-      subIn
+  def substituteFor(map: Map[ASTType, ASTType]) =
+    if (map.contains(this))
+      map(this)
     else
       this
 
-  def typeClone = TypeVariableGenerator.getEqualityVar()
+  def atomicClone = TypeVariableGenerator.getEqualityVar()
 
   def admitsEquality = true
 
@@ -330,13 +365,13 @@ case class ASTUnconstrainedTypeVar(name: String) extends ASTTypeVar {
     case _ => ASTUnifier(this, other)
   }
 
-  def substitueFor(subFor: ASTType, subIn: ASTType) =
-    if (this.equals(subFor))
-      subIn
+  def substituteFor(map: Map[ASTType, ASTType]) =
+    if (map.contains(this))
+      map(this)
     else
       this
 
-  def typeClone = TypeVariableGenerator.getVar()
+  def atomicClone = TypeVariableGenerator.getVar()
 
   def admitsEquality = throw new ICE("""Cannot call ASTUnconstrainedTypeVar
     .admitsEquality, as that is not a well defined concept""")
@@ -380,14 +415,15 @@ case class ASTListType(subType: ASTType) extends ASTTypeVar {
     case _ => throw new UnificationError(this, other)
   }
 
-  def substitueFor(subFor: ASTType, subIn: ASTType) =
-    if (this.equals(subFor))
-      subIn
+  def substituteFor(map: Map[ASTType, ASTType]) =
+    if (map.contains(this))
+      map(this)
     else
-      ASTListType(subType.substitueFor(subFor, subIn))
+      ASTListType(subType.substituteFor(map))
 
-  def typeClone = new ASTListType(subType.typeClone)
-  
+  def atomicClone = throw new ICE("""Attempted type clone of
+    uncloneable type %s""".format(this.prettyPrint))
+
   def admitsEquality = false
 
   val isAtomic = false
@@ -412,13 +448,13 @@ case class ASTNumberType(id: String) extends ASTTypeVar {
 
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
-  def substitueFor(subFor: ASTType, subIn: ASTType) =
-    if (this.equals(subFor))
-      subIn
+  def substituteFor(map: Map[ASTType, ASTType]) =
+    if (map.contains(this))
+      map(this)
     else
       this
 
-  def typeClone = TypeVariableGenerator.getNumberTypeVar()
+  def atomicClone = TypeVariableGenerator.getNumberTypeVar()
 
   /*
    * This is a special case for this function. Clearly, it makes
@@ -469,13 +505,11 @@ case class ASTIntType() extends ASTTypeVar {
 
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
-  def substitueFor(subFor: ASTType, subIn: ASTType) =
-    if (this.equals(subFor))
-      subIn
-    else
-      this
+  def substituteFor(map: Map[ASTType, ASTType]) =
+    throw new ICE(""" Substituted a monotype for a different monotype. """)
 
-  def typeClone = new ASTIntType()
+  def atomicClone = throw new ICE("""Attempted type clone of
+    uncloneable type %s""".format(this.prettyPrint))
 
   def admitsEquality = true
 
@@ -504,13 +538,11 @@ case class ASTRealType() extends ASTTypeVar {
 
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
-  def substitueFor(subFor: ASTType, subIn: ASTType) =
-    if (this.equals(subFor))
-      subIn
-    else
-      this
+  def substituteFor(map: Map[ASTType, ASTType]) =
+    throw new ICE(""" Substituted a monotype for a different monotype. """)
 
-  def typeClone = new ASTRealType()
+  def atomicClone = throw new ICE("""Attempted type clone of
+    uncloneable type %s""".format(this.prettyPrint))
 
   def admitsEquality = false
 
@@ -538,13 +570,11 @@ case class ASTBoolType() extends ASTTypeVar {
 
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
-  def substitueFor(subFor: ASTType, subIn: ASTType) =
-    if (this.equals(subFor))
-      subIn
-    else
-      this
+  def substituteFor(map: Map[ASTType, ASTType]) =
+    throw new ICE(""" Substituted a monotype for a different monotype. """)
 
-  def typeClone = new ASTBoolType()
+  def atomicClone = throw new ICE("""Attempted type clone of
+    uncloneable type %s""".format(this.prettyPrint))
 
   def admitsEquality = true
 
@@ -572,13 +602,11 @@ case class ASTStringType() extends ASTTypeVar {
 
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
-  def substitueFor(subFor: ASTType, subIn: ASTType) =
-    if (this.equals(subFor))
-      subIn
-    else
-      this
+  def substituteFor(map: Map[ASTType, ASTType]) =
+    throw new ICE(""" Substituted a monotype for a different monotype. """)
 
-  def typeClone = new ASTStringType()
+  def atomicClone = throw new ICE("""Attempted type clone of
+    uncloneable type %s""".format(this.prettyPrint))
 
   def admitsEquality = true
 
@@ -606,13 +634,11 @@ case class ASTCharType() extends ASTTypeVar {
 
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
-  def substitueFor(subFor: ASTType, subIn: ASTType) =
-    if (this.equals(subFor))
-      subIn
-    else
-      this
+  def substituteFor(map: Map[ASTType, ASTType]) =
+    throw new ICE(""" Substituted a monotype for a different monotype. """)
 
-  def typeClone = new ASTCharType()
+  def atomicClone = throw new ICE("""Attempted type clone of
+    uncloneable type %s""".format(this.prettyPrint))
 
   def admitsEquality = true
 
@@ -640,13 +666,10 @@ case class ASTDataTypeName(val name: String) extends ASTTypeVar {
 
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
-  def substitueFor(subFor: ASTType, subIn: ASTType) =
-    if (this.equals(subFor))
-      subIn
-    else
-      this
+  def substituteFor(map: Map[ASTType, ASTType]) =
+    throw new ICE(""" Substituted a monotype for a different monotype. """)
 
-  def typeClone = new ASTDataTypeName(name)
+  def atomicClone = ???
 
   def admitsEquality = ???
 
