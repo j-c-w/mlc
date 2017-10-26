@@ -506,7 +506,7 @@ case class ASTIntType() extends ASTTypeVar {
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substituteFor(map: Map[ASTType, ASTType]) =
-    throw new ICE(""" Substituted a monotype for a different monotype. """)
+    this
 
   def atomicClone = throw new ICE("""Attempted type clone of
     uncloneable type %s""".format(this.prettyPrint))
@@ -539,7 +539,7 @@ case class ASTRealType() extends ASTTypeVar {
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substituteFor(map: Map[ASTType, ASTType]) =
-    throw new ICE(""" Substituted a monotype for a different monotype. """)
+    this
 
   def atomicClone = throw new ICE("""Attempted type clone of
     uncloneable type %s""".format(this.prettyPrint))
@@ -571,7 +571,7 @@ case class ASTBoolType() extends ASTTypeVar {
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substituteFor(map: Map[ASTType, ASTType]) =
-    throw new ICE(""" Substituted a monotype for a different monotype. """)
+    this
 
   def atomicClone = throw new ICE("""Attempted type clone of
     uncloneable type %s""".format(this.prettyPrint))
@@ -603,7 +603,7 @@ case class ASTStringType() extends ASTTypeVar {
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substituteFor(map: Map[ASTType, ASTType]) =
-    throw new ICE(""" Substituted a monotype for a different monotype. """)
+    this
 
   def atomicClone = throw new ICE("""Attempted type clone of
     uncloneable type %s""".format(this.prettyPrint))
@@ -635,7 +635,7 @@ case class ASTCharType() extends ASTTypeVar {
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substituteFor(map: Map[ASTType, ASTType]) =
-    throw new ICE(""" Substituted a monotype for a different monotype. """)
+    this
 
   def atomicClone = throw new ICE("""Attempted type clone of
     uncloneable type %s""".format(this.prettyPrint))
@@ -659,6 +659,37 @@ case class ASTCharType() extends ASTTypeVar {
   }
 }
 
+case class ASTUnitType() extends ASTTypeVar {
+  def prettyPrint = "unit"
+
+  def containsNonAtomic(other: ASTType) = other.isInstanceOf[ASTUnitType]
+
+  def containsAtomic(other: ASTType) = containsNonAtomic(other)
+
+  def substituteFor(map: Map[ASTType, ASTType]) = this
+
+  def atomicClone = throw new ICE("""Attempted type clone of
+    uncloneable type %s""".format(this.prettyPrint))
+
+  def admitsEquality = true
+
+  val isAtomic = true
+
+  override def getTypeVars() = ASTTypeSet()
+
+  override def specializeTo(other: ASTType) = other match {
+    case ASTUnitType() => ASTUnifier()
+    case _ => throw new SpecializationError(this, other)
+  }
+
+  override def mguNoCyclicCheck(other: ASTType) = other match {
+    case ASTUnitType() => ASTUnifier()
+    case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
+    case ASTEqualityTypeVar(name) => ASTUnifier(other, this)
+    case _ => throw new UnificationError(this, other)
+  }
+}
+
 case class ASTDataTypeName(val name: String) extends ASTTypeVar {
   def prettyPrint = name
 
@@ -667,7 +698,7 @@ case class ASTDataTypeName(val name: String) extends ASTTypeVar {
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substituteFor(map: Map[ASTType, ASTType]) =
-    throw new ICE(""" Substituted a monotype for a different monotype. """)
+    this
 
   def atomicClone = ???
 
