@@ -46,7 +46,7 @@ abstract class GenericTypeEnv[TypeEnvClass,
       add(id, typ, None)
 
   def add(id: From, typ: To, qualifiedTypes: Option[TypeClassSet[To]]): Unit = {
-    updateIdNoValidate(id, typ, qualifiedTypes)
+    map(id) = (typ, qualifiedTypes)
   }
 
   /* The default qualified types is all the types or none of the
@@ -67,15 +67,28 @@ abstract class GenericTypeEnv[TypeEnvClass,
    */
   def updateId(id: From, newTyp: To,
                quantifiedTypes: Option[TypeClassSet[To]]): Unit = {
-    if (map(id)._1.specializesTo(newTyp))
+    if (getOrFail(id).specializesTo(newTyp))
       updateIdNoValidate(id, newTyp, quantifiedTypes)
     else
       throw new TypeAssignmentException()
   }
 
+  /* This attempts to update types in the parent
+   * if possible.
+   */
   def updateIdNoValidate(id: From, newTyp: To,
-                         quantifiedTypes: Option[TypeClassSet[To]]): Unit = {
-    map(id) = (newTyp, quantifiedTypes)
+                         qualifiedTypes: Option[TypeClassSet[To]]): Unit = {
+    if (map.contains(id))
+      map(id) = (newTyp, qualifiedTypes)
+    else
+      parent match {
+        case Some(parentEnv) =>
+          parentEnv.updateIdNoValidate(id, newTyp, qualifiedTypes)
+        case None => {
+          throw new ICE(""" Error, type %s not found in the map""".format(
+            id.prettyPrint))
+        }
+      }
   }
 
   /* This gets a value from the map and substitutes
@@ -88,8 +101,17 @@ abstract class GenericTypeEnv[TypeEnvClass,
       case Some((typ, Some(qualifiedTypes))) =>
         Some(typ.typeClone(qualifiedTypes))
       case Some((typ, None)) => Some(typ)
-      case None => None
+      case None => // Try the parent
+        parent match {
+          case Some(parentEnv) => parentEnv.get(id)
+          case None => None
+        }
     }
+  }
+
+  def getOrFail(id: From): To = {
+    get(id).getOrElse(throw new ICE(""" Error, type %s not found in
+the environment""".format(id.prettyPrint)))
   }
 
   /* This returns all the unquantified types for some variable
@@ -115,8 +137,16 @@ abstract class GenericTypeEnv[TypeEnvClass,
    * substituting in for the quantified types.
    */
   def getNoSubsitute(id: From): Option[To] =
-    map.get(id).map(_._1)
+    if (map.contains(id))
+      map.get(id).map(_._1)
+    else
+      parent match {
+        case Some(parentEnv) => parentEnv.getNoSubsitute(id)
+        case None => None
+      }
 
-  def foreach(f : (((From, (To, Option[TypeClassSet[To]]))) => Unit)): Unit =
+  def foreach(f : (((From, (To, Option[TypeClassSet[To]]))) => Unit)): Unit = {
     map.foreach(f)
+    parent.map(_.foreach(f))
+  }
 }
