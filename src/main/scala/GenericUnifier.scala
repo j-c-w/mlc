@@ -26,7 +26,7 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
         // that need to be specialized. This unifier then
         // needs to be unified with this unifier.
         val unifier = specializeTo(map(key), value)
-        map(key) = unifier(map(key))
+        specializeNV(key, unifier(map(key)))
       } else {
         specializeNV(key, value)
       }
@@ -44,6 +44,20 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
       } else {
         specializeNV(key, value)
       }
+    }
+  }
+
+  /* This is like mguUnify, but applies to every element in the list. */
+  def mguUnifyAll(other: List[GenericUnifier[TypeVariable]]): Unit = {
+    for (unifier <- other) {
+      mguUnify(unifier)
+    }
+  }
+
+  /* This is like mguSpecialze, but applies to every element in the list. */
+  def mguSpecializeAll(other: List[GenericUnifier[TypeVariable]]): Unit = {
+    for (unifier <- other) {
+      mguSpecialize(unifier)
     }
   }
 
