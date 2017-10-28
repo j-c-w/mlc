@@ -67,10 +67,8 @@ abstract class GenericTypeEnv[TypeEnvClass,
    */
   def updateId(id: From, newTyp: To,
                quantifiedTypes: Option[TypeClassSet[To]]): Unit = {
-    if (getOrFail(id).specializesTo(newTyp))
-      updateIdNoValidate(id, newTyp, quantifiedTypes)
-    else
-      throw new TypeAssignmentException()
+    getOrFail(id).unify(newTyp)
+    updateIdNoValidate(id, newTyp, quantifiedTypes)
   }
 
   /* This attempts to update types in the parent
