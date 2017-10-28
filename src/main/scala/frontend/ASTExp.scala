@@ -93,6 +93,8 @@ case class ASTExpCase(val exp: ASTExp, val caseList: List[ASTExpMatchRow])
 }
 
 case class ASTExpMatchRow(val pat: ASTPat, val exp: ASTExp) extends ASTExp {
+  var env: Option[ASTTypeEnv] = None
+
   def prettyPrint = """ case %s => %s """.format(pat.prettyPrint,
                                                  exp.prettyPrint)
 }
