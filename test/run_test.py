@@ -72,7 +72,8 @@ class Test(object):
 
             if len(dumpfiles) != 1:
                 results += ['FAIL: Dumpfiles specified by ' + dumpfile_affix +
-                            ' not unique. Files were : ' + str(dumpfiles)]
+                            ' not unique. Files were : ' + str(dumpfiles) +
+                            '. In test: ' + filename]
                 continue
 
             dumpfile = dumpfiles[0]
