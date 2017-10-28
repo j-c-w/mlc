@@ -126,6 +126,33 @@ the environment""".format(id.prettyPrint)))
     }
   }
 
+  /* This goes through all the atomics (INCLUDING QUANTIFIED ATOMICS)
+   * that are used. It is used to change ASTNumberType -> ASTIntType
+   * at the top level.
+   */
+  def specializeAtomicsMatching(f: (To => Boolean), sub: To): Unit = {
+    // If this is too slow, we could adjust the function definition
+    // to only do the substituion once for any particular mapping.
+    // Then keep track of the mappings and only do the new mappings.
+    foreach({
+      case(name, (to, quantifiedTypes)) => {
+        val toVars = to.getTypeVars()
+        var substitutedTo = to
+
+        for (toVar <- toVars) {
+          if (f(toVar)) {
+            substitutedTo = substitutedTo.substituteFor(toVar, sub)
+          }
+        }
+
+        // Despite the rather general definition of this method,
+        // the target is NumType => ASTIntType. Therefore, the quantified
+        // types can remain unchanged.
+        updateIdNoValidate(name, substitutedTo, quantifiedTypes)
+      }
+    })
+  }
+
   /* This gets a value from the map and substitutes
    * any quantified variables in for new variables.
    */
