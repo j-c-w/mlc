@@ -181,9 +181,9 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     // Restructure: Avoid ambiguity between unconstrained and
     // equality types. Use regex to avoid various space issues.
     "'[A-Za-z][A-Za-z0-9_']*".r ~ tyvarTail  ^^ { case (name ~ tail) =>
-                tail(ASTUnconstrainedTypeVar(name)) }
+                tail(ASTUnconstrainedTypeVar(name.substring(1))) }
     | "''[A-Za-z0-9_']+".r ~ tyvarTail       ^^ { case (name ~ tail) =>
-                tail(ASTEqualityTypeVar(name)) }
+                tail(ASTEqualityTypeVar(name.substring(2))) }
     // These are inserted as the grammar has omitted them.
     | "int" ~ tyvarTail                      ^^ { case (_ ~ tail) =>
                 tail(ASTIntType())
