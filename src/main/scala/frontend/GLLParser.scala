@@ -128,6 +128,23 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     | restrictedIDAllowList
   )
 
+  // Inserted to allow the parser to distinguish between
+  // infix operators and normal function applications.
+  lazy val infixID: Parser[ASTIdent] = (
+      "::"              ^^ { (_) => ASTConsIdent() }
+    | "<="              ^^ { (_) => ASTLEQIdent() }
+    | ">="              ^^ { (_) => ASTGEQIdent() }
+    | "<"               ^^ { (_) => ASTLTIdent() }
+    | ">"               ^^ { (_) => ASTGTIdent() }
+    | "="               ^^ { (_) => ASTEqIdent() }
+    | "^"               ^^ { (_) => ASTStringCatIdent() }
+    | "+"               ^^ { (_) => ASTPlusIdent() }
+    | "-"               ^^ { (_) => ASTMinusIdent() }
+    | "*"               ^^ { (_) => ASTTimesIdent() }
+    | "/"               ^^ { (_) => ASTDivIdent() }
+    | "@"               ^^ { (_) => ASTAppendIdent() }
+  )
+
   lazy val restrictedIDAllowList: Parser[ASTIdent] = (
       "[" ~ "]"         ^^ { case (_ ~ _) => ASTEmptyListIdent() }
     | "nil"             ^^ { (_) => ASTEmptyListIdent() }
@@ -252,10 +269,17 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   )
 
   lazy val expTail: Parser[ASTExp => ASTExp] = (
-    id ~ exp         ^^ { case (id ~ op2) =>
+    infixID ~ exp      ^^ { case (id ~ op2) =>
         ((op1: ASTExp) => ASTExpInfixApp(id, op1, op2)) }
-    | exp              ^^ { case (app) =>
-        ((fun: ASTExp) => ASTExpFunApp(fun, app))
+    | exp              ^^ { case (app) => (fun: ASTExp) => {
+        app match {
+          case ASTExpFunApp(applicationFunction, applicationTarget) =>
+            ASTExpFunApp(ASTExpFunApp(fun, applicationFunction),
+                         applicationTarget)
+          case value: ASTExp =>
+            ASTExpFunApp(fun, value)
+        }
+      }
     }
     | ":" ~ typ        ^^ { case (_ ~ typ) =>
           ((exp: ASTExp) => ASTExpTyped(exp, typ)) }
