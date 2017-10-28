@@ -449,7 +449,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
               ASTIdentTuple(innerTuple :: rest)
       }
       | "(" ~> restrictedIDList <~ ")"             ^^ { case (innerTuple) =>
-              innerTuple
+              ASTIdentTuple(List(innerTuple))
       }
       | restrictedValID ~ "," ~ restrictedIDList   ^^ {
             case (id ~ _ ~ ASTIdentTuple(idList)) =>
