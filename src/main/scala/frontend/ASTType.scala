@@ -133,7 +133,7 @@ sealed trait ASTType extends GenericPrintable with GenericType[ASTType] {
 
 case class ASTTypeFunction(val arg: ASTType,
                            val result: ASTType) extends ASTType {
-  def prettyPrint = " %s -> %s ".format(arg.prettyPrint, result.prettyPrint)
+  def prettyPrint = " (%s -> %s) ".format(arg.prettyPrint, result.prettyPrint)
 
   override def containsNonAtomic(other: ASTType) = other match {
     case ASTTypeFunction(arg1, res1) =>
