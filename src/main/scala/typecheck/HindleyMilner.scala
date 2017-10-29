@@ -81,7 +81,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         unifier.apply(env)
         unifier
       }
-      case ASTFunBind(cases) => {
+      case fun @ ASTFunBind(cases) => {
         // This case is complicated by the presence of multiple
         // cases. In addition to HindleyMilner type checking,
         // we must check that all the cases make logical sense.
@@ -134,6 +134,9 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         // We need to apply the unifier as the function definition may
         // have modified a non-polymorphic type.
         unifier.apply(env)
+
+        // We finally set the row environments so that we don't loose those
+        fun.rowEnvs = Some(resultEnvs)
         unifier
       }
       case ASTDataType(_, _) => {

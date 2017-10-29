@@ -23,6 +23,8 @@ case class ASTValBind(val ident: ASTIdentTuple, val expression: ASTExp)
 case class ASTFunBind(val cases: List[(ASTIdent, List[ASTPat],
                                        Option[ASTType], ASTExp)])
       extends ASTDeclaration {
+  var rowEnvs: Option[List[ASTTypeEnv]] = None
+
   def prettyPrint = """
 
     fun %s

@@ -126,7 +126,7 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
   def apply[TypeEnvClass, From <: GenericPrintable]
         (env: GenericTypeEnv[TypeEnvClass, From, TypeVariable]) = {
     // We must check every type in the environment.
-    env.foreach({ case (name, (typ, qualifiedTypes)) => {
+    env.foreachUnshadowed({ case (name, (typ, qualifiedTypes)) => {
         val atomicList = typ.getTypeVars()
         var newTyp = typ
 

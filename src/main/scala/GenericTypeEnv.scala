@@ -1,6 +1,6 @@
 package toplev
 
-import scala.collection.mutable.{Map,HashMap}
+import scala.collection.mutable.{Map,HashMap,HashSet}
 
 import exceptions._
 /* This is a generic type environment. It provides
@@ -134,7 +134,7 @@ the environment""".format(id.prettyPrint)))
     // If this is too slow, we could adjust the function definition
     // to only do the substituion once for any particular mapping.
     // Then keep track of the mappings and only do the new mappings.
-    foreach({
+    foreachAll({
       case(name, (to, quantifiedTypes)) => {
         val toVars = to.getTypeVars()
         var substitutedTo = to
@@ -170,8 +170,27 @@ the environment""".format(id.prettyPrint)))
         case None => None
       }
 
-  def foreach(f : (((From, (To, Option[TypeClassSet[To]]))) => Unit)): Unit = {
+  /* This iterates over all elements in the environment and it's parents. */
+  def foreachAll(f : (((From, (To, Option[TypeClassSet[To]]))) => Unit)): Unit = {
     map.foreach(f)
-    parent.map(_.foreach(f))
+    parent.map(_.foreachAll(f))
+  }
+
+  /* This is used for unification.  It only iterates over elements that can
+   * be 'seen' from this environment.  So, if 'x' is shadowing something
+   * in the parent, this will not iterate over the parent 'x'.  */
+  def foreachUnshadowed(
+    f: (((From, (To, Option[TypeClassSet[To]])) => Unit))): Unit = {
+    val seenSet = new HashSet[From]()
+    map.foreach{ case (name, value) => {
+      seenSet.add(name)
+      f(name, value)
+    }}
+
+    parent.map(_.foreachUnshadowed{ case (name, value) => {
+      if (!seenSet.contains(name)) {
+        f(name, value)
+      }
+    } })
   }
 }
