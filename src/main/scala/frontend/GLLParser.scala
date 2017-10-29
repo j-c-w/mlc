@@ -328,6 +328,10 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
             => patTail._1(ASTPatConst(con, patTail._2)) }
     | "_" ~ patTail                     ^^ { case (_ ~ patTail)
             => patTail._1(ASTPatWildcard(patTail._2)) }
+    // This is inserted to avoid creating an empty patseq below
+    // (which causes problems later)
+    | "()" ~ patTail                    ^^ { case (_ ~ tail)
+            => tail._1(ASTPatVariable(ASTUnitIdent(), tail._2)) }
     // Restricted here as special characters may not appear
     // in pat lists.
     | restrictedIDAllowList  ~ patTail  ^^ { case (id ~ patTail)
