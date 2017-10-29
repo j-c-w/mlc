@@ -24,6 +24,9 @@ import toplev.Pass
  *
  *    Type annotations on patterns are currently not supported. They probably
  *    should be.
+ *
+ *    Type annotations on functions don't work as expected. This should be
+ *    resolved.
  */
 
 object GLLParser extends Pass[String, ASTProgram]("ast")
@@ -125,7 +128,6 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     | "*"               ^^ { (_) => ASTTimesIdent() }
     | "/"               ^^ { (_) => ASTDivIdent() }
     | "@"               ^^ { (_) => ASTAppendIdent() }
-    | "mod"             ^^ { (_) => ASTModIdent() }
     | restrictedIDAllowList
   )
 
