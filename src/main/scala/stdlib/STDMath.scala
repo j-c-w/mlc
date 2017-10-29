@@ -6,7 +6,7 @@ object STDMath extends LibraryPackage {
   def apply(name: List[String]): Option[ASTType] = name match {
     case List("cos") | List("sin") | List("sqrt")  =>
       Some(ASTTypeFunction(
-        ASTTypeTuple(List(ASTRealType(), ASTRealType())),
+        ASTRealType(),
         ASTRealType()))
     case _ => None
   }
