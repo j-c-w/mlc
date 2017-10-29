@@ -28,9 +28,9 @@ fun pow2(x:real) = x * x
 fun complex_times ((x1: real, y1: real), (x2: real, y2: real)) =
   (x1 * x2 - y1 * y2, x1 * y2 + y1 * x2)
 
-fun complex_sum((x1, y1), (x2, y2)):real * real = (x1 + x2, y1 + y2)
+fun complex_sum((x1, y1), (x2, y2)) = (x1 + x2, y1 + y2)
 
-fun complex_div((x, y), (a, b)): real * real =
+fun complex_div((x, y), (a, b)) =
   element_div(complex_times((x, y), (a, ~b)), pow2(x) + pow2(y))
 
 fun e_pow((x1, y1)) = (Math.cos(x1), Math.sin(y1))
