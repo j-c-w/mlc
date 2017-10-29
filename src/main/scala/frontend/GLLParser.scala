@@ -271,13 +271,10 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   lazy val expTail: Parser[ASTExp => ASTExp] = (
     infixID ~ exp      ^^ { case (id ~ op2) =>
         ((op1: ASTExp) => ASTExpInfixApp(id, op1, op2)) }
-    | exp              ^^ { case (app) => (fun: ASTExp) => {
-        app match {
-          case ASTExpFunApp(applicationFunction, applicationTarget) =>
-            ASTExpFunApp(ASTExpFunApp(fun, applicationFunction),
-                         applicationTarget)
-          case value: ASTExp =>
-            ASTExpFunApp(fun, value)
+    | exp              ^^ { case (app) => (fun: ASTExp) => { app match {
+          case app @ ASTExpFunApp(function, application) =>
+            app.leftAssociate(fun)
+          case value => ASTExpFunApp(fun, value)
         }
       }
     }

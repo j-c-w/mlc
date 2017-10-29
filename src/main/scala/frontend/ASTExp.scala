@@ -1,5 +1,6 @@
 package frontend
 
+import exceptions.ICE
 import toplev.GenericPrintable
 
 object ASTExp
@@ -16,6 +17,26 @@ case class ASTExpIdent(val ident: ASTIdent) extends ASTExp {
 
 case class ASTExpFunApp(val fun: ASTExp, val app: ASTExp) extends ASTExp {
   def prettyPrint = "(" + fun.prettyPrint + ")" + "(" + app.prettyPrint + ")"
+
+  /* Due to the design of the grammar, it is hard to make a left associative
+   * function application operator. Therefore, a method to do this
+   * is provided here. For safety, if this is called after the callType
+   * has been set (set in typechecking), it throws.
+   *
+   * This takes something like this:
+   *
+   *      f, ((1 2) 3) -> (((f 1) 2) 3)
+   */
+  def leftAssociate(newFun: ASTExp): ASTExpFunApp =
+    if (callType != None)
+      throw new ICE("""leftAssociate called on an already typed function""")
+    else {
+      fun match {
+        case fun @ ASTExpFunApp(appFun, appApp) =>
+          ASTExpFunApp(fun.leftAssociate(newFun), app)
+        case value => ASTExpFunApp(ASTExpFunApp(newFun, fun), app)
+      }
+    }
 
   // This stores the call type. It is set by the type inference.
   // For example, if this is +(1,  2), then the type
