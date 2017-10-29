@@ -53,6 +53,12 @@ class ASTTypeEnv(parent: Option[ASTTypeEnv])
           ASTListType(listType))),
         ASTListType(listType)))
     }
+    case ASTStringCatIdent() =>
+      Some(ASTTypeFunction(
+        ASTTypeTuple(List(
+          ASTStringType(),
+          ASTStringType())),
+        ASTStringType()))
     case ASTLEQIdent() | ASTLTIdent() |
          ASTGTIdent()  | ASTGEQIdent() => {
       val numType = TypeVariableGenerator.getNumberTypeVar()
