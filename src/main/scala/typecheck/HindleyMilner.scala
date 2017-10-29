@@ -439,14 +439,9 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
       patUnifier.foreach(_.apply(rowEnv))
     }
 
-    // A sequence of patterns actually has a function type.
-    // This is done here because it is confusing to return
-    // a list of environments where each element corresponds to
-    // a different thing to this list.
-    val reversedArgType = argType.reverse
     // We do this with the original list because we want
     // the bracketing to be with the first element as the 
-    // 'most outside' element.
+    // 'most outside' element. This effectively reverses the list.
     val functionType =
       argType.foldRight(resultType) {
         case (typ, buildUp) => ASTTypeFunction(typ, buildUp)
@@ -518,11 +513,18 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
           // pattern.
           val constraintedTyp = unifyTypeList(typs)
           val typUnifier =
-            constraintedTyp unify (ASTTypeTuple(seqTypes.reverse))
+            if(seqTypes.length == 1)
+              constraintedTyp unify (seqTypes(0))
+            else
+              constraintedTyp unify (ASTTypeTuple(seqTypes.reverse))
           unifier mguUnify typUnifier
 
           // The types are combined into an ASTTypeTuple.
-          astTypes = unifier(ASTTypeTuple(seqTypes.reverse)) :: astTypes
+          astTypes =
+            if (seqTypes.length == 1)
+              unifier(seqTypes(0)) :: astTypes
+            else
+              unifier(ASTTypeTuple(seqTypes.reverse)) :: astTypes
           astUnifiers = unifier :: astUnifiers
         }
         case ASTListPat(list, typ) => {

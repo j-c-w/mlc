@@ -194,6 +194,7 @@ case class ASTTypeFunction(val arg: ASTType,
 // To avoid ambiguity, there must be at least two
 // types in this type.
 case class ASTTypeTuple(val args: List[ASTType]) extends ASTType {
+  assert(args.length > 1)
   def prettyPrint = " (" + (args.map(_.prettyPrint)).mkString(" * ") + ") "
 
   override def containsNonAtomic(other: ASTType) = other match {
