@@ -424,6 +424,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   // in dec.
   lazy val decs: Parser[List[ASTDeclaration]] = (
     dec ~ decs                  ^^ { case (hd ~ tail) => hd :: tail }
+    | ";"                       ^^ { (_) => List[ASTDeclaration]() }
     | ""                        ^^ { (_) => List[ASTDeclaration]() }
   )
 
