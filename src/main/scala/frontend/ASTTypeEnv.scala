@@ -73,12 +73,12 @@ class ASTTypeEnv(parent: Option[ASTTypeEnv])
         ASTStringType()))
     case ASTLEQIdent() | ASTLTIdent() |
          ASTGTIdent()  | ASTGEQIdent() => {
-      val numType = TypeVariableGenerator.getNumberTypeVar()
+      val compType = TypeVariableGenerator.getComparableTypeVar()
 
       Some(ASTFunctionType(
         ASTTupleType(List(
-          numType,
-          numType)),
+          compType,
+          compType)),
         ASTBoolType()))
     }
     case ASTEqIdent() => {

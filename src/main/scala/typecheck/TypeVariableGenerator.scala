@@ -42,6 +42,28 @@ object TypeVariableGenerator {
     case n => getNumberTypeVar() :: getNumberTypeVars(n - 1)
   }
 
+  def getComparableTypeVar(): ASTComparableType = {
+    tyVarId = tyVarId + 1
+
+    new ASTComparableType("$" + stringFor(tyVarId))
+  }
+
+  def getComparableTypeVars(number: Int): List[ASTComparableType] = number match {
+    case 0 => List[ASTComparableType]()
+    case n => getComparableTypeVar() :: getComparableTypeVars(n - 1)
+  }
+
+  def getIntStringTypeVar(): ASTIntStringType = {
+    tyVarId = tyVarId + 1
+
+    new ASTIntStringType("$" + stringFor(tyVarId))
+  }
+
+  def getIntStringTypeVars(number: Int): List[ASTIntStringType] = number match {
+    case 0 => List[ASTIntStringType]()
+    case n => getIntStringTypeVar() :: getIntStringTypeVars(n - 1)
+  }
+
   def stringFor(id: Int): String = id match {
     case 0 => ""
     case n => "abcdefghijklmnopqrstuvwxyz"(n % 26) + stringFor(n / 26)

@@ -47,6 +47,9 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
       // delaying the application of the unifier until this level).
       env.specializeAtomicsMatching({
         case ASTNumberType(_) => true
+        // Comparators also default to int.
+        case ASTComparableType(_) => true
+        case ASTIntStringType(_) => true
         case _ => false
       }, ASTIntType())
     }
