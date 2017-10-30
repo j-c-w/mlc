@@ -27,6 +27,10 @@ import toplev.Pass
  *
  *    Type annotations on functions don't work as expected. This should be
  *    resolved.
+ *
+ *    There are issues with the prceedence of 'andalso' and 'orelse'. They
+ *    should be lower precedence than the other infix operators, but
+ *    are treated equally.
  */
 
 object GLLParser extends Pass[String, ASTProgram]("ast")
