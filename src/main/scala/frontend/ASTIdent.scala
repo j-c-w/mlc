@@ -46,7 +46,11 @@ case class ASTTimesIdent() extends ASTIdent {
   def prettyPrint = "*"
 }
 
-case class ASTDivIdent() extends ASTIdent {
+case class ASTIntDivIdent() extends ASTIdent {
+  def prettyPrint = " div "
+}
+
+case class ASTRealDivIdent() extends ASTIdent {
   def prettyPrint = "/"
 }
 

@@ -32,13 +32,25 @@ class ASTTypeEnv(parent: Option[ASTTypeEnv])
       Some(ASTListType(TypeVariableGenerator.getVar()))
     case ASTUnitIdent() => Some(ASTUnitType())
     case ASTMinusIdent() | ASTPlusIdent() |
-         ASTTimesIdent() | ASTDivIdent() => {
+         ASTTimesIdent() => {
       val numType = TypeVariableGenerator.getNumberTypeVar()
       Some(ASTFunctionType(
         ASTTupleType(
           List(numType, numType)),
         numType))
     }
+    case ASTIntDivIdent() =>
+      Some(ASTFunctionType(
+        ASTTupleType(List(
+          ASTIntType(),
+          ASTIntType())),
+      ASTIntType()))
+  case ASTRealDivIdent() =>
+    Some(ASTFunctionType(
+      ASTTupleType(List(
+        ASTRealType(),
+        ASTRealType())),
+    ASTRealType()))
     case ASTModIdent() =>
       Some(ASTFunctionType(
         ASTTupleType(List(

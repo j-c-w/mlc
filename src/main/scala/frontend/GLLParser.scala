@@ -126,7 +126,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     | "+"               ^^ { (_) => ASTPlusIdent() }
     | "-"               ^^ { (_) => ASTMinusIdent() }
     | "*"               ^^ { (_) => ASTTimesIdent() }
-    | "/"               ^^ { (_) => ASTDivIdent() }
+    | "/"               ^^ { (_) => ASTRealDivIdent() }
     | "@"               ^^ { (_) => ASTAppendIdent() }
     | restrictedIDAllowList
   )
@@ -144,9 +144,10 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     | "+"               ^^ { (_) => ASTPlusIdent() }
     | "-"               ^^ { (_) => ASTMinusIdent() }
     | "*"               ^^ { (_) => ASTTimesIdent() }
-    | "/"               ^^ { (_) => ASTDivIdent() }
+    | "/"               ^^ { (_) => ASTRealDivIdent() }
     | "@"               ^^ { (_) => ASTAppendIdent() }
     | "mod"             ^^ { (_) => ASTModIdent() }
+    | "div"             ^^ { (_) => ASTIntDivIdent() }
   )
 
   lazy val restrictedIDAllowList: Parser[ASTIdent] = (
@@ -164,7 +165,8 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
       "if[^A-Za-z0-9_']|then[^A-Za-z0-9_']|else[^A-Za-z0-9_']|" +
       "fn[^A-Za-z0-9_']|nil[^A-Za-z0-9_']|let[^A-Za-z0-9_']|" +
       "in[^A-Za-z0-9_']|end[^A-Za-z0-9_']|orelse[^A-Aa-z0-9_']|" +
-      "andalso[^A-Za-z0-9_']|mod[^A-Za-z0-9_'])([A-Za-z][A-Za-z0-9_']*)").r
+      "andalso[^A-Za-z0-9_']|mod[^A-Za-z0-9_']|div[^A-Za-z0-9_'])" +
+      "([A-Za-z][A-Za-z0-9_']*)").r
                          ^^  { (str) => ASTIdentVar(str) }
   )
 
