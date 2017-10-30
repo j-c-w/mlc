@@ -393,11 +393,11 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
 
   lazy val typTail: Parser[(ASTType => ASTType)] = (
     "->" ~ typ ~ typTail      ^^ { case (_ ~ typ1 ~ typTail) =>
-       ((typ: ASTType) => typTail(ASTTypeFunction(typ, typ1))) }
+       ((typ: ASTType) => typTail(ASTFunctionType(typ, typ1))) }
     |  "*" ~ typ ~ typTail    ^^ { case (_ ~ typ1 ~ typTail) =>
        ((typ: ASTType) => typ match {
-         case (ASTTypeTuple(tail)) => typTail(ASTTypeTuple(typ :: tail))
-         case (otherTyp) => typTail(ASTTypeTuple(List(typ, typ1)))
+         case (ASTTupleType(tail)) => typTail(ASTTupleType(typ :: tail))
+         case (otherTyp) => typTail(ASTTupleType(List(typ, typ1)))
        })
     }
     |  ""                     ^^ { _ => ((x: ASTType) => x) }

@@ -118,7 +118,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
 
         // Since functions may be recursive, insert a template for this
         // function (NOT qualified so it may be resolved by a unifier)
-        env.add(idents(0), ASTTypeFunction(TypeVariableGenerator.getVar(),
+        env.add(idents(0), ASTFunctionType(TypeVariableGenerator.getVar(),
                                            TypeVariableGenerator.getVar()),
                 false)
 
@@ -164,7 +164,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
 
         val resultType = TypeVariableGenerator.getVar()
 
-        val mgu = ASTType.unify(ASTTypeFunction(appType, resultType),
+        val mgu = ASTType.unify(ASTFunctionType(appType, resultType),
                                    declaredFunType)
 
         // This is used for later optimizations. It is helpful
@@ -174,7 +174,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         // This is a safe case as the unification of a fun type with
         // something must be a fun type
         application.callType =
-            Some(mgu(declaredFunType).asInstanceOf[ASTTypeFunction])
+            Some(mgu(declaredFunType).asInstanceOf[ASTFunctionType])
 
         // The actual result type can be given by extracting it from
         // the funTyp
@@ -222,7 +222,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
 
         // In this case, it does not matter whether we apply the unifier here
         // or at the top level.
-        (mgu, ASTTypeTuple(resType))
+        (mgu, ASTTupleType(resType))
       }
       case ASTExpList(elems) => {
         // We type this by cheating a little bit. Note
@@ -447,7 +447,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
     // 'most outside' element. This effectively reverses the list.
     val functionType =
       argType.foldRight(resultType) {
-        case (typ, buildUp) => ASTTypeFunction(typ, buildUp)
+        case (typ, buildUp) => ASTFunctionType(typ, buildUp)
     }
 
     // We may just return the expUnifier as all variables created
@@ -519,15 +519,15 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
             if(seqTypes.length == 1)
               constraintedTyp unify (seqTypes(0))
             else
-              constraintedTyp unify (ASTTypeTuple(seqTypes.reverse))
+              constraintedTyp unify (ASTTupleType(seqTypes.reverse))
           unifier mguUnify typUnifier
 
-          // The types are combined into an ASTTypeTuple.
+          // The types are combined into an ASTTupleType.
           astTypes =
             if (seqTypes.length == 1)
               unifier(seqTypes(0)) :: astTypes
             else
-              unifier(ASTTypeTuple(seqTypes.reverse)) :: astTypes
+              unifier(ASTTupleType(seqTypes.reverse)) :: astTypes
           astUnifiers = unifier :: astUnifiers
         }
         case ASTListPat(list, typ) => {
@@ -670,7 +670,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
     // We do not add that.
     case (ASTIdentTuple(ident :: Nil), typ) =>
       env.add(ident, typ, true)
-    case (ASTIdentTuple(idents), ASTTypeTuple(typList)) => 
+    case (ASTIdentTuple(idents), ASTTupleType(typList)) => 
       // We note that each one of these names could be an ASTIdentTuple,
       // so we repeat the process.
       if (idents.length != typList.length)

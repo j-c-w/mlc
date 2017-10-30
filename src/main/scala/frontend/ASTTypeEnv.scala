@@ -22,8 +22,8 @@ class ASTTypeEnv(parent: Option[ASTTypeEnv])
     case ASTConsIdent() => {
       val typ = TypeVariableGenerator.getVar()
 
-      Some(ASTTypeFunction(
-        ASTTypeTuple(
+      Some(ASTFunctionType(
+        ASTTupleType(
           List(typ,
             ASTListType(typ))),
         ASTListType(typ)))
@@ -34,28 +34,28 @@ class ASTTypeEnv(parent: Option[ASTTypeEnv])
     case ASTMinusIdent() | ASTPlusIdent() |
          ASTTimesIdent() | ASTDivIdent() => {
       val numType = TypeVariableGenerator.getNumberTypeVar()
-      Some(ASTTypeFunction(
-        ASTTypeTuple(
+      Some(ASTFunctionType(
+        ASTTupleType(
           List(numType, numType)),
         numType))
     }
     case ASTModIdent() =>
-      Some(ASTTypeFunction(
-        ASTTypeTuple(List(
+      Some(ASTFunctionType(
+        ASTTupleType(List(
           ASTIntType(), ASTIntType())),
       ASTIntType()))
     case ASTAppendIdent() => {
       val listType = TypeVariableGenerator.getVar()
 
-      Some(ASTTypeFunction(
-        ASTTypeTuple(List(
+      Some(ASTFunctionType(
+        ASTTupleType(List(
           ASTListType(listType),
           ASTListType(listType))),
         ASTListType(listType)))
     }
     case ASTStringCatIdent() =>
-      Some(ASTTypeFunction(
-        ASTTypeTuple(List(
+      Some(ASTFunctionType(
+        ASTTupleType(List(
           ASTStringType(),
           ASTStringType())),
         ASTStringType()))
@@ -63,8 +63,8 @@ class ASTTypeEnv(parent: Option[ASTTypeEnv])
          ASTGTIdent()  | ASTGEQIdent() => {
       val numType = TypeVariableGenerator.getNumberTypeVar()
 
-      Some(ASTTypeFunction(
-        ASTTypeTuple(List(
+      Some(ASTFunctionType(
+        ASTTupleType(List(
           numType,
           numType)),
         ASTBoolType()))
@@ -72,18 +72,18 @@ class ASTTypeEnv(parent: Option[ASTTypeEnv])
     case ASTEqIdent() => {
       val eqType = TypeVariableGenerator.getEqualityVar()
 
-      Some(ASTTypeFunction(
-        ASTTypeTuple(List(
+      Some(ASTFunctionType(
+        ASTTupleType(List(
           eqType,
           eqType)),
         ASTBoolType()))
     }
     case ASTUnOpNegate() => {
       val numType = TypeVariableGenerator.getNumberTypeVar()
-      Some(ASTTypeFunction(numType, numType))
+      Some(ASTFunctionType(numType, numType))
     }
     case ASTUnOpNot() => {
-      Some(ASTTypeFunction(
+      Some(ASTFunctionType(
         ASTBoolType(), ASTBoolType()))
     }
     case x => super.get(x) match {
@@ -93,7 +93,7 @@ class ASTTypeEnv(parent: Option[ASTTypeEnv])
         // last.
         x match {
           case ASTIdentVar("print") =>
-            Some(ASTTypeFunction(ASTStringType(), ASTUnitType()))
+            Some(ASTFunctionType(ASTStringType(), ASTUnitType()))
           case _ => None
         }
     }

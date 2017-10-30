@@ -131,12 +131,12 @@ sealed trait ASTType extends GenericPrintable with GenericType[ASTType] {
   val isAtomic: Boolean
 }
 
-case class ASTTypeFunction(val arg: ASTType,
+case class ASTFunctionType(val arg: ASTType,
                            val result: ASTType) extends ASTType {
   def prettyPrint = " (%s -> %s) ".format(arg.prettyPrint, result.prettyPrint)
 
   override def containsNonAtomic(other: ASTType) = other match {
-    case ASTTypeFunction(arg1, res1) =>
+    case ASTFunctionType(arg1, res1) =>
       (arg equals arg1) && (result equals res1)
     case _ => arg.contains(other) || result.contains(other)
   }
@@ -148,7 +148,7 @@ case class ASTTypeFunction(val arg: ASTType,
     (arg.getTypeVars()) union (result.getTypeVars())
 
   override def specializeTo(other: ASTType): ASTUnifier = other match {
-    case ASTTypeFunction(otherArg, otherResult) => {
+    case ASTFunctionType(otherArg, otherResult) => {
       val argUnifier = arg.specializeTo(otherArg)
       val resUnifier = result.specializeTo(otherResult)
 
@@ -160,7 +160,7 @@ case class ASTTypeFunction(val arg: ASTType,
   }
 
   override def mguNoCyclicCheck(other: ASTType): ASTUnifier = other match {
-    case ASTTypeFunction(otherArg, otherResult) => {
+    case ASTFunctionType(otherArg, otherResult) => {
       val argUnifier = arg.unify(otherArg)
       val resUnifier = argUnifier(result).unify(argUnifier(otherResult))
 
@@ -183,7 +183,7 @@ case class ASTTypeFunction(val arg: ASTType,
     if (map.contains(this))
       map(this)
     else
-      new ASTTypeFunction(arg.substituteFor(map),
+      new ASTFunctionType(arg.substituteFor(map),
                           result.substituteFor(map))
 
   def admitsEquality = false
@@ -193,12 +193,12 @@ case class ASTTypeFunction(val arg: ASTType,
 
 // To avoid ambiguity, there must be at least two
 // types in this type.
-case class ASTTypeTuple(val args: List[ASTType]) extends ASTType {
+case class ASTTupleType(val args: List[ASTType]) extends ASTType {
   assert(args.length > 1)
   def prettyPrint = " (" + (args.map(_.prettyPrint)).mkString(" * ") + ") "
 
   override def containsNonAtomic(other: ASTType) = other match {
-    case ASTTypeTuple(otherArgs) if otherArgs.length == args.length => 
+    case ASTTupleType(otherArgs) if otherArgs.length == args.length => 
       (otherArgs zip args).forall{
         case (x: ASTType, y: ASTType) => x equals y } ||
       args.exists((x) => x.contains(other))
@@ -213,7 +213,7 @@ case class ASTTypeTuple(val args: List[ASTType]) extends ASTType {
         case (typ, set) => set union (typ.getTypeVars()) }
 
   override def specializeTo(other: ASTType): ASTUnifier = other match {
-    case ASTTypeTuple(otherArgs) => {
+    case ASTTupleType(otherArgs) => {
       if (args.length != otherArgs.length) {
         throw new SpecializationError(this, other)
       } else {
@@ -231,7 +231,7 @@ case class ASTTypeTuple(val args: List[ASTType]) extends ASTType {
   }
 
   override def mguNoCyclicCheck(other: ASTType): ASTUnifier = other match {
-    case (ASTTypeTuple(typeSeq)) => {
+    case (ASTTupleType(typeSeq)) => {
       if (args.length != typeSeq.length)
         throw new UnificationError(this, other)
       else {
@@ -254,7 +254,7 @@ case class ASTTypeTuple(val args: List[ASTType]) extends ASTType {
       // This is a hard case again.
       val equalityTyps = TypeVariableGenerator.getEqualityVars(args.length)
 
-      val unifier = this.unify(ASTTypeTuple(equalityTyps))
+      val unifier = this.unify(ASTTupleType(equalityTyps))
 
       // If that did not crash, we still need that MGU as it might
       // require some specializations from within the tuple
@@ -270,7 +270,7 @@ case class ASTTypeTuple(val args: List[ASTType]) extends ASTType {
     if (map.contains(this))
       map(this)
     else
-      new ASTTypeTuple(args.map(x => x.substituteFor(map)))
+      new ASTTupleType(args.map(x => x.substituteFor(map)))
 
   def atomicClone = throw new ICE("""Attempted type clone of
     uncloneable type %s""".format(this.prettyPrint))
@@ -297,7 +297,7 @@ case class ASTEqualityTypeVar(name: String) extends ASTTypeVar {
     ASTTypeSet(this)
 
   override def specializeTo(other: ASTType) = other match {
-    case ASTTypeTuple(typs) => {
+    case ASTTupleType(typs) => {
       // We cheat in this case. We create N new type equality vars
       // and attempt to specialize those. If that succeeeds, we throw
       // away the unifiers and just return this unifying to other
