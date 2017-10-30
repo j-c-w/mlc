@@ -115,19 +115,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     // interpret them individually.
     // Note that these are ordered so as to keep any
     // that prefix any others at the bottom
-      "::"              ^^ { (_) => ASTConsIdent() }
-    | "(" ~ ")"         ^^ { case (_ ~ _) => ASTUnitIdent() }
-    | "<="              ^^ { (_) => ASTLEQIdent() }
-    | ">="              ^^ { (_) => ASTGEQIdent() }
-    | "<"               ^^ { (_) => ASTLTIdent() }
-    | ">"               ^^ { (_) => ASTGTIdent() }
-    | "="               ^^ { (_) => ASTEqIdent() }
-    | "^"               ^^ { (_) => ASTStringCatIdent() }
-    | "+"               ^^ { (_) => ASTPlusIdent() }
-    | "-"               ^^ { (_) => ASTMinusIdent() }
-    | "*"               ^^ { (_) => ASTTimesIdent() }
-    | "/"               ^^ { (_) => ASTRealDivIdent() }
-    | "@"               ^^ { (_) => ASTAppendIdent() }
+      "(" ~ ")"         ^^ { case (_ ~ _) => ASTUnitIdent() }
     | restrictedIDAllowList
   )
 
