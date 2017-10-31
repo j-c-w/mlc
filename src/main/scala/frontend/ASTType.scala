@@ -591,7 +591,7 @@ case class ASTIntStringType(val id: String) extends ASTTypeVar {
   }
 
   override def mguNoCyclicCheck(other: ASTType) = other match {
-    case ASTComparableType(otherID) =>
+    case ASTIntStringType(otherID) =>
       if (id == otherID)
         ASTUnifier()
       else
@@ -631,6 +631,7 @@ case class ASTIntType() extends ASTTypeVar {
   override def mguNoCyclicCheck(other: ASTType) = other match {
     case ASTNumberType(_) => ASTUnifier(other, this)
     case ASTComparableType(_) => ASTUnifier(other, this)
+    case ASTIntStringType(_) => ASTUnifier(other, this)
     case ASTIntType() => ASTUnifier()
     case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
     case ASTEqualityTypeVar(name) => ASTUnifier(other, this)
@@ -729,6 +730,7 @@ case class ASTStringType() extends ASTTypeVar {
 
   override def mguNoCyclicCheck(other: ASTType) = other match {
     case ASTComparableType(_) => ASTUnifier(other, this)
+    case ASTIntStringType(_) => ASTUnifier(other, this)
     case ASTStringType() => ASTUnifier()
     case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
     case ASTEqualityTypeVar(name) => ASTUnifier(other, this)
