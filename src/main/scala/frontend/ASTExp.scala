@@ -44,7 +44,27 @@ case class ASTExpFunApp(val fun: ASTExp, val app: ASTExp) extends ASTExp {
   var callType: Option[ASTFunctionType] = None
 }
 
-case class ASTExpInfixApp(val operator: ASTIdent, val operand1: ASTExp,
+object ASTExpInfixApp {
+  /* This is conceptually the same as the left associate function
+   * for functions. It takes some:
+   *    +, 4, 1 + (2 + 3) => (4 + 1) + (2 + 3)
+   */
+  def leftAssociate(operator: ASTInfixIdent, newOperand: ASTExp,
+                    oldInfix : ASTExp): ASTExpInfixApp = {
+    oldInfix match {
+      case ASTExpInfixApp(oldOp, op1, op2) =>
+        // If the operators are of difference precedence, then
+        // we leave it to the parser to disambiguate.
+        if (oldOp.precedence == operator.precedence) {
+          ASTExpInfixApp(oldOp, leftAssociate(operator, newOperand, op1), op2)
+        } else
+          ASTExpInfixApp(operator, newOperand, oldInfix)
+      case _ => ASTExpInfixApp(operator, newOperand, oldInfix)
+    }
+  }
+}
+
+case class ASTExpInfixApp(val operator: ASTInfixIdent, val operand1: ASTExp,
                           val operand2: ASTExp) extends ASTExp {
   def prettyPrint = operand1.prettyPrint + " " + operator.prettyPrint + " " + 
       operand2.prettyPrint

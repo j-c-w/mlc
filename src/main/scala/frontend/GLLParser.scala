@@ -261,15 +261,20 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
 
   lazy val infix4Tail: Parser[(ASTExp => ASTExp)] = (
       "<=" ~ infix4        ^^ { case(_ ~ tail)
-          => ((x: ASTExp) => ASTExpInfixApp(ASTLEQIdent(), x, tail)) }
+          => ((x: ASTExp) =>
+                ASTExpInfixApp.leftAssociate(ASTLEQIdent(), x, tail)) }
     | ">=" ~ infix4        ^^ { case(_ ~ tail)
-          => ((x: ASTExp) => ASTExpInfixApp(ASTGEQIdent(), x, tail)) }
+          => ((x: ASTExp) =>
+              ASTExpInfixApp.leftAssociate(ASTGEQIdent(), x, tail)) }
     | "<"  ~ infix4        ^^ { case(_ ~ tail)
-          => ((x: ASTExp) => ASTExpInfixApp(ASTLTIdent(), x, tail)) }
+          => ((x: ASTExp) =>
+              ASTExpInfixApp.leftAssociate(ASTLTIdent(), x, tail)) }
     | ">"  ~ infix4        ^^ { case(_ ~ tail)
-          => ((x: ASTExp) => ASTExpInfixApp(ASTGTIdent(), x, tail)) }
+          => ((x: ASTExp) =>
+              ASTExpInfixApp.leftAssociate(ASTGTIdent(), x, tail)) }
     | "="  ~ infix4        ^^ { case(_ ~ tail)
-          => ((x: ASTExp) => ASTExpInfixApp(ASTEqIdent(), x, tail)) }
+          => ((x: ASTExp) =>
+              ASTExpInfixApp.leftAssociate(ASTEqIdent(), x, tail)) }
     | ""                   ^^ { (_) => ((x: ASTExp) => x) }
   )
 
@@ -291,11 +296,14 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
 
   lazy val infix6Tail: Parser[(ASTExp => ASTExp)] = (
       "+" ~ infix6         ^^ { case(_ ~ tail)
-          => ((x: ASTExp) => ASTExpInfixApp(ASTPlusIdent(), x, tail)) }
+          => ((x: ASTExp) =>
+                ASTExpInfixApp.leftAssociate(ASTPlusIdent(), x, tail)) }
     | "-" ~ infix6         ^^ { case(_ ~ tail)
-          => ((x: ASTExp) => ASTExpInfixApp(ASTMinusIdent(), x, tail)) }
+          => ((x: ASTExp) =>
+                ASTExpInfixApp.leftAssociate(ASTMinusIdent(), x, tail)) }
     | "^" ~ infix6         ^^ { case(_ ~ tail)
-          => ((x: ASTExp) => ASTExpInfixApp(ASTStringCatIdent(), x, tail)) }
+          => ((x: ASTExp) =>
+                ASTExpInfixApp.leftAssociate(ASTStringCatIdent(), x, tail)) }
     | ""                   ^^ { (_) => ((x: ASTExp) => x) }
   )
 
@@ -342,13 +350,17 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
 
   lazy val infix7Tail: Parser[(ASTExp => ASTExp)] = (
       "*" ~ infix7         ^^ { case (_ ~ tail)
-          => ((x: ASTExp) => ASTExpInfixApp(ASTTimesIdent(), x, tail)) }
+          => ((x: ASTExp) =>
+                  ASTExpInfixApp.leftAssociate(ASTTimesIdent(), x, tail)) }
     | "/" ~ infix7         ^^ { case (_ ~ tail)
-          => ((x: ASTExp) => ASTExpInfixApp(ASTRealDivIdent(), x, tail)) }
+          => ((x: ASTExp) =>
+                  ASTExpInfixApp.leftAssociate(ASTRealDivIdent(), x, tail)) }
     | "mod" ~ infix7       ^^ { case (_ ~ tail)
-          => ((x: ASTExp) => ASTExpInfixApp(ASTModIdent(), x, tail)) }
+          => ((x: ASTExp) =>
+                  ASTExpInfixApp.leftAssociate(ASTModIdent(), x, tail)) }
     | "div" ~ infix7       ^^ { case (_ ~ tail)
-          => ((x: ASTExp) => ASTExpInfixApp(ASTIntDivIdent(), x, tail)) }
+          => ((x: ASTExp) =>
+                  ASTExpInfixApp.leftAssociate(ASTIntDivIdent(), x, tail)) }
     | expTail              ^^ { (tail) => ((x : ASTExp) => tail(x)) }
   )
 

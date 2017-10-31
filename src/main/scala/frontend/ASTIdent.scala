@@ -6,6 +6,10 @@ object ASTIdent
 
 sealed trait ASTIdent extends GenericPrintable
 
+sealed trait ASTInfixIdent extends ASTIdent {
+  val precedence: Int
+}
+
 case class ASTIdentVar(val id: String) extends ASTIdent {
   def prettyPrint = id
 }
@@ -22,8 +26,10 @@ case class ASTUnderscoreIdent() extends ASTIdent {
   def prettyPrint = "_"
 }
 
-case class ASTConsIdent() extends ASTIdent {
+case class ASTConsIdent() extends ASTInfixIdent {
   def prettyPrint = "::"
+
+  val precedence = 5
 }
 
 case class ASTEmptyListIdent() extends ASTIdent {
@@ -34,64 +40,94 @@ case class ASTUnitIdent() extends ASTIdent {
   def prettyPrint = "()"
 }
 
-case class ASTPlusIdent() extends ASTIdent {
+case class ASTPlusIdent() extends ASTInfixIdent {
   def prettyPrint = "+"
+
+  val precedence = 6
 }
 
-case class ASTMinusIdent() extends ASTIdent {
+case class ASTMinusIdent() extends ASTInfixIdent {
   def prettyPrint = "-"
+
+  val precedence = 6
 }
 
-case class ASTTimesIdent() extends ASTIdent {
+case class ASTTimesIdent() extends ASTInfixIdent {
   def prettyPrint = "*"
+
+  val precedence = 7
 }
 
-case class ASTIntDivIdent() extends ASTIdent {
+case class ASTIntDivIdent() extends ASTInfixIdent {
   def prettyPrint = " div "
+
+  val precedence = 7
 }
 
-case class ASTRealDivIdent() extends ASTIdent {
+case class ASTRealDivIdent() extends ASTInfixIdent {
   def prettyPrint = "/"
+
+  val precedence = 7
 }
 
-case class ASTModIdent() extends ASTIdent {
+case class ASTModIdent() extends ASTInfixIdent {
   def prettyPrint = " mod "
+
+  val precedence = 7
 }
 
-case class ASTAppendIdent() extends ASTIdent {
+case class ASTAppendIdent() extends ASTInfixIdent {
   def prettyPrint = "@"
+
+  val precedence = 5
 }
 
-case class ASTStringCatIdent() extends ASTIdent {
+case class ASTStringCatIdent() extends ASTInfixIdent {
   def prettyPrint = "^"
+
+  val precedence = 6
 }
 
-case class ASTLTIdent() extends ASTIdent {
+case class ASTLTIdent() extends ASTInfixIdent {
   def prettyPrint = "<"
+
+  val precedence = 4
 }
 
-case class ASTLEQIdent() extends ASTIdent {
+case class ASTLEQIdent() extends ASTInfixIdent {
   def prettyPrint = "<="
+
+  val precedence = 4
 }
 
-case class ASTGTIdent() extends ASTIdent {
+case class ASTGTIdent() extends ASTInfixIdent {
   def prettyPrint = ">"
+
+  val precedence = 4
 }
 
-case class ASTGEQIdent() extends ASTIdent {
+case class ASTGEQIdent() extends ASTInfixIdent {
   def prettyPrint = ">="
+
+  val precedence = 4
 }
 
-case class ASTEqIdent() extends ASTIdent {
+case class ASTEqIdent() extends ASTInfixIdent {
   def prettyPrint = "="
+
+  val precedence = 4
 }
 
-case class ASTAndIdent() extends ASTIdent {
+case class ASTAndIdent() extends ASTInfixIdent {
   def prettyPrint = " andalso "
+
+  val precedence = 0
 }
 
-case class ASTOrIdent() extends ASTIdent {
+case class ASTOrIdent() extends ASTInfixIdent {
   def prettyPrint = " orelse "
+
+  val precedence = 0
 }
 
 sealed trait ASTUnOp extends ASTIdent
