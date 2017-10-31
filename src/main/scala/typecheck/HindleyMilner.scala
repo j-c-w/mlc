@@ -286,26 +286,6 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
 
         (unifier, typ)
       }
-      case ASTExpAnd(op1, op2) => {
-        val (op1Unifier, op1Typ) = principalType(env, op1)
-        op1Unifier.specializeVerify(op1Typ, ASTBoolType())
-
-
-        val (op2Unifier, op2Typ) = principalType(env, op2)
-        op2Unifier.specializeVerify(op2Typ, ASTBoolType())
-
-        // We require the calls to specialize to because they set
-        // check that the convsersion is OK.
-
-        op2Unifier mguUnify op1Unifier
-
-        (op2Unifier, ASTBoolType())
-      }
-      case ASTExpOr(op1, op2) => {
-        // We cheat here, since this has exactly the same typing
-        // properties as the ASTExpAnd.
-        principalType(env, ASTExpAnd(op1, op2))
-      }
       case ASTExpIfThenElse(cond, ifTrue, ifFalse) => {
         val (condUnifier, condType) = principalType(env, cond)
         condUnifier.specializeVerify(condType, ASTBoolType())

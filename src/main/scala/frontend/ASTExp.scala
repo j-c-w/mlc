@@ -88,15 +88,6 @@ case class ASTExpTyped(val exp: ASTExp, val typ: ASTType) extends ASTExp {
   def prettyPrint = " %s : %s ".format(exp.prettyPrint, typ.prettyPrint)
 }
 
-case class ASTExpOr(val e1: ASTExp, val e2: ASTExp) extends ASTExp {
-  def prettyPrint = " ( %s orelse %s ) ".format(e1.prettyPrint, e2.prettyPrint)
-}
-
-case class ASTExpAnd(val e1: ASTExp, val e2: ASTExp) extends ASTExp {
-  def prettyPrint = " ( %s andalso %s ) ".format(e1.prettyPrint, 
-                                                 e2.prettyPrint)
-}
-
 case class ASTExpIfThenElse(val cond: ASTExp, val taken: ASTExp,
                             val notTaken: ASTExp) extends ASTExp {
   def prettyPrint = """

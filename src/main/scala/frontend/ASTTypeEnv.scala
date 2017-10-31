@@ -90,6 +90,12 @@ class ASTTypeEnv(parent: Option[ASTTypeEnv])
           eqType)),
         ASTBoolType()))
     }
+    case ASTAndIdent() | ASTOrIdent() =>
+      Some(ASTFunctionType(
+        ASTTupleType(List(
+          ASTBoolType(),
+          ASTBoolType())),
+        ASTBoolType()))
     case ASTUnOpNegate() => {
       val numType = TypeVariableGenerator.getNumberTypeVar()
       Some(ASTFunctionType(numType, numType))

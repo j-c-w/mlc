@@ -123,25 +123,6 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     | restrictedIDAllowList
   )
 
-  // Inserted to allow the parser to distinguish between
-  // infix operators and normal function applications.
-  lazy val infixID: Parser[ASTIdent] = (
-      "::"              ^^ { (_) => ASTConsIdent() }
-    | "<="              ^^ { (_) => ASTLEQIdent() }
-    | ">="              ^^ { (_) => ASTGEQIdent() }
-    | "<"               ^^ { (_) => ASTLTIdent() }
-    | ">"               ^^ { (_) => ASTGTIdent() }
-    | "="               ^^ { (_) => ASTEqIdent() }
-    | "^"               ^^ { (_) => ASTStringCatIdent() }
-    | "+"               ^^ { (_) => ASTPlusIdent() }
-    | "-"               ^^ { (_) => ASTMinusIdent() }
-    | "*"               ^^ { (_) => ASTTimesIdent() }
-    | "/"               ^^ { (_) => ASTRealDivIdent() }
-    | "@"               ^^ { (_) => ASTAppendIdent() }
-    | "mod"             ^^ { (_) => ASTModIdent() }
-    | "div"             ^^ { (_) => ASTIntDivIdent() }
-  )
-
   lazy val restrictedIDAllowList: Parser[ASTIdent] = (
       "[" ~ "]"         ^^ { case (_ ~ _) => ASTEmptyListIdent() }
     | "nil"             ^^ { (_) => ASTEmptyListIdent() }
@@ -218,24 +199,11 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   // Expressions
   // Refactored to avoid left recursion.
   lazy val exp: Parser[ASTExp] = (
-      con ~ expTail                  ^^ { case (con ~ expTail)
-            => expTail(ASTExpConst(con)) }
+      infixApp ~ expTail             ^^ { case (infix ~ expTail)
+            => expTail(infix) }
     // Inserted: UnOp ~ exp for dealing with unary operations
     | unOp ~ exp ~ expTail           ^^ { case (unop ~ exp ~ expTail)
             => expTail(ASTExpUnOpApply(unop, exp)) }
-    // Note that () and [] are treated as special values are so
-    // are not considered as part of these expressions.
-    // A single bracketing has to be treated as a special case.
-    | "(" ~ expSeq ~ ")" ~ expTail      ^^ { case (_ ~ exp ~ _ ~ expTail) =>
-          expTail(ASTExpSeq(exp)) }
-    | "(" ~ expTuple ~ ")" ~ expTail ^^ { case (_ ~ exp ~ _ ~ expTail) =>
-          expTail(ASTExpTuple(exp)) }
-    // We use this rather than expTuple because expList allows
-    // for singleton lists whereas expTuple excludes tuples
-    // of size 1
-    | "[" ~ expList ~ "]" ~ expTail ^^ { case (_ ~ exp ~ _ ~ expTail) =>
-          expTail(ASTExpList(exp))
-    }
     // Refactored: (exp1 dots expn) replaced by the above
     // Omitted: raise exp
     // Omitted: exp handle match
@@ -243,33 +211,149 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     // Note that none of these have EXP tails. This is intentional
     // as I do not believe that that is a meaningful grammar.
     // This may be subject to change.
-    | "let" ~ decs ~ "in" ~ expSeq ~ "end" ^^ {
-          case (_ ~ decs ~ _ ~ seq ~ _) =>
-             ASTExpLetIn(decs, seq) }
     // Note that since 'else' is associated with all ifs, this avoids
     // the dangling else ambiguity.
     | "if" ~ exp ~ "then" ~ exp ~ "else" ~ exp ^^ {
-          case (_ ~ cond ~ _ ~ taken ~ _ ~ notTaken) =>
-              ASTExpIfThenElse(cond, taken, notTaken)
+          case (_ ~ cond ~ _ ~ taken ~ _ ~ notTaken)
+            => ASTExpIfThenElse(cond, taken, notTaken)
     }
     // Rename  match to matchPat since match is a keyword in Scala
-    | "case" ~ exp ~ "of" ~ matchPat ^^ { case (_ ~ exp ~ _ ~ matchPat) =>
-              ASTExpCase(exp, matchPat) }
+    | "case" ~ exp ~ "of" ~ matchPat ^^ { case (_ ~ exp ~ _ ~ matchPat)
+            => ASTExpCase(exp, matchPat) }
     | "fn" ~ matchPat        ^^ { case (_ ~ body) => ASTExpFn(body) }
-    // This is moved here from it's location in the original grammar
-    // to avoid picking up 'fn', 'case', 'if', etc as IDs
-    | longid ~ expTail               ^^ { case (id ~ expTail)
-      => id match {
-          case ASTLongIdent(id :: Nil) => expTail(ASTExpIdent(id))
-          case ASTLongIdent(ids) => expTail(ASTExpIdent(ASTLongIdent(ids)))
-      }
+  )
+
+  lazy val infixApp: Parser[ASTExp] = (
+    infixTop
+  )
+  // Inserted: These are infix operator precedences, in
+  // increasing order. Infix 0 is the lowest procedence.
+  // 'before' is not part of my subset.
+  // lazy val infix0: Parser
+  // There are no values at 1, 2
+  // lazy val infix1: Parser
+  // lazy val infix2: Parser
+  // 'o' and := are not part of my subset
+  // lazy val infix3: Parser
+
+  // Artificiall inserted to get these to bind the right way.
+  lazy val infixTop: Parser[ASTExp] = (
+    infix4 ~ infixTopTail  ^^ {
+        case (exp ~ tail) =>
+          tail(exp)
     }
   )
 
+  lazy val infixTopTail: Parser[(ASTExp => ASTExp)] = (
+      "orelse" ~ infixTop    ^^ { case (_ ~ tail)
+          => ((x: ASTExp) => ASTExpInfixApp(ASTOrIdent(), x, tail)) }
+    | "andalso" ~ infixTop   ^^ { case (_ ~ tail)
+          => ((x: ASTExp) => ASTExpInfixApp(ASTAndIdent(), x, tail)) }
+    | expTail                ^^ { (tail) => ((x: ASTExp) => tail(x)) }
+  )
+
+  lazy val infix4: Parser[ASTExp] = (
+    infix5 ~ infix4Tail  ^^ {
+        case (exp ~ tail) =>
+          tail(exp)
+    }
+  )
+
+  lazy val infix4Tail: Parser[(ASTExp => ASTExp)] = (
+      "<=" ~ infix4        ^^ { case(_ ~ tail)
+          => ((x: ASTExp) => ASTExpInfixApp(ASTLEQIdent(), x, tail)) }
+    | ">=" ~ infix4        ^^ { case(_ ~ tail)
+          => ((x: ASTExp) => ASTExpInfixApp(ASTGEQIdent(), x, tail)) }
+    | "<"  ~ infix4        ^^ { case(_ ~ tail)
+          => ((x: ASTExp) => ASTExpInfixApp(ASTLTIdent(), x, tail)) }
+    | ">"  ~ infix4        ^^ { case(_ ~ tail)
+          => ((x: ASTExp) => ASTExpInfixApp(ASTGTIdent(), x, tail)) }
+    | "="  ~ infix4        ^^ { case(_ ~ tail)
+          => ((x: ASTExp) => ASTExpInfixApp(ASTEqIdent(), x, tail)) }
+    | ""                   ^^ { (_) => ((x: ASTExp) => x) }
+  )
+
+  lazy val infix5: Parser[ASTExp] = (
+    infix6 ~ infix5Tail    ^^ { case (exp ~ tail) => tail(exp) }
+  )
+
+  lazy val infix5Tail: Parser[(ASTExp => ASTExp)] = (
+      "::" ~ infix5        ^^ { case(_ ~ tail)
+          => ((x: ASTExp) => ASTExpInfixApp(ASTConsIdent(), x, tail)) }
+    | "@"  ~ infix5        ^^ { case(_ ~ tail)
+          => ((x: ASTExp) => ASTExpInfixApp(ASTAppendIdent(), x, tail)) }
+    | ""                   ^^ { (_) => ((x: ASTExp) => x) }
+  )
+
+  lazy val infix6: Parser[ASTExp] = (
+    infix7 ~ infix6Tail    ^^ { case (exp ~ tail) => tail(exp) }
+  )
+
+  lazy val infix6Tail: Parser[(ASTExp => ASTExp)] = (
+      "+" ~ infix6         ^^ { case(_ ~ tail)
+          => ((x: ASTExp) => ASTExpInfixApp(ASTPlusIdent(), x, tail)) }
+    | "-" ~ infix6         ^^ { case(_ ~ tail)
+          => ((x: ASTExp) => ASTExpInfixApp(ASTMinusIdent(), x, tail)) }
+    | "^" ~ infix6         ^^ { case(_ ~ tail)
+          => ((x: ASTExp) => ASTExpInfixApp(ASTStringCatIdent(), x, tail)) }
+    | ""                   ^^ { (_) => ((x: ASTExp) => x) }
+  )
+
+  // New level inserted to deal with 'andalso' and 'orelse'
+  lazy val infix7: Parser[ASTExp] = (
+      "(" ~ exp ~ ")" ~ infix7Tail        ^^ {
+          case (_ ~ exp ~ _ ~ tail) => tail(exp)
+      }
+    // The ordering of these two is important! ID's tend to eat
+    // some constants (depite my best efforts)
+    | con ~ infix7Tail                    ^^ {
+          case (con ~ infix7Tail) => infix7Tail(ASTExpConst(con)) }
+    | longid ~ infix7Tail                 ^^ { case (id ~ infix7Tail)
+        => id match {
+            case ASTLongIdent(Nil) => unreachable
+            case ASTLongIdent(id :: Nil) => infix7Tail(ASTExpIdent(id))
+            case ASTLongIdent(ids) =>
+              infix7Tail(ASTExpIdent(ASTLongIdent(ids)))
+        }
+    }
+    | id ~ infix7Tail                     ^^ {
+          case (exp ~ tail) => tail(ASTExpIdent(exp))
+    }
+    | "let" ~ decs ~ "in" ~ expSeq ~ "end" ~ infix7Tail ^^ {
+          case (_ ~ decs ~ _ ~ seq ~ _ ~ infix7Tail) =>
+             infix7Tail(ASTExpLetIn(decs, seq)) }
+    // Note that () and [] are treated as special values are so
+    // are not considered as part of these expressions.
+    // A single bracketing has to be treated as a special case.
+    | "(" ~ expSeq ~ ")" ~ infix7Tail      ^^ {
+        case (_ ~ exp ~ _ ~ infix7Tail) =>
+          infix7Tail(ASTExpSeq(exp)) }
+    | "(" ~ expTuple ~ ")" ~ infix7Tail    ^^ {
+        case (_ ~ exp ~ _ ~ infix7Tail) =>
+          infix7Tail(ASTExpTuple(exp)) }
+    // We use this rather than expTuple because expList allows
+    // for singleton lists whereas expTuple excludes tuples
+    // of size 1
+    | "[" ~ expList ~ "]" ~ infix7Tail     ^^ {
+        case (_ ~ exp ~ _ ~ infix7Tail) =>
+          infix7Tail(ASTExpList(exp))
+    }
+  )
+
+  lazy val infix7Tail: Parser[(ASTExp => ASTExp)] = (
+      "*" ~ infix7         ^^ { case (_ ~ tail)
+          => ((x: ASTExp) => ASTExpInfixApp(ASTTimesIdent(), x, tail)) }
+    | "/" ~ infix7         ^^ { case (_ ~ tail)
+          => ((x: ASTExp) => ASTExpInfixApp(ASTRealDivIdent(), x, tail)) }
+    | "mod" ~ infix7       ^^ { case (_ ~ tail)
+          => ((x: ASTExp) => ASTExpInfixApp(ASTModIdent(), x, tail)) }
+    | "div" ~ infix7       ^^ { case (_ ~ tail)
+          => ((x: ASTExp) => ASTExpInfixApp(ASTIntDivIdent(), x, tail)) }
+    | expTail              ^^ { (tail) => ((x : ASTExp) => tail(x)) }
+  )
+
   lazy val expTail: Parser[ASTExp => ASTExp] = (
-    infixID ~ exp       ^^ { case (id ~ op2) =>
-    ((op1: ASTExp) => ASTExpInfixApp(id, op1, op2)) }
-    | "(" ~ exp ~ ")" ~ expTail ^^ {
+      "(" ~ exp ~ ")" ~ expTail ^^ {
       case (_ ~ app ~ _ ~ tail) => (fun: ASTExp) => 
           // In this case, we do not push the function application all the way
           // in since.
@@ -284,10 +368,6 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     }
     | ":" ~ typ         ^^ { case (_ ~ typ) =>
           ((exp: ASTExp) => ASTExpTyped(exp, typ)) }
-    | "orelse" ~ exp    ^^ { case (_ ~ e2) =>
-          ((e1: ASTExp) => ASTExpOr(e1, e2)) }
-    | "andalso" ~ exp   ^^ { case (_ ~ e2) =>
-          ((e1: ASTExp) => ASTExpAnd(e1, e2)) }
     | ""                ^^ { (_) => (x: ASTExp) => x }
   )
 

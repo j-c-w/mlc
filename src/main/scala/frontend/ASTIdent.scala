@@ -86,6 +86,14 @@ case class ASTEqIdent() extends ASTIdent {
   def prettyPrint = "="
 }
 
+case class ASTAndIdent() extends ASTIdent {
+  def prettyPrint = " andalso "
+}
+
+case class ASTOrIdent() extends ASTIdent {
+  def prettyPrint = " orelse "
+}
+
 sealed trait ASTUnOp extends ASTIdent
 
 case class ASTUnOpNegate() extends ASTUnOp {
