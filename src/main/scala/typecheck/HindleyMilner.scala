@@ -11,10 +11,6 @@ import exceptions._
  * types. Duplicate types are deleted.
  *
  * It uses the standard Hindley Milner algorithm.
- *
- *    - Currently, we do not reject patterns like (x, x). This should
- *    definitely be done. (Need to fill in the method assertNoDuplicates)
- *
  */
 
 object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
@@ -142,7 +138,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         fun.rowEnvs = Some(resultEnvs)
         unifier
       }
-      case ASTDataType(_, _) => {
+      case ASTDataType(ident, astDatatConstructors) => {
         println("""Datatypes are not currently supported. """)
         System.exit(1)
         unreachable
@@ -488,7 +484,11 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
           astTypes = resType :: astTypes
           astUnifiers = ASTUnifier() :: astUnifiers
 
-          env.add(variable, resType, false)
+          if (env.innermostHasType(variable))
+            throw new BadPatternException("""Error, there are duplicate
+              varaibles in the pattern: %s""".format(patItem.prettyPrint))
+          else
+            env.add(variable, resType, false)
         }
         case ASTPatSeq(seq, typs) => {
           // Note that there are no duplicate variable names
@@ -505,9 +505,6 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
 
             assert(patType.length == 1)
             assert(patUnifiers.length == 1)
-
-            // Ensure that there are no duplicates in this pattern
-            assertNoDuplicates(patType(0))
 
             // The unifier is just unified together.
             unifier mguUnifyAll(patUnifiers)
@@ -545,8 +542,6 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
             val (elemTyp, elemUnifiers) = setupPatEnv(env, List(listElement))
             assert(elemUnifiers.length == 1)
             assert(elemTyp.length == 1)
-
-            assertNoDuplicates(elemTyp(0))
 
             // It is not possible to have two types in a list
             // element (note that tuples are considered a single
@@ -613,17 +608,6 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
     // We reverse the ASTTypes to avoid quadratic time in the number
     // of arguments.
     (astTypes.reverse, astUnifiers.reverse)
-  }
-
-  /* This function checks if there are any duplicates in the list.
-   * If  there are, it throws.
-   *
-   * This treats duplicates in the MosML style.
-   */
-  def assertNoDuplicates(typ: ASTType) = {
-   // throw new BadPatternException("""Found duplicate variables
-    //   |in a single pattern. The pattern was %s""".stripMargin.
-    //   format(patItem.prettyPrint))
   }
 
   /* This function takes a list of types and returns a single type

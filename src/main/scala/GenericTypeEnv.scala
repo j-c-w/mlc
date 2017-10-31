@@ -39,6 +39,10 @@ abstract class GenericTypeEnv[TypeEnvClass,
   def hasType(id: From): Boolean =
     map.contains(id) || parent.map(_.hasType(id)).getOrElse(false)
 
+  /* This seaches only this environment for the type. */
+  def innermostHasType(id: From): Boolean =
+    map.contains(id)
+
   def add(id: From, typ: To, qualified: Boolean): Unit =
     if (qualified)
       add(id, typ, Some(typ.getTypeVars()))

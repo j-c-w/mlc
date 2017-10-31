@@ -802,23 +802,34 @@ case class ASTUnitType() extends ASTTypeVar {
 case class ASTDataTypeName(val name: String) extends ASTTypeVar {
   def prettyPrint = name
 
-  def containsNonAtomic(other: ASTType) = ???
+  def containsNonAtomic(other: ASTType) = other match {
+    case ASTDataTypeName(otherName) => otherName == name
+    case _ => false
+  }
 
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substituteFor(map: Map[ASTType, ASTType]) =
     this
 
-  def atomicClone = ???
+  def atomicClone = throw new ICE("""ASTDataTypeName cannot be cloned""")
 
-  def admitsEquality = ???
+  // This is not strictly true by the standard. The standard requires
+  // that we be able to compare datatypes when all of the values
+  // within the type are equality types.
+  def admitsEquality = false
 
   val isAtomic = true
 
   override def getTypeVars() = ASTTypeSet()
 
   override def specializeTo(other: ASTType) = other match {
-    case _ => ???
+    case ASTDataTypeName(otherName) =>
+      if (name == otherName)
+        ASTUnifier()
+      else
+        throw new SpecializationError(this, other)
+    case _ => throw new SpecializationError(this, other)
   }
 
   override def mguNoCyclicCheck(other: ASTType) = other match {
