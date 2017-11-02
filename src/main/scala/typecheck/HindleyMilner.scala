@@ -544,8 +544,10 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
           val specifiedUnifier = listType unify specifiedType
           unifier mguUnify specifiedUnifier
 
+          unifier(env)
+
           astUnifiers = unifier :: astUnifiers
-          astTypes = unifier(specifiedType) :: astTypes
+          astTypes = unifier(ASTListType(specifiedType)) :: astTypes
           
         }
         case ASTPatConst(ident, typ) => {
@@ -581,6 +583,8 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
           val headTailUnifier = ASTListType(headTyps(0)) unify tailTyps(0)
 
           mgu mguUnify headTailUnifier
+
+          mgu(env)
 
           astTypes = mgu(tailTyps(0)) :: astTypes
           astUnifiers = mgu :: astUnifiers
