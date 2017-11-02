@@ -332,7 +332,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
              infix7Tail(ASTExpLetIn(decs, seq)) }
     // Note that () and [] are treated as special values are so
     // are not considered as part of these expressions.
-    // A single bracketing has to be treated as a special case.
+    // A single bracketing has to be treated as a special case
     | "(" ~ expSeq ~ ")" ~ infix7Tail      ^^ {
         case (_ ~ exp ~ _ ~ infix7Tail) =>
           infix7Tail(ASTExpSeq(exp)) }
@@ -342,6 +342,13 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     // We use this rather than expTuple because expList allows
     // for singleton lists whereas expTuple excludes tuples
     // of size 1
+    // ExpList elements of size 1 are treated as a special case, because
+    // they cause an expoenetial blowup if they are allowed
+    // to proceed into the expList code.
+    | "[" ~ exp ~ "]" ~ infix7Tail         ^^ {
+        case (_ ~ exp ~ _ ~ infix7Tail) =>
+          infix7Tail(ASTExpList(List(exp)))
+    }
     | "[" ~ expList ~ "]" ~ infix7Tail     ^^ {
         case (_ ~ exp ~ _ ~ infix7Tail) =>
           infix7Tail(ASTExpList(exp))
@@ -433,12 +440,23 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     // Special case: pat id pat -> pat :: pat.
     // Restructured: (pat1, ... patN) replaced with (patlist)
     // Restructured: (pat) replaced with (patList)
+    // Resturctured: Single element patterns are treated on their own
+    // since they result in an exponential blowup if they are not.
+    | "(" ~ pat ~ ")" ~ patTail         ^^ {
+          case (_ ~ pat ~ _ ~ patTail) =>
+                   patTail._1(ASTPatSeq(List(pat), patTail._2)) }
     | "(" ~ patList ~ ")" ~ patTail     ^^ {
           case (_ ~ ASTPatSeq(patList, _) ~ _ ~ patTail) =>
                    patTail._1(ASTPatSeq(patList, patTail._2)) }
     // Note that there is a distinction between ASTPatSeq and
     // ASTListPat. The former is a pattern list and the later
     // is a list of patterns.
+    // Again, single element lists are treated as special cases
+    // as they result in an exponential blowup if allowed to continue
+    // past here.
+    | "[" ~ pat ~ "]" ~ patTail     ^^ {
+          case (_ ~ pat ~ _ ~ patTail) => 
+                   patTail._1(ASTListPat(List(pat), patTail._2)) }
     | "[" ~ patList ~ "]" ~ patTail     ^^ {
           case (_ ~ ASTPatSeq(patSeq, _) ~ _ ~ patTail) => 
                    patTail._1(ASTListPat(patSeq, patTail._2)) }
