@@ -12,7 +12,7 @@ case class TConstInt(val int: Int) extends TConst {
 case class TConstFloat(val float: Double) extends TConst {
   def walk(f: TPass) = f(this)
 
-  def prettyPrint = Float.toString(float)
+  def prettyPrint = String.valueOf(float)
 }
 
 case class TConstString(val str: String) extends TConst {
@@ -24,7 +24,7 @@ case class TConstString(val str: String) extends TConst {
 case class TConstChar(val char: Char) extends TConst {
   def walk(f: TPass) = f(this)
 
-  def prettyPrint = Char.toString(char)
+  def prettyPrint = Character.toString(char)
 }
 
 sealed trait TConstBool extends TConst
