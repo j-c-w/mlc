@@ -15,7 +15,6 @@ case class TFun(var name: TIdent, var patterns: List[TExpMatchRow])
     if (f(this)) {
       name.walk(f)
       patterns.foreach(_.walk(f))
-      expressions.foreach(_.walk(f))
     }
 }
 
