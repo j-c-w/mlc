@@ -32,6 +32,12 @@ case class ASTConsIdent() extends ASTInfixIdent {
   val precedence = 5
 }
 
+case class ASTAppendIdent() extends ASTInfixIdent {
+  def prettyPrint = "@"
+
+  val precedence = 5
+}
+
 case class ASTEmptyListIdent() extends ASTIdent {
   def prettyPrint = "[]"
 }
@@ -74,12 +80,6 @@ case class ASTModIdent() extends ASTInfixIdent {
   def prettyPrint = " mod "
 
   val precedence = 7
-}
-
-case class ASTAppendIdent() extends ASTInfixIdent {
-  def prettyPrint = "@"
-
-  val precedence = 5
 }
 
 case class ASTStringCatIdent() extends ASTInfixIdent {
