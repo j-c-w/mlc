@@ -10,7 +10,7 @@ import toplev.GenericPrintable
  * may be replaced by any other TExp.
  */
 
-trait TExp extends TWalkable with GenericPrintable
+sealed trait TExp extends TWalkable with GenericPrintable
 
 case class TExpConst(var const: TConst) extends TExp {
   def walk(f: TPass) = f(this)
@@ -22,7 +22,7 @@ case class TExpIdent(var ident: TIdent) extends TExp {
   def prettyPrint = ident.prettyPrint
 }
 
-case class TExpFunApp(var funname: TExp, var application: TExp) extends TExp {
+case class TExpFunApp(var funname: TExp, var application: TExp, var callType: TType) extends TExp {
   def walk(f: TPass) = if (f(this)) {
     funname.walk(f)
     application.walk(f)
@@ -48,7 +48,16 @@ case class TExpList(var elems: List[TExp]) extends TExp {
   def prettyPrint = "[" + elems.map(_.prettyPrint).mkString(", ") + "]"
 }
 
-case class TExpLetIn(var decs: List[TVal], var exp: TExp) extends TExp {
+case class TExpSeq(var seq: List[TExp]) extends TExp {
+  def walk(f: TPass) = if (f(this)) {
+    seq.foreach(f(_))
+  }
+
+  def prettyPrint = "(" + elemsn.map(_.prettyPrint).mkString(";\n") + ")"
+}
+
+case class TExpLetIn(var decs: List[TDec], var exp: TExp, var env: TTypeEnv)
+    extends TExp {
   def walk(f: TPass) = if (f(this)) {
     decs.foreach(_.walk(f))
     exp.walk(f)
@@ -64,6 +73,19 @@ case class TExpLetIn(var decs: List[TVal], var exp: TExp) extends TExp {
   |
   """.stripMargin.format(decs.map(_.prettyPrint).mkString("\n"),
                          exp.prettyPrint)
+}
+
+case class TExpCase(var exp: TExp, var cases: List[TExpMatchRow]) {
+  def walk(f: TPass) = if (f(this)) {
+    exp.walk(f)
+    cases.foreach(_.walk(f))
+  }
+
+  def prettyPrint = """
+  |match %s with
+  |   %s
+  """.stripMargin.format(exp.prettyPrint,
+                         cases.map(_.prettyPrint).mkString("\n   |"))
 }
 
 case class TExpMatchRow(var pat: TPat, var exp: TExp) extends TExp {
