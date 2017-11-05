@@ -2,38 +2,24 @@ package tir
 
 import toplev.GenericPrintable
 
-trait TIdent extends TWalkable with GenericPrintable
+sealed trait TIdent extends TWalkable with GenericPrintable
 
-trait TFunctionIdent extends TIdent
-trait TValIdent extends TIdent
-trait BuiltinIdent extends TIdent {
+sealed trait BuiltinIdent extends TIdent {
   def walk(f: TPass) = f(this)
 }
 
-case class TValIdentVar(var name: String) extends TValIdent {
+case class TIdentVar(var name: String) extends TIdent {
   def walk(f: TPass) = f(this)
 
   def prettyPrint = name
 }
 
-case class TValIdentLongVar(var name: List[TValIdentVar])
-    extends TValLongIdent {
+case class TIdentLongVar(var name: List[TValIdentVar]) extends TIdent {
   def walk(f: TPass) = f(this)
 
   def prettyPrint = name.mkString(".")
 }
 
-case class TFunctionIdentVar(var name: String) extends TFunctionIdent {
-  def walk(f: TPass) = f(this)
-
-  def prettyPrint = name
-}
-
-case class TFunctionIdentLongVar(var name: String) extends TFunctionIdent {
-  def walk(f: TPass) = f(this)
-
-  def prettyPrint = name
-}
 case class TUnderscoreIdent() extends BuiltinIdent {
   def prettyPrint = "_"
 }
