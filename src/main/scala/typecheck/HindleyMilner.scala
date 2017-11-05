@@ -189,16 +189,27 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
 
         (mgu, mgu.apply(resultType))
       }
-      case ASTExpInfixApp(fun, op1, op2) => {
+      case infixApp @ ASTExpInfixApp(fun, op1, op2) => {
         // In this case, the typing is the same as a normal
         // function application. Treat it as such.
         // These will be converted later in the compilation anyway.
-        principalType(env, ASTExpFunApp(ASTExpIdent(fun),
-                                        ASTExpTuple(List(op1, op2))))
+        val prefixFunction = ASTExpFunApp(ASTExpIdent(fun), ASTExpTuple(List(op1, op2)))
+        
+        val result = principalType(env, ASTExpFunApp(ASTExpIdent(fun),
+                                                     ASTExpTuple(List(op1,
+                                                                      op2))))
+
+        infixApp.callType = prefixFunction.callType
+        result
       }
-      case ASTExpUnOpApply(fun, op) => {
+      case unapp @ ASTExpUnOpApply(fun, op) => {
         // The same logic for the infix app may be applied in this case.
-        principalType(env, ASTExpFunApp(ASTExpIdent(fun), op))
+        val function = ASTExpFunApp(ASTExpIdent(fun), op)
+
+        val result = principalType(env, ASTExpFunApp(ASTExpIdent(fun), op))
+
+        unapp.callType = function.callType
+        result
       }
       case ASTExpTuple(elems) => {
         // These may require unification, e.g. in

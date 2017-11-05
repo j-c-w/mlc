@@ -68,11 +68,15 @@ case class ASTExpInfixApp(val operator: ASTInfixIdent, val operand1: ASTExp,
                           val operand2: ASTExp) extends ASTExp {
   def prettyPrint = operand1.prettyPrint + " " + operator.prettyPrint + " " + 
       operand2.prettyPrint
+
+  var callType: Option[ASTFunctionType] = None
 }
 
 case class ASTExpUnOpApply(val operator: ASTUnOp, val operand: ASTExp)
     extends ASTExp {
   def prettyPrint = operator.prettyPrint + " (" + operand.prettyPrint + ")"
+
+  var callType: Option[ASTFunctionType] = None
 }
 
 
