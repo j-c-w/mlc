@@ -338,7 +338,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         // thing here:
         
         // Body is a list of ASTExpMatchRows(ASTPat, ASTExp):
-        val patterns = body map { case ASTExpMatchRow(pat, _) => List(pat) }
+        val patterns = body map { case ASTExpMatchRow(pat, _) => pat }
         val exprs = body map { case ASTExpMatchRow(_, expr) => expr }
         assert(patterns.length == exprs.length)
 

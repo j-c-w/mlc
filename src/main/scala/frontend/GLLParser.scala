@@ -414,9 +414,9 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     // Note that this is not allowed to be empty
       pat ~ "=>" ~ exp ~ "|" ~ matchPat     ^^ {
           case (pat ~ _ ~ exp ~ _ ~ rest) =>
-                ASTExpMatchRow(pat, exp) :: rest }
+                ASTExpMatchRow(List(pat), exp) :: rest }
     | pat ~ "=>" ~ exp                      ^^ { case (pat ~ _ ~ exp) =>
-                List(ASTExpMatchRow(pat, exp)) }
+                List(ASTExpMatchRow(List(pat), exp)) }
   )
 
   // Patterns

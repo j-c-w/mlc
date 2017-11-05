@@ -128,11 +128,13 @@ case class ASTExpCase(val exp: ASTExp, val caseList: List[ASTExpMatchRow])
         (caseList map (_.prettyPrint)).mkString("\n| "))
 }
 
-case class ASTExpMatchRow(val pat: ASTPat, val exp: ASTExp) extends ASTExp {
+case class ASTExpMatchRow(val pat: List[ASTPat], val exp: ASTExp)
+    extends ASTExp {
   var env: Option[ASTTypeEnv] = None
 
-  def prettyPrint = """ case %s => %s """.format(pat.prettyPrint,
-                                                 exp.prettyPrint)
+  def prettyPrint =
+    " case %s => %s ".format(pat.map(_.prettyPrint).mkString(" "),
+                             exp.prettyPrint)
 }
 
 case class ASTExpFn(val body: List[ASTExpMatchRow]) extends ASTExp {
