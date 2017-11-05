@@ -187,7 +187,7 @@ abstract class GenericTypeEnv[TypeEnvClass,
         // Despite the rather general definition of this method,
         // the target is NumType => ASTIntType (and the similar
         // group operations)
-        val newTyVars = to.getTypeVars()
+        val newTyVars = substitutedTo.getTypeVars()
         updateIdNoValidate(name, substitutedTo,
                            quantifiedTypes.map(_.intersection(newTyVars)))
       }
