@@ -2,7 +2,7 @@ package tir
 
 import toplev.GenericPrintable
 
-trait TPat extends TWalkable with GenericPrintable
+sealed trait TPat extends TWalkable with GenericPrintable
 
 case class TPatWildcard() extends TPat {
   def walk(f: TPass) = f(this)
