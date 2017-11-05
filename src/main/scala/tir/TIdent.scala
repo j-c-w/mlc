@@ -8,13 +8,19 @@ sealed trait BuiltinIdent extends TIdent {
   def walk(f: TPass) = f(this)
 }
 
+case class TIdentTuple(var subTypes: List[TIdent]) extends TIdent {
+  def walk(f: TPass) = f(this)
+
+  def prettyPrint = "(" + subTypes.map(_.prettyPrint).mkString(", ") + ")"
+}
+
 case class TIdentVar(var name: String) extends TIdent {
   def walk(f: TPass) = f(this)
 
   def prettyPrint = name
 }
 
-case class TIdentLongVar(var name: List[TValIdentVar]) extends TIdent {
+case class TIdentLongVar(var name: List[TIdent]) extends TIdent {
   def walk(f: TPass) = f(this)
 
   def prettyPrint = name.mkString(".")
