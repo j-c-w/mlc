@@ -26,6 +26,12 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
   %s
   """.format(tree.env.map(_.prettyPrint), tree.prettyPrint, tree.toString)
 
+  /* This is used to store all inner environments that
+   * are created. This is nessecary because the top level
+   * has to be able to unify set based types.
+   */
+  var innerEnvs = List[ASTTypeEnv]()
+
   /* The top level is a special case, because some unification
    * (e.g. the conversion of ASTNumberType's to ASTIntType
    * must occur at the top level only.
@@ -41,13 +47,13 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
       // This is done after every declaration. If this is going too slow,,
       // it could be applied to the unifier instead (which would mean
       // delaying the application of the unifier until this level).
-      env.specializeAtomicsMatching({
+      innerEnvs.foreach(_.specializeAtomicsMatching({
         case ASTNumberType(_) => true
         // Comparators also default to int.
         case ASTComparableType(_) => true
         case ASTIntStringType(_) => true
         case _ => false
-      }, ASTIntType())
+      }, ASTIntType()))
     }
   }
 
@@ -172,9 +178,16 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         //
         // This is a safe case as the unification of a fun type with
         // something must be a fun type
-        application.callType =
-            Some(mgu(declaredFunType).asInstanceOf[ASTFunctionType])
+        val callTypeVariable = VariableGenertor.newVariable()
+        application.callType = Some(callTypeVariable)
 
+        // Then, so that the type of the call can actually be accessed,
+        // add it to the environment. We do not want this type to
+        // be forall quantified so that it can be changed by
+        // future unifier applications.
+        env.addTopLevel(callTypeVariable,
+                mgu(declaredFunType).asInstanceOf[ASTFunctionType],
+                false)
         // The actual result type can be given by extracting it from
         // the funTyp
         mgu mguUnify funUnifier
@@ -193,11 +206,11 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         // In this case, the typing is the same as a normal
         // function application. Treat it as such.
         // These will be converted later in the compilation anyway.
-        val prefixFunction = ASTExpFunApp(ASTExpIdent(fun), ASTExpTuple(List(op1, op2)))
+        val prefixFunction =
+          ASTExpFunApp(ASTExpIdent(fun), ASTExpTuple(List(op1, op2)))
         
-        val result = principalType(env, ASTExpFunApp(ASTExpIdent(fun),
-                                                     ASTExpTuple(List(op1,
-                                                                      op2))))
+        val result =
+          principalType(env, prefixFunction)
 
         infixApp.callType = prefixFunction.callType
         result
@@ -206,7 +219,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         // The same logic for the infix app may be applied in this case.
         val function = ASTExpFunApp(ASTExpIdent(fun), op)
 
-        val result = principalType(env, ASTExpFunApp(ASTExpIdent(fun), op))
+        val result = principalType(env, function)
 
         unapp.callType = function.callType
         result
@@ -256,6 +269,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         // Let-In is an example of a type that requires the construction
         // of new typing environment.
         val letEnv = new ASTTypeEnv(Some(env))
+        innerEnvs = letEnv :: innerEnvs
 
         // Set the environment of the let env.
         // This may be done here as the environment is mutable
@@ -375,6 +389,8 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
     var argType: List[ASTType] = (for (x <- 0 until patterns(0).length)
                               yield TypeVariableGenerator.getVar()).toList
     var resultType: ASTType = TypeVariableGenerator.getVar()
+
+    innerEnvs = rowEnvs ::: innerEnvs
 
     // Verify that each of the pattern lists are the same lengths:
     if (!patterns.forall(x => x.length == patterns(0).length)) {
@@ -681,6 +697,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
     // This is executed as a sequential process.
     try {
       val env = new ASTTypeEnv()
+      innerEnvs = env :: innerEnvs
 
       toplevelPrincipalType(env, tree.decs)
 
