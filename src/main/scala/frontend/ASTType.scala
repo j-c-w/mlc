@@ -209,7 +209,7 @@ case class ASTTupleType(val args: List[ASTType]) extends ASTType {
     args.exists(_.containsAtomic(other))
 
   override def getTypeVars() =
-    args.foldRight (ASTTypeSet()) {
+    args.foldRight (ASTTypeSet(): TypeClassSet[ASTType]) {
         case (typ, set) => set union (typ.getTypeVars()) }
 
   override def specializeTo(other: ASTType): ASTUnifier = other match {

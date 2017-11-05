@@ -20,6 +20,9 @@ abstract class GenericTypeEnv[TypeEnvClass,
                (val parent: Option[GenericTypeEnv[TypeEnvClass, From, To]]) {
   def this() = this(None)
 
+  // This check is to ensure correct use of the GenericTypeEnv class.
+  assert(this.isInstanceOf[TypeEnvClass])
+
   /* Every type in this map can be used either as a type quantified
    * here or a type quantified elsewhere.
    *
@@ -39,6 +42,9 @@ abstract class GenericTypeEnv[TypeEnvClass,
   def hasType(id: From): Boolean =
     map.contains(id) || parent.map(_.hasType(id)).getOrElse(false)
 
+  // This call is always safe by the assertion made in the constructor.
+  def getSelf: TypeEnvClass = this.asInstanceOf[TypeEnvClass]
+
   /* This seaches only this environment for the type. */
   def innermostHasType(id: From): Boolean =
     map.contains(id)
@@ -49,8 +55,27 @@ abstract class GenericTypeEnv[TypeEnvClass,
     else
       add(id, typ, None)
 
-  def add(id: From, typ: To, qualifiedTypes: Option[TypeClassSet[To]]): Unit = {
+  def add(id: From, typ: To,
+          qualifiedTypes: Option[TypeClassSet[To]]): Unit = {
     map(id) = (typ, qualifiedTypes)
+  }
+
+  /* addTopLevel is very much like 'add', but it adds the mapping to this
+   * map iff it has no parent. If it has a parent, the mapping is defered
+   * to the parent (and so on up the tree).
+   */
+  def addTopLevel(id: From, typ: To, qualified: Boolean): Unit =
+    if (qualified)
+      addTopLevel(id, typ, Some(typ.getTypeVars()))
+    else
+      addTopLevel(id, typ, None)
+
+  def addTopLevel(id: From, typ: To,
+                  qualifiedTypes: Option[TypeClassSet[To]]): Unit = {
+    parent match {
+      case Some(parentEnv) => parentEnv.addTopLevel(id, typ, qualifiedTypes)
+      case None => add(id, typ, qualifiedTypes)
+    }
   }
 
   /* The default qualified types is all the types or none of the
@@ -75,9 +100,7 @@ abstract class GenericTypeEnv[TypeEnvClass,
     updateIdNoValidate(id, newTyp, quantifiedTypes)
   }
 
-  /* This attempts to update types in the parent
-   * if possible.
-   */
+  /* This attempts to update types in the parent if possible.  */
   def updateIdNoValidate(id: From, newTyp: To,
                          qualifiedTypes: Option[TypeClassSet[To]]): Unit = {
     if (map.contains(id))
@@ -113,7 +136,7 @@ abstract class GenericTypeEnv[TypeEnvClass,
 
   def getOrFail(id: From): To = {
     get(id).getOrElse(throw new ICE(""" Error, type %s not found in
-the environment""".format(id.prettyPrint)))
+      |the environment""".stripMargin.format(id.prettyPrint)))
   }
 
   /* This returns all the unquantified types for some variable
@@ -133,8 +156,20 @@ the environment""".format(id.prettyPrint)))
   /* This goes through all the atomics (INCLUDING QUANTIFIED ATOMICS)
    * that are used. It is used to change ASTNumberType -> ASTIntType
    * at the top level.
+   *
+   * It subsequently removes any forall quantified items
+   * from the quantified section that have been replaced.
    */
   def specializeAtomicsMatching(f: (To => Boolean), sub: To): Unit = {
+    // This check is made not beause this method cannot support
+    // a sub with nested tyvars, but because it is significantly
+    // more complicated. There are subtle failure modes with the lowering
+    // pass if the quantifiedTypeVars aren't cleaned up.
+    if (!sub.getTypeVars().isEmpty) {
+      throw new ICE("""Cannot specialzeAtomics to poly types. Polytype used
+        | was %s. """.stripMargin.format(sub.prettyPrint))
+    }
+
     // If this is too slow, we could adjust the function definition
     // to only do the substituion once for any particular mapping.
     // Then keep track of the mappings and only do the new mappings.
@@ -150,9 +185,11 @@ the environment""".format(id.prettyPrint)))
         }
 
         // Despite the rather general definition of this method,
-        // the target is NumType => ASTIntType. Therefore, the quantified
-        // types can remain unchanged.
-        updateIdNoValidate(name, substitutedTo, quantifiedTypes)
+        // the target is NumType => ASTIntType (and the similar
+        // group operations)
+        val newTyVars = to.getTypeVars()
+        updateIdNoValidate(name, substitutedTo,
+                           quantifiedTypes.map(_.intersection(newTyVars)))
       }
     })
   }
