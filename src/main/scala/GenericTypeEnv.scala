@@ -175,9 +175,17 @@ the environment""".format(id.prettyPrint)))
       }
 
   /* This iterates over all elements in the environment and it's parents. */
-  def foreachAll(f : (((From, (To, Option[TypeClassSet[To]]))) => Unit)): Unit = {
+  def foreachAll(f : (((From, (To, Option[TypeClassSet[To]])))
+      => Unit)): Unit = {
     map.foreach(f)
     parent.map(_.foreachAll(f))
+  }
+
+  /* This iterates over all elements in this environment (i.e. NOT
+   * the parent environments). */
+  def foreachInnermost(f: (((From, (To, Option[TypeClassSet[To]])))
+      => Unit)): Unit = {
+    map.foreach(f)
   }
 
   /* This is used for unification.  It only iterates over elements that can
