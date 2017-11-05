@@ -15,6 +15,7 @@ package tir
  */
 
 trait TPass {
+  def apply(p: TConst): Boolean = true
   def apply(p: TExp): Boolean = true
   def apply(p: TFun): Boolean = true
   def apply(p: TIdent): Boolean = true
