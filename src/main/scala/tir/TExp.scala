@@ -53,7 +53,7 @@ case class TExpSeq(var seq: List[TExp]) extends TExp {
     seq.foreach(f(_))
   }
 
-  def prettyPrint = "(" + elemsn.map(_.prettyPrint).mkString(";\n") + ")"
+  def prettyPrint = "(" + seq.map(_.prettyPrint).mkString(";\n") + ")"
 }
 
 case class TExpLetIn(var decs: List[TDec], var exp: TExp, var env: TTypeEnv)
@@ -75,7 +75,8 @@ case class TExpLetIn(var decs: List[TDec], var exp: TExp, var env: TTypeEnv)
                          exp.prettyPrint)
 }
 
-case class TExpCase(var exp: TExp, var cases: List[TExpMatchRow]) {
+case class TExpCase(var exp: TExp, var cases: List[TExpMatchRow])
+    extends TExp {
   def walk(f: TPass) = if (f(this)) {
     exp.walk(f)
     cases.foreach(_.walk(f))
@@ -88,14 +89,15 @@ case class TExpCase(var exp: TExp, var cases: List[TExpMatchRow]) {
                          cases.map(_.prettyPrint).mkString("\n   |"))
 }
 
-case class TExpMatchRow(var pat: TPat, var exp: TExp) extends TExp {
+case class TExpMatchRow(var pat: List[TPat], var exp: TExp) extends TExp {
   def walk(f: TPass) = if (f(this)) {
-    pat.walk(f)
+    pat.foreach(_.walk(f))
     exp.walk(f)
   }
 
 
-  def prettyPrint = pat.prettyPrint + " => " + exp.prettyPrint
+  def prettyPrint =
+    pat.map(_.prettyPrint).mkString(" ") + " => " + exp.prettyPrint
 }
 
 case class TExpFn(var patterns: List[TExpMatchRow]) extends TExp {
