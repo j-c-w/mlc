@@ -18,7 +18,7 @@ case class TConstFloat(val float: Double) extends TConst {
 case class TConstString(val str: String) extends TConst {
   def walk(f: TPass) = f(this)
 
-  def prettyPrint = str
+  def prettyPrint = "\"" + str + "\""
 }
 
 case class TConstChar(val char: Char) extends TConst {

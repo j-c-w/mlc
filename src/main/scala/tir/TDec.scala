@@ -7,7 +7,7 @@ sealed trait TDec extends TWalkable with GenericPrintable
 case class TFun(var name: TIdent, var patterns: List[TExpMatchRow])
     extends TDec {
   def prettyPrint = """
-  fun f %s
+  fun %s
     %s """.format(name.prettyPrint,
                   patterns.map(_.prettyPrint).mkString("\n    | "))
 
@@ -20,7 +20,7 @@ case class TFun(var name: TIdent, var patterns: List[TExpMatchRow])
 
 case class TVal(var ident: TIdent, var exp: TExp) extends TDec {
   def prettyPrint = """
-  val :s (%s) = %s
+  val %s = %s
   """.format(ident.prettyPrint, exp.prettyPrint)
 
   def walk(f: TPass) = 

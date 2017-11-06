@@ -10,6 +10,6 @@ case class TProgram(val typeEnv: TTypeEnv, val funs: List[TFun],
   %s
 
   %s
-  """.format(typeEnv.prettyPrint, (funs map (_.prettyPrint)),
-             vals map (_.prettyPrint))
+  """.format(typeEnv.prettyPrint, (funs.map(_.prettyPrint)).mkString("\n"),
+             vals.map(_.prettyPrint).mkString("\n"))
 }
