@@ -14,7 +14,7 @@ import exceptions._
  */
 
 object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
-  def treeToString(tree: ASTProgram) = """
+  override def treeToString(tree: ASTProgram) = """
   %s
 
   __ Program ___ 

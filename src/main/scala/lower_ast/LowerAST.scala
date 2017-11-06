@@ -355,9 +355,6 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
     resEnv
   }
 
-  def treeToString(tree: TProgram) =
-    tree.prettyPrint
-
   def run(input: ASTProgram) = {
     lowerAST(input)
   }

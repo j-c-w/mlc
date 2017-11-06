@@ -15,7 +15,8 @@ object Pass {
   var passNumber = 0;
 }
 
-abstract class Pass[InputType, OutputType](val passName: String) {
+abstract class Pass[InputType, OutputType <: GenericPrintable]
+    (val passName: String) {
   protected def run(tree: InputType): OutputType
   def execute(tree: InputType, shouldDump: Boolean): OutputType = {
     val result = run(tree)
@@ -28,7 +29,8 @@ abstract class Pass[InputType, OutputType](val passName: String) {
     return result
   }
 
-  def treeToString(tree: OutputType): String
+  def treeToString(tree: OutputType): String =
+    tree.prettyPrint
 
   def dump(tree: OutputType) = {
     FileUtils.writeStringToFile(Shared.filename + "." +

@@ -636,7 +636,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     decs ~ "\0" ^^ { case (decs ~ _) => decs }
   )
 
-  def treeToString(input: ASTProgram) =
+  override def treeToString(input: ASTProgram) =
     input.prettyPrint + "\n\n__ Formatted Version __\n\n" +
     input.toString
 
