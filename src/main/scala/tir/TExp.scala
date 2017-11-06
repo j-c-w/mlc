@@ -22,7 +22,8 @@ case class TExpIdent(var ident: TIdent) extends TExp {
   def prettyPrint = ident.prettyPrint
 }
 
-case class TExpFunApp(var funname: TExp, var application: TExp, var callType: TType) extends TExp {
+case class TExpFunApp(var funname: TExp, var application: TExp,
+                      var callType: TIdent) extends TExp {
   def walk(f: TPass) = if (f(this)) {
     funname.walk(f)
     application.walk(f)
@@ -89,7 +90,8 @@ case class TExpCase(var exp: TExp, var cases: List[TExpMatchRow])
                          cases.map(_.prettyPrint).mkString("\n   |"))
 }
 
-case class TExpMatchRow(var pat: List[TPat], var exp: TExp) extends TExp {
+case class TExpMatchRow(var pat: List[TPat], var exp: TExp, var env: TTypeEnv)
+    extends TExp {
   def walk(f: TPass) = if (f(this)) {
     pat.foreach(_.walk(f))
     exp.walk(f)
