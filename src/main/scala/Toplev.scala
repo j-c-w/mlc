@@ -8,6 +8,7 @@ import utils.FileUtils
 // These passes are imported in the order they are used.
 import frontend.GLLParser
 import typecheck.HindleyMilner
+import lower_ast.LowerAST
 
 object Toplev extends App {
   val cli = new Arguments(args)
@@ -20,7 +21,11 @@ object Toplev extends App {
   Shared.filename = file.toString
   Shared.debug = cli.debug()
 
+  // Frontend
   val code = FileUtils.readFileToString(file, StandardCharsets.UTF_8)
   val tree = GLLParser.execute(code, cli.dumpAst())
   val typechecked = HindleyMilner.execute(tree, cli.dumpTypecheck())
+
+  // Lowering from AST
+  val intermediate = LowerAST.execute(tree, cli.dumpTir())
 }

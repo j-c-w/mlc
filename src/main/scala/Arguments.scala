@@ -11,6 +11,7 @@ class Arguments(arguments: Seq[String]) extends ScallopConf(arguments) {
   // Dump options
   val dumpAst = opt[Boolean]()
   val dumpTypecheck = opt[Boolean]()
+  val dumpTir = opt[Boolean]()
 
   verify()
 }
