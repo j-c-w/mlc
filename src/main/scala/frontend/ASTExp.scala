@@ -38,10 +38,11 @@ case class ASTExpFunApp(val fun: ASTExp, val app: ASTExp) extends ASTExp {
       }
     }
 
-  // This stores the call type. It is set by the type inference.
-  // For example, if this is +(1,  2), then the type
-  // becomes (int * int) -> int.
-  var callType: Option[ASTFunctionType] = None
+  // This stores a pointer to the call type. It is set by the type inference.
+  // It is a pointer in the local environment.
+  // For example, if this is +(1,  2), then the type becomes
+  // (int * int) -> int.
+  var callType: Option[ASTIdent] = None
 }
 
 object ASTExpInfixApp {
@@ -69,14 +70,14 @@ case class ASTExpInfixApp(val operator: ASTInfixIdent, val operand1: ASTExp,
   def prettyPrint = operand1.prettyPrint + " " + operator.prettyPrint + " " + 
       operand2.prettyPrint
 
-  var callType: Option[ASTFunctionType] = None
+  var callType: Option[ASTIdent] = None
 }
 
 case class ASTExpUnOpApply(val operator: ASTUnOp, val operand: ASTExp)
     extends ASTExp {
   def prettyPrint = operator.prettyPrint + " (" + operand.prettyPrint + ")"
 
-  var callType: Option[ASTFunctionType] = None
+  var callType: Option[ASTIdent] = None
 }
 
 
