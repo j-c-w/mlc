@@ -173,7 +173,7 @@ abstract class GenericTypeEnv[TypeEnvClass,
     // If this is too slow, we could adjust the function definition
     // to only do the substituion once for any particular mapping.
     // Then keep track of the mappings and only do the new mappings.
-    foreachAll({
+    foreachInnermost({
       case(name, (to, quantifiedTypes)) => {
         val toVars = to.getTypeVars()
         var substitutedTo = to

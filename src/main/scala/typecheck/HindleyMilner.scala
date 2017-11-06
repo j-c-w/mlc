@@ -185,7 +185,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         // add it to the environment. We do not want this type to
         // be forall quantified so that it can be changed by
         // future unifier applications.
-        env.addTopLevel(callTypeVariable,
+        env.add(callTypeVariable,
                 mgu(declaredFunType).asInstanceOf[ASTFunctionType],
                 false)
         // The actual result type can be given by extracting it from
