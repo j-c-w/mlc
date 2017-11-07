@@ -2,8 +2,11 @@ package tir
 
 import toplev.GenericPrintable
 
-case class TProgram(val typeEnv: TTypeEnv, val funs: List[TFun],
-                    val vals: List[TVal]) extends GenericPrintable {
+/* This class is employed after the name change class, when
+ * we can un-interleave the definition of vals and functions.
+ */
+case class TProgram(var typeEnv: TTypeEnv, var funs: List[TFun],
+                    var vals: List[TVal]) extends GenericPrintable {
   def prettyPrint: String = """
   %s
 
