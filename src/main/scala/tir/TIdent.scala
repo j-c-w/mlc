@@ -23,7 +23,7 @@ case class TIdentVar(var name: String) extends TIdent {
 }
 
 case class TIdentLongVar(var name: List[String]) extends TIdent {
-  def walk(f: TPass) = f(this)
+  def walk(env: TTypeEnv, f: TPass) = f(env, this)
 
   def prettyPrint = name.mkString(".")
 }
