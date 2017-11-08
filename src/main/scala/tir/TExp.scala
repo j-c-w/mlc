@@ -13,12 +13,18 @@ import toplev.GenericPrintable
 sealed trait TExp extends TWalkable with GenericPrintable
 
 case class TExpConst(var const: TConst) extends TExp {
-  def walk(env: TTypeEnv, f: TPass) = f(env, this)
+  def walk(env: TTypeEnv, f: TPass) = if (f(env, this)) {
+    const.walk(env, f)
+  }
+
   def prettyPrint = const.prettyPrint
 }
 
 case class TExpIdent(var ident: TIdent) extends TExp {
-  def walk(env: TTypeEnv, f: TPass) = f(env, this)
+  def walk(env: TTypeEnv, f: TPass) = if (f(env, this)) {
+    ident.walk(env, f)
+  }
+
   def prettyPrint = ident.prettyPrint
 }
 
