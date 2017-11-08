@@ -22,8 +22,11 @@ object LowerAST extends Pass[ASTProgram, TProgramOrdered]("lower_ast") {
     for (dec <- program)
       yield dec match {
         case funbind @ ASTFunBind(cases) => {
-          val firstCase = cases(0)
-          
+          val tIdent =  cases(0)._1 match {
+            case ASTIdentVar(name) => TIdentVar(name)
+            case _ => unreachable
+          }
+
           // We first zip up the cases into a list of ASTMatchRows:
           val matchRows = (cases zip funbind.rowEnvs.get) map {
             case ((_, pattern, _, expression), rowEnv) => {
@@ -33,7 +36,7 @@ object LowerAST extends Pass[ASTProgram, TProgramOrdered]("lower_ast") {
             }
           }
 
-          TFun(lowerAST(firstCase._1, env),
+          TFun(tIdent,
                matchRows.map(lowerMatchRowAST(_, env)))
         }
         case ASTValBind(ident, expression) => {
@@ -42,7 +45,7 @@ object LowerAST extends Pass[ASTProgram, TProgramOrdered]("lower_ast") {
 
           TVal(newIdents, newExpression)
         }
-        case _ => 
+        case _ =>
           // Datatypes may get down to here. They are formally
           // pruned out of the tree at this point, although
           // as  is they do not pass typechecking.
@@ -61,7 +64,11 @@ object LowerAST extends Pass[ASTProgram, TProgramOrdered]("lower_ast") {
                typ: Option[ASTIdent]): TIdent =
     ident match {
       case ASTIdentVar(id) => TIdentVar(id)
-      case ASTLongIdent(ids) => TIdentLongVar(ids.map(lowerAST(_, env)))
+      case ASTLongIdent(ids) => TIdentLongVar(ids.map{
+        case ASTIdentVar(name) => name
+        case id @ _ => throw new ICE("""ASTLongIdent contains non-ASTIdentVar
+          type %s""".format(id.prettyPrint))
+      })
       case ASTIdentTuple(subIdents) =>
         TIdentTuple(subIdents.map(lowerAST(_, env)))
       case ASTUnderscoreIdent() => TUnderscoreIdent()
@@ -191,7 +198,7 @@ object LowerAST extends Pass[ASTProgram, TProgramOrdered]("lower_ast") {
       if (bigInt.compareTo(bigIntMax) == 1
           || bigInt.compareTo(bigIntMin) == -1) {
         // Out of range
-        throw new BadIntException("""Error: Constant %s is too large 
+        throw new BadIntException("""Error: Constant %s is too large
           to fit in an int (32 bits signed).""")
       } else {
         // Otherwise we may convert as normal:
@@ -209,7 +216,10 @@ object LowerAST extends Pass[ASTProgram, TProgramOrdered]("lower_ast") {
 
   def lowerAST(pattern: ASTPat, env: ASTTypeEnv): TPat = pattern match {
     case ASTPatWildcard(typ) => TPatWildcard()
-    case ASTPatVariable(name, typ) => TPatVariable(lowerAST(name, env))
+    case ASTPatVariable(name, typ) => name match {
+      case ASTIdentVar(name) => TPatVariable(TIdentVar(name))
+      case _ => unreachable
+    }
     case ASTPatSeq(subseq, typ) => TPatSeq(subseq.map(lowerAST(_, env)))
     case ASTListPat(listpat, typ) => TListPat(listpat.map(lowerAST(_, env)))
     case ASTPatConst(const, typ) => TPatConst(lowerAST(const, env))
@@ -227,7 +237,7 @@ object LowerAST extends Pass[ASTProgram, TProgramOrdered]("lower_ast") {
       val funIdent = fun match {
         case ASTExpIdent(ident) =>
           TExpIdent(lowerAST(ident, env, Some(funApp.callType.get)))
-        // If it is not an ident, then there will be some 
+        // If it is not an ident, then there will be some
         // later place at which the type can be recovered,
         // and so the type does not have to be passed on.
         case _ => lowerAST(fun, env)

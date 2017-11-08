@@ -4,7 +4,7 @@ import toplev.GenericPrintable
 
 sealed trait TDec extends TWalkable with GenericPrintable
 
-case class TFun(var name: TIdent, var patterns: List[TExpMatchRow])
+case class TFun(var name: TIdentVar, var patterns: List[TExpMatchRow])
     extends TDec {
   def prettyPrint = """
   fun %s

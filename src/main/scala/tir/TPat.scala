@@ -10,7 +10,7 @@ case class TPatWildcard() extends TPat {
   def prettyPrint = "_"
 }
 
-case class TPatVariable(var variable: TIdent) extends TPat {
+case class TPatVariable(var variable: TIdentVar) extends TPat {
   def walk(env: TTypeEnv, f: TPass) = if (f(env, this)) {
     variable.walk(env, f)
   }
