@@ -18,6 +18,14 @@ case class TPatVariable(var variable: TIdentVar) extends TPat {
   def prettyPrint = variable.prettyPrint
 }
 
+case class TPatIdentifier(var identifier: TIdent) extends TPat {
+  def walk(env: TTypeEnv, f: TPass) = if (f(env, this)) {
+    identifier.walk(env, f)
+  }
+
+  def prettyPrint = identifier.prettyPrint
+}
+
 case class TPatSeq(var seq: List[TPat]) extends TPat {
   def walk(env: TTypeEnv, f: TPass) = if (f(env, this)) {
     seq.foreach(_.walk(env, f))

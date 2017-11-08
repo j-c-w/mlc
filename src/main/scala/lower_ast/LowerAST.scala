@@ -218,7 +218,7 @@ object LowerAST extends Pass[ASTProgram, TProgramOrdered]("lower_ast") {
     case ASTPatWildcard(typ) => TPatWildcard()
     case ASTPatVariable(name, typ) => name match {
       case ASTIdentVar(name) => TPatVariable(TIdentVar(name))
-      case _ => unreachable
+      case other => TPatIdentifier(lowerAST(other, env))
     }
     case ASTPatSeq(subseq, typ) => TPatSeq(subseq.map(lowerAST(_, env)))
     case ASTListPat(listpat, typ) => TListPat(listpat.map(lowerAST(_, env)))
