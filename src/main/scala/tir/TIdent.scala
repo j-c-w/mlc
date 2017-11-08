@@ -5,23 +5,23 @@ import toplev.GenericPrintable
 sealed trait TIdent extends TWalkable with GenericPrintable
 
 sealed trait BuiltinIdent extends TIdent {
-  def walk(f: TPass) = f(this)
+  def walk(env: TTypeEnv, f: TPass) = f(env, this)
 }
 
 case class TIdentTuple(var subTypes: List[TIdent]) extends TIdent {
-  def walk(f: TPass) = f(this)
+  def walk(env: TTypeEnv, f: TPass) = f(env, this)
 
   def prettyPrint = "(" + subTypes.map(_.prettyPrint).mkString(", ") + ")"
 }
 
 case class TIdentVar(var name: String) extends TIdent {
-  def walk(f: TPass) = f(this)
+  def walk(env: TTypeEnv, f: TPass) = f(env, this)
 
   def prettyPrint = name
 }
 
 case class TIdentLongVar(var name: List[TIdent]) extends TIdent {
-  def walk(f: TPass) = f(this)
+  def walk(env: TTypeEnv, f: TPass) = f(env, this)
 
   def prettyPrint = name.mkString(".")
 }

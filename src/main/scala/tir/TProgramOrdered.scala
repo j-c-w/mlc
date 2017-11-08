@@ -14,4 +14,8 @@ case class TProgramOrdered(val typeEnv: TTypeEnv, val decs: List[TDec])
 
   %s
   """.format(typeEnv.prettyPrint, decs.map(_.prettyPrint).mkString("\n"))
+
+  def walk(f: TPass) = if (f(this)) {
+   decs.foreach(_.walk(typeEnv, f)) 
+  }
 }

@@ -15,12 +15,13 @@ package tir
  */
 
 trait TPass {
-  def apply(p: TConst): Boolean = true
-  def apply(p: TExp): Boolean = true
-  def apply(p: TFun): Boolean = true
-  def apply(p: TIdent): Boolean = true
-  def apply(p: TPat): Boolean = true
+  def apply(env: TTypeEnv, p: TConst): Boolean = true
+  def apply(env: TTypeEnv, p: TExp): Boolean = true
+  def apply(env: TTypeEnv, p: TFun): Boolean = true
+  def apply(env: TTypeEnv, p: TIdent): Boolean = true
+  def apply(env: TTypeEnv, p: TPat): Boolean = true
+  def apply(env: TTypeEnv, p: TType): Boolean = true
+  def apply(env: TTypeEnv, p: TVal): Boolean = true
   def apply(p: TProgram): Boolean = true
-  def apply(p: TType): Boolean = true
-  def apply(p: TVal): Boolean = true
+  def apply(p: TProgramOrdered): Boolean = true
 }

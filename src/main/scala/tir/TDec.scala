@@ -11,10 +11,10 @@ case class TFun(var name: TIdent, var patterns: List[TExpMatchRow])
     %s """.format(name.prettyPrint,
                   patterns.map(_.prettyPrint).mkString("\n    | "))
 
-  def walk(f: TPass) = 
-    if (f(this)) {
-      name.walk(f)
-      patterns.foreach(_.walk(f))
+  def walk(env: TTypeEnv, f: TPass) = 
+    if (f(env, this)) {
+      name.walk(env, f)
+      patterns.foreach(_.walk(env, f))
     }
 }
 
@@ -23,9 +23,9 @@ case class TVal(var ident: TIdent, var exp: TExp) extends TDec {
   val %s = %s
   """.format(ident.prettyPrint, exp.prettyPrint)
 
-  def walk(f: TPass) = 
-    if (f(this)) {
-      ident.walk(f)
-      exp.walk(f)
+  def walk(env: TTypeEnv, f: TPass) = 
+    if (f(env, this)) {
+      ident.walk(env, f)
+      exp.walk(env, f)
     }
 }

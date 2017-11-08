@@ -27,72 +27,72 @@ sealed trait TType extends TWalkable with GenericPrintable
 
 case class TFunctionType(var argType: TType, var resType: TType)
     extends TType {
-  def walk(f: TPass) = if (f(this)) {
-    argType.walk(f)
-    resType.walk(f)
+  def walk(env: TTypeEnv, f: TPass) = if (f(env, this)) {
+    argType.walk(env, f)
+    resType.walk(env, f)
   }
 
   def prettyPrint = "(%s -> %s)".format(argType.prettyPrint, resType.prettyPrint)
 }
 
 case class TTupleType(var subTypes: List[TType]) extends TType {
-  def walk(f: TPass) = if (f(this)) {
-    subTypes.foreach(_.walk(f))
+  def walk(env: TTypeEnv, f: TPass) = if (f(env, this)) {
+    subTypes.foreach(_.walk(env, f))
   }
 
   def prettyPrint = "(" + subTypes.map(_.prettyPrint).mkString(", ") + ")"
 }
 
 case class TEqualityTypeVar(var name: String) extends TType {
-  def walk(f: TPass) = f(this)
+  def walk(env: TTypeEnv, f: TPass) = f(env, this)
 
   def prettyPrint = "''" + name
 }
 
 case class TUnconstrainedTypeVar(var name: String) extends TType {
-  def walk(f: TPass) = f(this)
+  def walk(env: TTypeEnv, f: TPass) = f(env, this)
 
   def prettyPrint = "'" + name
 }
 
 case class TListType(var subType: TType) extends TType {
-  def walk(f: TPass) = f(this)
+  def walk(env: TTypeEnv, f: TPass) = f(env, this)
 
   def prettyPrint = subType.prettyPrint + " list" 
 }
 
 case class TIntType() extends TType {
-  def walk(f: TPass) = f(this)
+  def walk(env: TTypeEnv, f: TPass) = f(env, this)
 
   def prettyPrint = "int"
 }
 
 case class TStringType() extends TType {
-  def walk(f: TPass) = f(this)
+  def walk(env: TTypeEnv, f: TPass) = f(env, this)
 
   def prettyPrint = "string"
 }
 
 case class TRealType() extends TType {
-  def walk(f: TPass) = f(this)
+  def walk(env: TTypeEnv, f: TPass) = f(env, this)
 
   def prettyPrint = "real"
 }
 
 case class TBoolType() extends TType {
-  def walk(f: TPass) = f(this)
+  def walk(env: TTypeEnv, f: TPass) = f(env, this)
 
   def prettyPrint = "bool"
 }
 
 case class TCharType() extends TType {
-  def walk(f: TPass) = f(this)
+  def walk(env: TTypeEnv, f: TPass) = f(env, this)
 
   def prettyPrint = "char"
 }
 
 case class TUnitType() extends TType {
-  def walk(f: TPass) = f(this)
+  def walk(env: TTypeEnv, f: TPass) = f(env, this)
 
   def prettyPrint = "unit"
 }

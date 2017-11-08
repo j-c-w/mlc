@@ -9,5 +9,5 @@ package tir
  * nodes.
  */
 trait TWalkable {
-  def walk(f: TPass): Unit
+  def walk(env: TTypeEnv, f: TPass): Unit
 }
