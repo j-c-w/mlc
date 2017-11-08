@@ -260,8 +260,8 @@ object LowerAST extends Pass[ASTProgram, TProgramOrdered]("lower_ast") {
     case ASTExpList(elems) => TExpList(elems.map(lowerAST(_, env)))
     case let @ ASTExpLetIn(decs, exps) => {
       val loweredEnv = lowerEnv(let.typeEnv.get)
-      val loweredDecs = lowerAST(decs, env)
-      val loweredExp = exps.map(lowerAST(_, env))
+      val loweredDecs = lowerAST(decs, let.typeEnv.get)
+      val loweredExp = exps.map(lowerAST(_, let.typeEnv.get))
 
       // The design decision to treat a let-in in the AST
       // as a list of expressions rather than a single
