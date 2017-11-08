@@ -37,7 +37,7 @@ abstract class GenericTypeEnv[TypeEnvClass,
   %s
 
   """.format(map.map(pair => pair._1.prettyPrint + ": " +
-                     pair._2._1.prettyPrint).mkString("\n"))
+                     pair._2._1.prettyPrint).mkString("\n  "))
 
   def hasType(id: From): Boolean =
     map.contains(id) || parent.map(_.hasType(id)).getOrElse(false)
@@ -114,6 +114,26 @@ abstract class GenericTypeEnv[TypeEnvClass,
             id.prettyPrint))
         }
       }
+  }
+
+  /* Given some name X (in the map) and some name Y (not in the map),
+   * change the name of X to Y.
+   *
+   * This subsitution is done in the appropriate parent map.
+   */
+  def swapNames(from: From, to: From): Unit = {
+    assert(hasType(from))
+    assert(!hasType(to))
+
+    if (map.contains(from)) {
+      map(to) = map(from)
+      map.remove(from)
+    } else {
+      // If this does not contain from, then we know the
+      // parent must as we have already asserted that
+      // the map has the right type.
+      parent.get.swapNames(from, to)
+    }
   }
 
   /* This gets a value from the map and substitutes
