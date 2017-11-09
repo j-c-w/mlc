@@ -104,6 +104,10 @@ class ASTTypeEnv(parent: Option[ASTTypeEnv])
       Some(ASTFunctionType(
         ASTBoolType(), ASTBoolType()))
     }
+    case ASTUnOpPrint() => {
+      Some(ASTFunctionType(
+        ASTStringType(), ASTUnitType()))
+    }
     case x => super.get(x) match {
       case Some(y) => Some(y)
       case None =>

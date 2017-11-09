@@ -175,3 +175,7 @@ case class TNegReal() extends BuiltinIdent {
 case class TNot() extends BuiltinIdent {
   def prettyPrint = " not "
 }
+
+case class TPrint() extends BuiltinIdent {
+  def prettyPrint = " print "
+}

@@ -139,3 +139,7 @@ case class ASTUnOpNegate() extends ASTUnOp {
 case class ASTUnOpNot() extends ASTUnOp {
   def prettyPrint = "not"
 }
+
+case class ASTUnOpPrint() extends ASTUnOp {
+  def prettyPrint = "print"
+}

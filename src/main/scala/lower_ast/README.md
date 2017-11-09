@@ -8,6 +8,8 @@ The things that are changed in this pass are:
 	- We convert the 'ASTExpInfixApp' and 'ASTUnOpApply' construction into
 	a normal function application construction.
 
+	- Rename functions and vals so that they are unique.
+
 Things that immediately follow this pass are:
 
 	- Curried functions are put in a better format for manipulation.

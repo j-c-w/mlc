@@ -151,8 +151,9 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
 
   // Inserted, UnOP
   lazy val unOp: Parser[ASTUnOp] = (
-    "~"     ^^ { (_) => ASTUnOpNegate() }
-    | "not" ^^ { (_) => ASTUnOpNot() }
+    "~"       ^^ { (_) => ASTUnOpNegate() }
+    | "not"   ^^ { (_) => ASTUnOpNot() }
+    | "print" ^^ { (_) => ASTUnOpPrint() }
   )
 
   // Restructure: rename var to tyvar as var is a keyword.

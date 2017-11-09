@@ -6,9 +6,6 @@ import exceptions.{BadPatternException,UnrecognizedIdentifierError}
 class ASTNameEnvironment(val parent: Option[ASTNameEnvironment]) {
   val map: Map[String, String] = new HashMap[String, String]()
 
-  // Print is a special case.
-  map("print") = "print"
-
   def this() = this(None)
   def this(parent: ASTNameEnvironment) = this(Some(parent))
 

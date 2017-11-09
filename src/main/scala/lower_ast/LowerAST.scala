@@ -5,6 +5,7 @@ import scala.collection.mutable.HashMap
 import toplev.Pass
 import java.math.BigInteger
 import toplev.GenericTypeEnv
+import toplev.Shared
 
 import frontend._
 import tir._
@@ -83,6 +84,7 @@ object LowerAST extends Pass[ASTProgram, TProgramOrdered]("lower_ast") {
       case ASTAndIdent() => TAnd()
       case ASTOrIdent() => TOr()
       case ASTUnOpNot() => TNot()
+      case ASTUnOpPrint() => TPrint()
       /* This is  a bit of a mess. The idea is that some types
        * require specialization at this point in the tree. These
        * cases handle that. To enable the specialization, we
@@ -359,6 +361,17 @@ object LowerAST extends Pass[ASTProgram, TProgramOrdered]("lower_ast") {
   }
 
   def run(input: ASTProgram) = {
-    lowerAST(input)
+    try {
+      lowerAST(input)
+    } catch {
+      case e: BadIntException => {
+        println("Bad integer")
+        println(e.getMessage())
+        if (Shared.debug)
+          e.printStackTrace()
+        System.exit(1)
+        unreachable
+      }
+    }
   }
 }
