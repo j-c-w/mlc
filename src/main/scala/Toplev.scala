@@ -7,6 +7,7 @@ import utils.FileUtils
 
 // These passes are imported in the order they are used.
 import frontend.GLLParser
+import ast_change_names.ASTChangeNames
 import typecheck.HindleyMilner
 import lower_ast.LowerAST
 
@@ -24,8 +25,10 @@ object Toplev extends App {
   // Frontend
   val code = FileUtils.readFileToString(file, StandardCharsets.UTF_8)
   val tree = GLLParser.execute(code, cli.dumpAst())
-  val typechecked = HindleyMilner.execute(tree, cli.dumpTypecheck())
+  val uniqueified = ASTChangeNames.execute(tree, cli.dumpChangeNames())
+  val typechecked = HindleyMilner.execute(uniqueified, cli.dumpTypecheck())
 
-  // Lowering from AST
-  val intermediate = LowerAST.execute(tree, cli.dumpTir())
+  // Lowering from AST -- These all use the tree and so are OK
+  // on memory.
+  val intermediate = LowerAST.execute(typechecked, cli.dumpTir())
 }
