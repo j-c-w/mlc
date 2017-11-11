@@ -18,10 +18,9 @@ sealed trait TType extends TWalkable with GenericPrintable
   // They should be implemented in future to make this
   // pass more versatile.
   def contains(otherType: TType): Boolean = ???
-  def getTypeVars(): TypeClassSet[TType] = ???
   def specializesTo(otherType: TType): Boolean = ???
   def substituteFor(subFor: TType,subIn: TType): TType = ???
-  def typeClone(types: toplev.TypeClassSet[TType]): TType = ???
+  def typeClone(types: TypeClassSet[TType]): TType = ???
   def typeClone(): TType = ???
   def unify(typ: TType): GenericUnifier[TType] = ???
 }
@@ -33,6 +32,9 @@ case class TFunctionType(var argType: TType, var resType: TType)
     resType.walk(item, f)
   }
 
+  def getTypeVars() =
+    argType.getTypeVars union resType.getTypeVars
+
   def prettyPrint = "(%s -> %s)".format(argType.prettyPrint, resType.prettyPrint)
 }
 
@@ -41,11 +43,23 @@ case class TTupleType(var subTypes: List[TType]) extends TType {
     subTypes.foreach(_.walk(item, f))
   }
 
+  def getTypeVars() =
+    subTypes.map(_.getTypeVars).foldLeft(new TTypeSet(): TypeClassSet[TType]) {
+      case (set, nextSet) => set union nextSet
+    }
+
   def prettyPrint = "(" + subTypes.map(_.prettyPrint).mkString(", ") + ")"
 }
 
 case class TEqualityTypeVar(var name: String) extends TType {
   def walk[T](item: T, f: TPass[T]) = f(item, this)
+
+  def getTypeVars() = {
+    val set = new TTypeSet()
+    set.insert(this)
+
+    set
+  }
 
   def prettyPrint = "''" + name
 }
@@ -53,11 +67,21 @@ case class TEqualityTypeVar(var name: String) extends TType {
 case class TUnconstrainedTypeVar(var name: String) extends TType {
   def walk[T](item: T, f: TPass[T]) = f(item, this)
 
+  def getTypeVars() = {
+    val set = new TTypeSet()
+    set.insert(this)
+
+    set
+  }
+
   def prettyPrint = "'" + name
 }
 
 case class TListType(var subType: TType) extends TType {
   def walk[T](item: T, f: TPass[T]) = f(item, this)
+
+  def getTypeVars() =
+    subType.getTypeVars
 
   def prettyPrint = subType.prettyPrint + " list" 
 }
@@ -65,11 +89,15 @@ case class TListType(var subType: TType) extends TType {
 case class TIntType() extends TType {
   def walk[T](item: T, f: TPass[T]) = f(item, this)
 
+  def getTypeVars() = new TTypeSet()
+
   def prettyPrint = "int"
 }
 
 case class TStringType() extends TType {
   def walk[T](item: T, f: TPass[T]) = f(item, this)
+
+  def getTypeVars() = new TTypeSet()
 
   def prettyPrint = "string"
 }
@@ -77,11 +105,15 @@ case class TStringType() extends TType {
 case class TRealType() extends TType {
   def walk[T](item: T, f: TPass[T]) = f(item, this)
 
+  def getTypeVars() = new TTypeSet()
+
   def prettyPrint = "real"
 }
 
 case class TBoolType() extends TType {
   def walk[T](item: T, f: TPass[T]) = f(item, this)
+
+  def getTypeVars() = new TTypeSet()
 
   def prettyPrint = "bool"
 }
@@ -89,11 +121,15 @@ case class TBoolType() extends TType {
 case class TCharType() extends TType {
   def walk[T](item: T, f: TPass[T]) = f(item, this)
 
+  def getTypeVars() = new TTypeSet()
+
   def prettyPrint = "char"
 }
 
 case class TUnitType() extends TType {
   def walk[T](item: T, f: TPass[T]) = f(item, this)
+
+  def getTypeVars() = new TTypeSet()
 
   def prettyPrint = "unit"
 }
