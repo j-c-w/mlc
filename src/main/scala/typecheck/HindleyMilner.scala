@@ -178,7 +178,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         //
         // This is a safe case as the unification of a fun type with
         // something must be a fun type
-        val callTypeVariable = VariableGenertor.newVariable()
+        val callTypeVariable = VariableGenerator.newVariable()
         application.callType = Some(callTypeVariable)
 
         // Then, so that the type of the call can actually be accessed,
