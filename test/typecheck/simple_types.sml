@@ -8,4 +8,4 @@ val a = #"c"
 (* t-scan-times-1: string:typecheck *)
 (* t-scan-times-1: real :typecheck*)
 (* t-scan-times-1: char:typecheck *)
-(* t-scan-times-1: int list:typecheck *)
+(* t-scan: int list:typecheck *)
