@@ -10,18 +10,21 @@ import toplev.Shared
 import frontend._
 import tir._
 
-object LowerAST extends Pass[ASTProgram, TProgramOrdered]("lower_ast") {
-  def lowerAST(program: ASTProgram): TProgramOrdered = {
+object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
+  def lowerAST(program: ASTProgram): TProgram = {
     val ttypeEnv = lowerEnv(program.env.get)
-    val resultDecs = lowerAST(program.decs, program.env.get)
+    val (funDecs, valDecs) = lowerAST(program.decs, program.env.get)
 
-    TProgramOrdered(ttypeEnv, resultDecs)
+    TProgram(ttypeEnv, funDecs, valDecs)
   }
 
   def lowerAST(program: List[ASTDeclaration],
-               env: ASTTypeEnv): (List[TDec]) = {
-    for (dec <- program)
-      yield dec match {
+               env: ASTTypeEnv): (List[TFun], List[TVal]) = {
+    var funDecs = List[TFun]()
+    var valDecs = List[TVal]()
+
+    for (dec <- program) {
+      dec match {
         case funbind @ ASTFunBind(cases) => {
           val tIdent =  cases(0)._1 match {
             case ASTIdentVar(name) => TIdentVar(name)
@@ -37,14 +40,14 @@ object LowerAST extends Pass[ASTProgram, TProgramOrdered]("lower_ast") {
             }
           }
 
-          TFun(tIdent,
-               matchRows.map(lowerMatchRowAST(_, env)))
+          funDecs =
+            TFun(tIdent, matchRows.map(lowerMatchRowAST(_, env))) :: funDecs
         }
         case ASTValBind(ident, expression) => {
           val newIdents = lowerAST(ident, env)
           val newExpression = lowerAST(expression, env)
 
-          TVal(newIdents, newExpression)
+          valDecs = TVal(newIdents, newExpression) :: valDecs
         }
         case _ =>
           // Datatypes may get down to here. They are formally
@@ -52,6 +55,8 @@ object LowerAST extends Pass[ASTProgram, TProgramOrdered]("lower_ast") {
           // as  is they do not pass typechecking.
           ???
       }
+    }
+    (funDecs.reverse, valDecs.reverse)
   }
 
   def lowerAST(ident: ASTIdent, env: ASTTypeEnv): TIdent =
@@ -272,7 +277,7 @@ object LowerAST extends Pass[ASTProgram, TProgramOrdered]("lower_ast") {
     case ASTExpList(elems) => TExpList(elems.map(lowerAST(_, env)))
     case let @ ASTExpLetIn(decs, exps) => {
       val loweredEnv = lowerEnv(let.typeEnv.get)
-      val loweredDecs = lowerAST(decs, let.typeEnv.get)
+      val (loweredFuns, loweredVals)  = lowerAST(decs, let.typeEnv.get)
       val loweredExp = exps.map(lowerAST(_, let.typeEnv.get))
 
       // The design decision to treat a let-in in the AST
@@ -286,7 +291,7 @@ object LowerAST extends Pass[ASTProgram, TProgramOrdered]("lower_ast") {
         case exps => TExpSeq(exps)
       }
 
-      TExpLetIn(loweredDecs, tExps, loweredEnv)
+      TExpLetIn(loweredFuns ::: loweredVals, tExps, loweredEnv)
     }
     case ASTExpSeq(exps) =>
       TExpSeq(exps.map(lowerAST(_, env)))
