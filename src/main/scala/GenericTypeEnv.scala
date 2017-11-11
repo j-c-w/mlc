@@ -136,6 +136,22 @@ abstract class GenericTypeEnv[TypeEnvClass,
     }
   }
 
+  /* Given some identifier X, remove X from the map.
+   * If it is in the parent, remove it from there (recursively).
+   *
+   * Throws if x is not in the map.  */
+  def remove(x: From): Unit = {
+    if (innermostHasType(x)) {
+      map.remove(x)
+    } else {
+      parent match {
+        case Some(parentEnv) => parentEnv.remove(x)
+        case None => throw new ICE("""Type %s not found,
+          |so could not be removed""".stripMargin.format(x.prettyPrint))
+      }
+    }
+  }
+
   /* This gets a value from the map and substitutes
    * any quantified variables in for new variables.
    */
