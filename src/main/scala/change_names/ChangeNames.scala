@@ -1,11 +1,12 @@
 package change_names
 
-import toplev.Pass
 import tir._
+import toplev.Pass
+import tpass.TPass
 
 object ChangeNames extends Pass[TProgramOrdered, TProgram]("change_names") {
   def run(tree: TProgramOrdered): TProgram = {
-    tree.walk(new ChangeNamesWalk())
+    tree.walk(tree.typeEnv, new ChangeNamesWalk())
 
     // After the tree has been walked, the order of functions
     // is irrelevant. Sort through the decs and funs and put them

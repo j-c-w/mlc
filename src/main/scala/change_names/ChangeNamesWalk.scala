@@ -1,8 +1,9 @@
 package change_names
 
-import toplev.Pass
-import tir._
 import exceptions.ICE
+import tir._
+import toplev.Pass
+import tpass.TTypeEnvPass
 
 import scala.collection.mutable.{Map,HashMap}
 
@@ -30,7 +31,7 @@ import scala.collection.mutable.{Map,HashMap}
  * other than this bug, this pass is functional, so it is left here.
  */
 
-class ChangeNamesWalk extends TPass {
+class ChangeNamesWalk extends TTypeEnvPass {
   /* Note that although it is tempting to try and merge indistinguishable
    * nodes here (e.g. make two references to the same identifier the
    * same node), it is a potentially confusing idea for later manipulation
@@ -112,7 +113,7 @@ class ChangeNamesWalk extends TPass {
 
   /* This object is a private object designed for walking the
    * LHS declarations of values only. */
-  object ValDecWalk extends TPass {
+  object ValDecWalk extends TTypeEnvPass {
     override def apply(env: TTypeEnv, ident: TIdent) = ident match {
       case oldIdent @ TIdentVar(oldName) => {
         val newName = FunctionNameGenerator.newIdentName(oldName)
@@ -134,8 +135,9 @@ class ChangeNamesWalk extends TPass {
     override def apply(env: TTypeEnv, p: TPat): Boolean = unreachable
     override def apply(env: TTypeEnv, p: TType): Boolean = unreachable
     override def apply(env: TTypeEnv, p: TVal): Boolean = unreachable
-    override def apply(p: TProgram): Boolean = unreachable
-    override def apply(p: TProgramOrdered): Boolean = unreachable
+    override def apply(env: TTypeEnv, p: TProgram): Boolean = unreachable
+    override def apply(env: TTypeEnv, p: TProgramOrdered): Boolean =
+      unreachable
 
     def unreachable = throw new ICE("""Error: ValDecWalk object
       may only be used to walk L-Values.""")
