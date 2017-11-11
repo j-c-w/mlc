@@ -1,6 +1,7 @@
 package tir
 
 import toplev.GenericPrintable
+import tpass.TPass
 
 sealed trait TDec extends TWalkable with GenericPrintable
 
@@ -11,10 +12,10 @@ case class TFun(var name: TIdentVar, var patterns: List[TExpMatchRow])
     %s """.format(name.prettyPrint,
                   patterns.map(_.prettyPrint).mkString("\n    | "))
 
-  def walk(env: TTypeEnv, f: TPass) = 
-    if (f(env, this)) {
-      name.walk(env, f)
-      patterns.foreach(_.walk(env, f))
+  def walk[T](item: T, f: TPass[T]) = 
+    if (f(item, this)) {
+      name.walk(item, f)
+      patterns.foreach(_.walk(item, f))
     }
 }
 
@@ -23,9 +24,9 @@ case class TVal(var ident: TIdent, var exp: TExp) extends TDec {
   val %s = %s
   """.format(ident.prettyPrint, exp.prettyPrint)
 
-  def walk(env: TTypeEnv, f: TPass) = 
-    if (f(env, this)) {
-      ident.walk(env, f)
-      exp.walk(env, f)
+  def walk[T](item: T, f: TPass[T]) = 
+    if (f(item, this)) {
+      ident.walk(item, f)
+      exp.walk(item, f)
     }
 }

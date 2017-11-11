@@ -1,29 +1,30 @@
 package tir
 
 import toplev.GenericPrintable
+import tpass.TPass
 
 sealed trait TIdent extends TWalkable with GenericPrintable
 
 sealed trait BuiltinIdent extends TIdent {
-  def walk(env: TTypeEnv, f: TPass) = f(env, this)
+  def walk[T](item: T, f: TPass[T]) = f(item, this)
 }
 
 case class TIdentTuple(var subTypes: List[TIdent]) extends TIdent {
-  def walk(env: TTypeEnv, f: TPass) = if(f(env, this)) {
-    subTypes.foreach(_.walk(env, f))
+  def walk[T](item: T, f: TPass[T]) = if(f(item, this)) {
+    subTypes.foreach(_.walk(item, f))
   }
 
   def prettyPrint = "(" + subTypes.map(_.prettyPrint).mkString(", ") + ")"
 }
 
 case class TIdentVar(var name: String) extends TIdent {
-  def walk(env: TTypeEnv, f: TPass) = f(env, this)
+  def walk[T](item: T, f: TPass[T]) = f(item, this)
 
   def prettyPrint = name
 }
 
 case class TIdentLongVar(var name: List[String]) extends TIdent {
-  def walk(env: TTypeEnv, f: TPass) = f(env, this)
+  def walk[T](item: T, f: TPass[T]) = f(item, this)
 
   def prettyPrint = name.mkString(".")
 }

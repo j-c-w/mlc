@@ -1,6 +1,7 @@
 package tir
 
 import toplev.GenericPrintable
+import tpass.TPass
 
 /* An explicit design decision has been made here
  * to parameterize the TWalkalble with TExp.
@@ -13,16 +14,16 @@ import toplev.GenericPrintable
 sealed trait TExp extends TWalkable with GenericPrintable
 
 case class TExpConst(var const: TConst) extends TExp {
-  def walk(env: TTypeEnv, f: TPass) = if (f(env, this)) {
-    const.walk(env, f)
+  def walk[T](item: T, f: TPass[T]) = if (f(item, this)) {
+    const.walk(item, f)
   }
 
   def prettyPrint = const.prettyPrint
 }
 
 case class TExpIdent(var ident: TIdent) extends TExp {
-  def walk(env: TTypeEnv, f: TPass) = if (f(env, this)) {
-    ident.walk(env, f)
+  def walk[T](item: T, f: TPass[T]) = if (f(item, this)) {
+    ident.walk(item, f)
   }
 
   def prettyPrint = ident.prettyPrint
@@ -30,9 +31,9 @@ case class TExpIdent(var ident: TIdent) extends TExp {
 
 case class TExpFunApp(var funname: TExp, var application: TExp,
                       var callType: TIdent) extends TExp {
-  def walk(env: TTypeEnv, f: TPass) = if (f(env, this)) {
-    funname.walk(env, f)
-    application.walk(env, f)
+  def walk[T](item: T, f: TPass[T]) = if (f(item, this)) {
+    funname.walk(item, f)
+    application.walk(item, f)
   }
 
   def prettyPrint =
@@ -40,24 +41,24 @@ case class TExpFunApp(var funname: TExp, var application: TExp,
 }
 
 case class TExpTuple(var elems: List[TExp]) extends TExp {
-  def walk(env: TTypeEnv, f: TPass) = if (f(env, this)) {
-    elems.foreach(_.walk(env, f))
+  def walk[T](item: T, f: TPass[T]) = if (f(item, this)) {
+    elems.foreach(_.walk(item, f))
   }
 
   def prettyPrint = "(" + elems.map(_.prettyPrint).mkString(", ") + ")"
 }
 
 case class TExpList(var elems: List[TExp]) extends TExp {
-  def walk(env: TTypeEnv, f: TPass) = if (f(env, this)) {
-    elems.foreach(_.walk(env, f))
+  def walk[T](item: T, f: TPass[T]) = if (f(item, this)) {
+    elems.foreach(_.walk(item, f))
   }
 
   def prettyPrint = "[" + elems.map(_.prettyPrint).mkString(", ") + "]"
 }
 
 case class TExpSeq(var seq: List[TExp]) extends TExp {
-  def walk(env: TTypeEnv, f: TPass) = if (f(env, this)) {
-    seq.foreach(f(env, _))
+  def walk[T](item: T, f: TPass[T]) = if (f(item, this)) {
+    seq.foreach(f(item, _))
   }
 
   def prettyPrint = "(" + seq.map(_.prettyPrint).mkString(";\n") + ")"
@@ -65,9 +66,9 @@ case class TExpSeq(var seq: List[TExp]) extends TExp {
 
 case class TExpLetIn(var decs: List[TDec], var exp: TExp, var env: TTypeEnv)
     extends TExp {
-  def walk(parentEnv: TTypeEnv, f: TPass) = if (f(env, this)) {
-    decs.foreach(_.walk(env, f))
-    exp.walk(env, f)
+  def walk[T](item: T, f: TPass[T]) = if (f(item, this)) {
+    decs.foreach(_.walk(item, f))
+    exp.walk(item, f)
   }
 
   def prettyPrint =
@@ -84,9 +85,9 @@ case class TExpLetIn(var decs: List[TDec], var exp: TExp, var env: TTypeEnv)
 
 case class TExpCase(var exp: TExp, var cases: List[TExpMatchRow])
     extends TExp {
-  def walk(env: TTypeEnv, f: TPass) = if (f(env, this)) {
-    exp.walk(env, f)
-    cases.foreach(_.walk(env, f))
+  def walk[T](item: T, f: TPass[T]) = if (f(item, this)) {
+    exp.walk(item, f)
+    cases.foreach(_.walk(item, f))
   }
 
   def prettyPrint = """
@@ -98,9 +99,9 @@ case class TExpCase(var exp: TExp, var cases: List[TExpMatchRow])
 
 case class TExpMatchRow(var pat: List[TPat], var exp: TExp, var env: TTypeEnv)
     extends TExp {
-  def walk(parentEnv: TTypeEnv, f: TPass) = if (f(env, this)) {
-    pat.foreach(_.walk(env, f))
-    exp.walk(env, f)
+  def walk[T](item: T, f: TPass[T]) = if (f(item, this)) {
+    pat.foreach(_.walk(item, f))
+    exp.walk(item, f)
   }
 
 
@@ -109,8 +110,8 @@ case class TExpMatchRow(var pat: List[TPat], var exp: TExp, var env: TTypeEnv)
 }
 
 case class TExpFn(var patterns: List[TExpMatchRow]) extends TExp {
-  def walk(env: TTypeEnv, f: TPass) = if (f(env, this)) {
-    patterns.foreach(_.walk(env, f))
+  def walk[T](item: T, f: TPass[T]) = if (f(item, this)) {
+    patterns.foreach(_.walk(item, f))
   }
 
   def prettyPrint = "(fn " + patterns.map(_.prettyPrint).mkString("\n|") + ")"

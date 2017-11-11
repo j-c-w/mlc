@@ -1,6 +1,7 @@
 package tir
 
 import toplev.GenericPrintable
+import tpass.TPass
 
 /* This class is employed after the name change class, when
  * we can un-interleave the definition of vals and functions.
@@ -16,8 +17,8 @@ case class TProgram(var typeEnv: TTypeEnv, var funs: List[TFun],
   """.format(typeEnv.prettyPrint, (funs.map(_.prettyPrint)).mkString("\n"),
              vals.map(_.prettyPrint).mkString("\n"))
 
-  def walk(f: TPass) = if (f(this)) {
-    funs.foreach(_.walk(typeEnv, f))
-    vals.foreach(_.walk(typeEnv, f))
+  def walk[T](item: T, f: TPass[T]) = if (f(item, this)) {
+    funs.foreach(_.walk(item, f))
+    vals.foreach(_.walk(item, f))
   }
 }

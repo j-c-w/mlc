@@ -2,6 +2,7 @@ package tir
 
 import scala.collection.mutable.HashSet
 import toplev.TypeClassSet
+import tpass.TPass
 
 class TTypeSet(val set: HashSet[TType]) extends TypeClassSet[TType] {
   def this() = this(new HashSet[TType]())

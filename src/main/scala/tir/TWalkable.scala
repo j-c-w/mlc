@@ -1,5 +1,7 @@
 package tir
 
+import tpass.TPass
+
 /* 
  * This trait contains the functions that a class
  * needs to implement to be walkable.
@@ -9,5 +11,5 @@ package tir
  * nodes.
  */
 trait TWalkable {
-  def walk(env: TTypeEnv, f: TPass): Unit
+  def walk[T](item: T, f: TPass[T]): Unit
 }

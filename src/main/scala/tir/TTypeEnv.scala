@@ -1,6 +1,7 @@
 package tir
 
 import toplev.GenericTypeEnv
+import tpass.TPass
 
 /*
  * This is a type environment for the TIR representation.
