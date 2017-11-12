@@ -32,7 +32,7 @@ trait TPass[T, U] {
       val funRes = apply(item, funname)
       val applicationRes = apply(item, application)
 
-      val callTypeRes = apply(item, application)
+      val callTypeRes = apply(item, callType)
 
       combine(combine(funRes, applicationRes), callTypeRes)
     }
