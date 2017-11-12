@@ -1,4 +1,4 @@
-package change_names
+package ast_change_names
 
 object FunctionNameGenerator {
   var count = 0

@@ -1,6 +1,5 @@
 package ast_change_names
 
-import change_names.FunctionNameGenerator
 import exceptions._
 import frontend._
 import toplev.Pass
