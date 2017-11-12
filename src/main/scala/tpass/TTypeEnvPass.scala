@@ -10,24 +10,19 @@ import tir._
  * a poor original design of the TPass trait.
  */
 
-trait TTypeEnvPass extends TPass[TTypeEnv] {
-  override def apply(passedEnv: TTypeEnv, exp: TExp): Boolean = exp match {
-    case TExpLetIn(decs, exp, env) => {
-      decs.foreach(_.walk(env, this))
-      exp.walk(env, this)
+trait TTypeEnvPass extends TPass[TTypeEnv, Unit] {
+  def default = ()
+  def combine(x: Unit, y: Unit) = x
 
-      // TLetIn is specific to this pass. Do not let it get
-      // walked normally.
-      false
+  override def apply(passedEnv: TTypeEnv, exp: TExp): Unit = exp match {
+    case TExpLetIn(decs, exp, env) => {
+      decs.foreach(apply(env, _))
+      apply(env, exp)
     }
     case TExpMatchRow(pat, exp, env) => {
-      pat.foreach(_.walk(env, this))
-      exp.walk(env, this)
-
-      // The walk of the match row is specific to this. Do
-      // not do the normal walk in addition.
-      false
+      pat.foreach(apply(env, _))
+      apply(env, exp)
     }
-    case other => true
+    case other => super.apply(passedEnv, exp)
   }
 }
