@@ -29,8 +29,8 @@ abstract class GenericTypeEnv[TypeEnvClass,
    * Types that are quantified at this level of the type environment
    * are returned by typeCloning all of the subtypes in that type.
    */
-  private val map: Map[From, (To, Option[TypeClassSet[To]])] =
-    HashMap[From, (To, Option[TypeClassSet[To]])]()
+  private val map: Map[From, (To, Option[GenericTypeSet[To]])] =
+    HashMap[From, (To, Option[GenericTypeSet[To]])]()
 
   def prettyPrint = """
 
@@ -56,7 +56,7 @@ abstract class GenericTypeEnv[TypeEnvClass,
       add(id, typ, None)
 
   def add(id: From, typ: To,
-          qualifiedTypes: Option[TypeClassSet[To]]): Unit = {
+          qualifiedTypes: Option[GenericTypeSet[To]]): Unit = {
     map(id) = (typ, qualifiedTypes)
   }
 
@@ -71,7 +71,7 @@ abstract class GenericTypeEnv[TypeEnvClass,
       addTopLevel(id, typ, None)
 
   def addTopLevel(id: From, typ: To,
-                  qualifiedTypes: Option[TypeClassSet[To]]): Unit = {
+                  qualifiedTypes: Option[GenericTypeSet[To]]): Unit = {
     parent match {
       case Some(parentEnv) => parentEnv.addTopLevel(id, typ, qualifiedTypes)
       case None => add(id, typ, qualifiedTypes)
@@ -95,14 +95,14 @@ abstract class GenericTypeEnv[TypeEnvClass,
    * This should be used unless you are really sure that it is OK.
    */
   def updateId(id: From, newTyp: To,
-               quantifiedTypes: Option[TypeClassSet[To]]): Unit = {
+               quantifiedTypes: Option[GenericTypeSet[To]]): Unit = {
     getOrFail(id).unify(newTyp)
     updateIdNoValidate(id, newTyp, quantifiedTypes)
   }
 
   /* This attempts to update types in the parent if possible.  */
   def updateIdNoValidate(id: From, newTyp: To,
-                         qualifiedTypes: Option[TypeClassSet[To]]): Unit = {
+                         qualifiedTypes: Option[GenericTypeSet[To]]): Unit = {
     if (map.contains(id))
       map(id) = (newTyp, qualifiedTypes)
     else
@@ -180,7 +180,7 @@ abstract class GenericTypeEnv[TypeEnvClass,
    *
    * This is used for unification to unify only unquantified types.
    */
-  def getUnquantifiedTypesFor(id: From): TypeClassSet[To] = {
+  def getUnquantifiedTypesFor(id: From): GenericTypeSet[To] = {
     val (typ, quantified) = map(id)
 
     quantified match {
@@ -247,8 +247,13 @@ abstract class GenericTypeEnv[TypeEnvClass,
         case None => None
       }
 
+  def getNoSubsituteOrFail(id: From): To =
+    getNoSubsitute(id).getOrElse(throw new ICE("""Error: Type %s
+      |does not appear to be part of the environment""".stripMargin.format(
+        id.prettyPrint)))
+
   /* This iterates over all elements in the environment and it's parents. */
-  def foreachAll(f : (((From, (To, Option[TypeClassSet[To]])))
+  def foreachAll(f : (((From, (To, Option[GenericTypeSet[To]])))
       => Unit)): Unit = {
     map.foreach(f)
     parent.map(_.foreachAll(f))
@@ -256,7 +261,7 @@ abstract class GenericTypeEnv[TypeEnvClass,
 
   /* This iterates over all elements in this environment (i.e. NOT
    * the parent environments). */
-  def foreachInnermost(f: (((From, (To, Option[TypeClassSet[To]])))
+  def foreachInnermost(f: (((From, (To, Option[GenericTypeSet[To]])))
       => Unit)): Unit = {
     map.foreach(f)
   }
@@ -265,7 +270,7 @@ abstract class GenericTypeEnv[TypeEnvClass,
    * be 'seen' from this environment.  So, if 'x' is shadowing something
    * in the parent, this will not iterate over the parent 'x'.  */
   def foreachUnshadowed(
-    f: (((From, (To, Option[TypeClassSet[To]])) => Unit))): Unit = {
+    f: (((From, (To, Option[GenericTypeSet[To]])) => Unit))): Unit = {
     val seenSet = new HashSet[From]()
     map.foreach{ case (name, value) => {
       seenSet.add(name)

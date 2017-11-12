@@ -1,6 +1,6 @@
 package frontend
 
-import toplev.TypeClassSet
+import toplev.GenericTypeSet
 import scala.collection.mutable.HashSet
 
 object ASTTypeSet {
@@ -12,7 +12,7 @@ object ASTTypeSet {
   }
 }
 
-class ASTTypeSet(val set: HashSet[ASTType]) extends TypeClassSet[ASTType] {
+class ASTTypeSet(val set: HashSet[ASTType]) extends GenericTypeSet[ASTType] {
   def this() = this(new HashSet[ASTType]())
 
   def in(typ: ASTType) = set.contains(typ)

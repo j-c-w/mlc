@@ -2,7 +2,7 @@ package tir
 
 import toplev.GenericPrintable
 import toplev.GenericType
-import toplev.TypeClassSet
+import toplev.GenericTypeSet
 import toplev.GenericUnifier
 import tpass.TPass
 
@@ -19,7 +19,7 @@ sealed trait TType extends GenericPrintable with GenericType[TType] {
   def contains(otherType: TType): Boolean = ???
   def specializesTo(otherType: TType): Boolean = ???
   def substituteFor(subFor: TType,subIn: TType): TType = ???
-  def typeClone(types: TypeClassSet[TType]): TType = ???
+  def typeClone(types: GenericTypeSet[TType]): TType = ???
   def typeClone(): TType = ???
   def unify(typ: TType): GenericUnifier[TType] = ???
 }
@@ -29,14 +29,18 @@ case class TFunctionType(var argType: TType, var resType: TType)
   def getTypeVars() =
     argType.getTypeVars union resType.getTypeVars
 
-  def prettyPrint = "(%s -> %s)".format(argType.prettyPrint, resType.prettyPrint)
+  def prettyPrint =
+    "(%s -> %s)".format(argType.prettyPrint, resType.prettyPrint)
 }
 
 case class TTupleType(var subTypes: List[TType]) extends TType {
-  def getTypeVars() =
-    subTypes.map(_.getTypeVars).foldLeft(new TTypeSet(): TypeClassSet[TType]) {
+  def getTypeVars() = {
+    val emptySet: GenericTypeSet[TType] = new TTypeSet()
+
+    subTypes.map(_.getTypeVars).foldLeft(emptySet) {
       case (set, nextSet) => set union nextSet
     }
+  }
 
   def prettyPrint = "(" + subTypes.map(_.prettyPrint).mkString(", ") + ")"
 }

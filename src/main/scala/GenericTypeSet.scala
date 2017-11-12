@@ -1,9 +1,9 @@
 package toplev
 
-abstract class TypeClassSet[TypeClass <: GenericPrintable]
+abstract class GenericTypeSet[TypeClass <: GenericPrintable]
     extends GenericPrintable {
-  def map[U <: GenericPrintable](builder: Unit => TypeClassSet[U],
-             f: TypeClass => U): TypeClassSet[U] = {
+  def map[U <: GenericPrintable](builder: Unit => GenericTypeSet[U],
+             f: TypeClass => U): GenericTypeSet[U] = {
     val set = builder()
     foreach(item => set.insert(f(item)))
     set
@@ -11,7 +11,7 @@ abstract class TypeClassSet[TypeClass <: GenericPrintable]
 
   def isEmpty: Boolean = (size == 0)
 
-  def union(other: TypeClassSet[TypeClass]): TypeClassSet[TypeClass] = {
+  def union(other: GenericTypeSet[TypeClass]): GenericTypeSet[TypeClass] = {
     val unionSet = newSet
 
     for (typ <- other.getMembers()) {
@@ -25,7 +25,7 @@ abstract class TypeClassSet[TypeClass <: GenericPrintable]
     unionSet
   }
 
-  def intersection(other: TypeClassSet[TypeClass]): TypeClassSet[TypeClass] = {
+  def intersection(other: GenericTypeSet[TypeClass]): GenericTypeSet[TypeClass] = {
     val intersectionSet = newSet
 
     for (member <- getMembers()) {
@@ -37,7 +37,7 @@ abstract class TypeClassSet[TypeClass <: GenericPrintable]
     intersectionSet
   }
 
-  def filter(f: (TypeClass) => Boolean): TypeClassSet[TypeClass] = {
+  def filter(f: (TypeClass) => Boolean): GenericTypeSet[TypeClass] = {
     val filteredSet = newSet
 
     for (member <- getMembers()) {
@@ -55,7 +55,7 @@ abstract class TypeClassSet[TypeClass <: GenericPrintable]
 
   /* Computes the difference between sets
    */
-  def -(other: TypeClassSet[TypeClass]): TypeClassSet[TypeClass] = {
+  def -(other: GenericTypeSet[TypeClass]): GenericTypeSet[TypeClass] = {
     val differenceSet = newSet
 
     for (member <- getMembers()) {
@@ -71,8 +71,8 @@ abstract class TypeClassSet[TypeClass <: GenericPrintable]
 
   def size: Int
 
-  def insert(typ: TypeClass): TypeClassSet[TypeClass]
+  def insert(typ: TypeClass): GenericTypeSet[TypeClass]
   def getMembers(): List[TypeClass]
   def in(typ: TypeClass): Boolean
-  def newSet: TypeClassSet[TypeClass]
+  def newSet: GenericTypeSet[TypeClass]
 }

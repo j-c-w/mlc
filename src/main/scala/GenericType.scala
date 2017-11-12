@@ -19,9 +19,9 @@ trait GenericType[TypeClass <: GenericPrintable
 
   def specializesTo(otherType: TypeClass): Boolean
 
-  def getTypeVars(): TypeClassSet[TypeClass]
+  def getTypeVars(): GenericTypeSet[TypeClass]
 
   def typeClone(): TypeClass
   
-  def typeClone(types: TypeClassSet[TypeClass]): TypeClass
+  def typeClone(types: GenericTypeSet[TypeClass]): TypeClass
 }

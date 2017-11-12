@@ -1,10 +1,10 @@
 package tir
 
 import scala.collection.mutable.HashSet
-import toplev.TypeClassSet
+import toplev.GenericTypeSet
 import tpass.TPass
 
-class TTypeSet(val set: HashSet[TType]) extends TypeClassSet[TType] {
+class TTypeSet(val set: HashSet[TType]) extends GenericTypeSet[TType] {
   def this() = this(new HashSet[TType]())
 
   def in(typ: TType) = set.contains(typ)

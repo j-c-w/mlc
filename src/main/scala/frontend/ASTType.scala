@@ -3,7 +3,7 @@ package frontend
 import exceptions._
 import toplev.GenericPrintable
 import toplev.GenericType
-import toplev.TypeClassSet
+import toplev.GenericTypeSet
 import typecheck.TypeVariableGenerator
 
 import scala.collection.mutable.{HashMap,Map}
@@ -41,7 +41,7 @@ sealed trait ASTType extends GenericPrintable with GenericType[ASTType] {
   /* This returns a set of all the type variables contained
    * within this type.
    */
-  def getTypeVars(): TypeClassSet[ASTType]
+  def getTypeVars(): GenericTypeSet[ASTType]
 
   /* This was originally in the companion object. However, due to the vast
    * number of special cases, this is no longer put there.
@@ -83,7 +83,7 @@ sealed trait ASTType extends GenericPrintable with GenericType[ASTType] {
    * but the only types changed are those that belong to the
    * set passed as an argument.
    */
-  def typeClone(set: TypeClassSet[ASTType]): ASTType = {
+  def typeClone(set: GenericTypeSet[ASTType]): ASTType = {
     val substitutionMap = new HashMap[ASTType, ASTType]()
 
     for (typ <- set) {
@@ -209,7 +209,7 @@ case class ASTTupleType(val args: List[ASTType]) extends ASTType {
     args.exists(_.containsAtomic(other))
 
   override def getTypeVars() =
-    args.foldRight (ASTTypeSet(): TypeClassSet[ASTType]) {
+    args.foldRight (ASTTypeSet(): GenericTypeSet[ASTType]) {
         case (typ, set) => set union (typ.getTypeVars()) }
 
   override def specializeTo(other: ASTType): ASTUnifier = other match {
