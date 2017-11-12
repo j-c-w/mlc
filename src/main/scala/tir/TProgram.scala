@@ -16,9 +16,4 @@ case class TProgram(var typeEnv: TTypeEnv, var funs: List[TFun],
   %s
   """.format(typeEnv.prettyPrint, (funs.map(_.prettyPrint)).mkString("\n"),
              vals.map(_.prettyPrint).mkString("\n"))
-
-  def walk[T](item: T, f: TPass[T]) = if (f(item, this)) {
-    funs.foreach(_.walk(item, f))
-    vals.foreach(_.walk(item, f))
-  }
 }
