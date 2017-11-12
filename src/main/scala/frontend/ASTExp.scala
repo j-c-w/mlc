@@ -139,6 +139,8 @@ case class ASTExpMatchRow(val pat: List[ASTPat], val exp: ASTExp)
 }
 
 case class ASTExpFn(val body: List[ASTExpMatchRow]) extends ASTExp {
+  var funType: Option[ASTIdent] = None
+
   def prettyPrint = """(fn %s)""".format((body map (_.prettyPrint)).
       mkString("\n| "))
 }

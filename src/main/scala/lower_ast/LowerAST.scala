@@ -313,8 +313,9 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
     case row @ ASTExpMatchRow(pattern, expr) =>
       TExpMatchRow(pattern.map(lowerAST(_, env)), lowerAST(expr, env),
                    lowerEnv(row.env.get))
-    case ASTExpFn(body) =>
-      TExpFn(body.map(lowerMatchRowAST(_, env)))
+    case expFn @ ASTExpFn(body) =>
+      TExpFn(body.map(lowerMatchRowAST(_, env)),
+             lowerAST(expFn.funType.get, env))
   }
 
   /* This is a separate function because match rows are not really

@@ -65,6 +65,7 @@ case class TExpMatchRow(var pat: List[TPat], var exp: TExp, var env: TTypeEnv)
     pat.map(_.prettyPrint).mkString(" ") + " => " + exp.prettyPrint
 }
 
-case class TExpFn(var patterns: List[TExpMatchRow]) extends TExp {
+case class TExpFn(var patterns: List[TExpMatchRow], var funType: TIdent)
+    extends TExp {
   def prettyPrint = "(fn " + patterns.map(_.prettyPrint).mkString("\n|") + ")"
 }

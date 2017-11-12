@@ -347,7 +347,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         // in the ASTExpFn or ASTExpCase cases (the typer needs
         // to see ALL the rows at once, not just a single row)
         unreachable
-      case ASTExpFn(body) => {
+      case fn @ ASTExpFn(body) => {
         // This is very similar to the function type. We do the same
         // thing here:
         
@@ -366,6 +366,18 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         (body, patternEnvs).zipped.foreach {
           case (matchRow, env) => matchRow.env = Some(env)
         }
+
+        // Add that type to the environment under a new name.
+        val funTypeIdentifier = VariableGenerator.newVariable()
+
+        env.add(funTypeIdentifier,
+                // For safety, we assert here that this is indeed 
+                // a function type.
+                unifier(typ).asInstanceOf[ASTFunctionType],
+                false)
+
+        // We need to retain a reference to the identifer:
+        fn.funType = Some(funTypeIdentifier)
 
         (unifier, typ)
       }

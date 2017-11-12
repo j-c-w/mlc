@@ -63,7 +63,9 @@ trait TPass[T, U] {
 
       combine(expResult, combineList(patResults))
     }
-    case TExpFn(patterns) => combineList(patterns.map(apply(item, _)))
+    case TExpFn(patterns, typ) =>
+      combine(combineList(patterns.map(apply(item, _))),
+              apply(item, typ))
   }
 
   def apply(item: T, p: TIdent): U = p match {
