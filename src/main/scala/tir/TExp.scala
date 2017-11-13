@@ -45,7 +45,6 @@ case class TExpLetIn(var decs: List[TDec], var exp: TExp, var env: TTypeEnv)
   |in
   |%s
   |end
-  |
   """.stripMargin.format(decs.map(_.prettyPrint).mkString("\n"),
                          exp.prettyPrint)
 }
