@@ -1,5 +1,7 @@
 package tir
 
+import exceptions.ICE
+import scala.collection.mutable.Map
 import toplev.GenericPrintable
 import toplev.GenericType
 import toplev.GenericTypeSet
@@ -19,8 +21,6 @@ sealed trait TType extends GenericPrintable with GenericType[TType] {
   def contains(otherType: TType): Boolean = ???
   def specializesTo(otherType: TType): Boolean = ???
   def substituteFor(subFor: TType,subIn: TType): TType = ???
-  def typeClone(types: GenericTypeSet[TType]): TType = ???
-  def typeClone(): TType = ???
   def unify(typ: TType): GenericUnifier[TType] = ???
 }
 
@@ -28,6 +28,11 @@ case class TFunctionType(var argType: TType, var resType: TType)
     extends TType {
   def getTypeVars() =
     argType.getTypeVars union resType.getTypeVars
+
+  def substituteFor(map: Map[TType, TType]): TType =
+    new TFunctionType(argType.substituteFor(map), resType.substituteFor(map))
+
+  def atomicClone = throw new ICE("Error: TFunctionType is not atmoic")
 
   def prettyPrint =
     "(%s -> %s)".format(argType.prettyPrint, resType.prettyPrint)
@@ -42,6 +47,11 @@ case class TTupleType(var subTypes: List[TType]) extends TType {
     }
   }
 
+  def substituteFor(map: Map[TType, TType]): TType =
+    new TTupleType(subTypes.map(_.substituteFor(map)))
+
+  def atomicClone = throw new ICE("Error: TTupleType is not atmoic")
+
   def prettyPrint = "(" + subTypes.map(_.prettyPrint).mkString(", ") + ")"
 }
 
@@ -52,6 +62,16 @@ case class TEqualityTypeVar(var name: String) extends TType {
 
     set
   }
+
+  def substituteFor(map: Map[TType, TType]): TType =
+    if (map.contains(this)) {
+      map(this).atomicClone
+    } else {
+      // Create a new variable node to avoid confusion.
+      new TEqualityTypeVar(name)
+    }
+
+  def atomicClone = new TEqualityTypeVar(name)
 
   def prettyPrint = "''" + name
 }
@@ -64,6 +84,16 @@ case class TUnconstrainedTypeVar(var name: String) extends TType {
     set
   }
 
+  def substituteFor(map: Map[TType, TType]): TType =
+    if (map.contains(this)) {
+      map(this).atomicClone
+    } else {
+      // Create a new variable node to avoid confusion.
+      new TUnconstrainedTypeVar(name)
+    }
+
+  def atomicClone = new TUnconstrainedTypeVar(name)
+
   def prettyPrint = "'" + name
 }
 
@@ -71,11 +101,21 @@ case class TListType(var subType: TType) extends TType {
   def getTypeVars() =
     subType.getTypeVars
 
+  def substituteFor(map: Map[TType, TType]): TType =
+    new TListType(subType.substituteFor(map))
+
+  def atomicClone = throw new ICE("Error: TUnconstrainedTypeVar is not atmoic")
+
   def prettyPrint = subType.prettyPrint + " list" 
 }
 
 case class TIntType() extends TType {
   def getTypeVars() = new TTypeSet()
+
+  def substituteFor(map: Map[TType, TType]): TType =
+    this
+
+  def atomicClone = throw new ICE("Error: TIntType is not atmoic")
 
   def prettyPrint = "int"
 }
@@ -83,11 +123,21 @@ case class TIntType() extends TType {
 case class TStringType() extends TType {
   def getTypeVars() = new TTypeSet()
 
+  def substituteFor(map: Map[TType, TType]): TType =
+    this
+
+  def atomicClone = throw new ICE("Error: TIntType is not atmoic")
+
   def prettyPrint = "string"
 }
 
 case class TRealType() extends TType {
   def getTypeVars() = new TTypeSet()
+
+  def substituteFor(map: Map[TType, TType]): TType =
+    this
+
+  def atomicClone = throw new ICE("Error: TRealType is not atmoic")
 
   def prettyPrint = "real"
 }
@@ -95,17 +145,32 @@ case class TRealType() extends TType {
 case class TBoolType() extends TType {
   def getTypeVars() = new TTypeSet()
 
+  def substituteFor(map: Map[TType, TType]): TType =
+    this
+
+  def atomicClone = throw new ICE("Error: TBoolType is not atmoic")
+
   def prettyPrint = "bool"
 }
 
 case class TCharType() extends TType {
   def getTypeVars() = new TTypeSet()
 
+  def substituteFor(map: Map[TType, TType]): TType =
+    this
+
+  def atomicClone = throw new ICE("Error: TCharType is not atmoic")
+
   def prettyPrint = "char"
 }
 
 case class TUnitType() extends TType {
   def getTypeVars() = new TTypeSet()
+
+  def substituteFor(map: Map[TType, TType]): TType =
+    this
+
+  def atomicClone = throw new ICE("Error: TUnitType is not atmoic")
 
   def prettyPrint = "unit"
 }
