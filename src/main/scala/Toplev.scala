@@ -10,6 +10,7 @@ import frontend.GLLParser
 import ast_change_names.ASTChangeNames
 import typecheck.HindleyMilner
 import lower_ast.LowerAST
+import lambda_lift.LambdaLift
 
 object Toplev extends App {
   val cli = new Arguments(args)
@@ -31,4 +32,5 @@ object Toplev extends App {
   // Lowering from AST -- These all use the tree and so are OK
   // on memory.
   val intermediate = LowerAST.execute(typechecked, cli.dumpTir())
+  val lambda_lifted = LambdaLift.execute(intermediate, cli.dumpLambdaLift())
 }

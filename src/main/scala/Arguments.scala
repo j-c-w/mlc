@@ -13,6 +13,7 @@ class Arguments(arguments: Seq[String]) extends ScallopConf(arguments) {
   val dumpChangeNames = opt[Boolean]()
   val dumpTypecheck = opt[Boolean]()
   val dumpTir = opt[Boolean]()
+  val dumpLambdaLift = opt[Boolean]()
 
   verify()
 }
