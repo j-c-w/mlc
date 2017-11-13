@@ -73,27 +73,6 @@ sealed trait ASTType extends GenericPrintable with GenericType[ASTType] {
   def equals(other: ASTType): Boolean =
     this.contains(other) && other.contains(this)
 
-  /* This clones a type, creating a new type at each
-   * but mainitaing the relationships between already unified
-   * variables.
-   */
-  def typeClone: ASTType = typeClone(getTypeVars())
-
-  /* This does the same thing as the other typeClone,
-   * but the only types changed are those that belong to the
-   * set passed as an argument.
-   */
-  def typeClone(set: GenericTypeSet[ASTType]): ASTType = {
-    val substitutionMap = new HashMap[ASTType, ASTType]()
-
-    for (typ <- set) {
-      val targetType = typ.atomicClone
-      substitutionMap(typ) = targetType
-    }
-
-    substituteFor(substitutionMap)
-  }
-
   /* If the type that this is called on is a clonable atomic type
    * (i.e. a tyvar), then a new tyvar of the same type but with
    * a different name is returned. Otherwise this raises an ICE.
@@ -108,11 +87,6 @@ sealed trait ASTType extends GenericPrintable with GenericType[ASTType] {
     map(subFor) = subIn
     substituteFor(map)
   }
-
-  /* Given a map of substitutions to make, make those substitutions.
-   */
-  def substituteFor(substitutionMap: Map[ASTType, ASTType]): ASTType
-
 
   /* Note that this is a little bit of a trick case. It may throw
    * exceptions! Consider if you call ASTNumberType.admitsEquality..
