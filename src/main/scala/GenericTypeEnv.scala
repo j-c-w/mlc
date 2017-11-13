@@ -42,6 +42,33 @@ abstract class GenericTypeEnv[TypeEnvClass,
   def hasType(id: From): Boolean =
     map.contains(id) || parent.map(_.hasType(id)).getOrElse(false)
 
+  /* Searchs parents up unil (but not including) the passed
+   * bound.  If the type if found, return true.  Otherwise, return
+   * false.  */
+  def hasTypeBetweenExclusive(bound: TypeEnvClass, id: From): Boolean =
+    if (bound == this) {
+      false
+    } else {
+      innermostHasType(id) || (parent match {
+          case Some(parentEnv) => parentEnv.hasTypeBetweenExclusive(bound, id)
+          case None =>
+            throw new ICE("""Error: Parent type env did not appear in the
+              |hierarchy""".stripMargin)
+        })
+    }
+
+    def hasTypeBetweenInclusive(bound: TypeEnvClass, id: From):  Boolean =
+      if (bound == this) {
+        innermostHasType(id)
+      } else {
+        innermostHasType(id) || (parent match {
+          case Some(parentEnv) => parentEnv.hasTypeBetweenInclusive(bound, id)
+          case None =>
+            throw new ICE("""Error: Parent type env did not appear in the
+              |hierarchy""".stripMargin)
+        })
+      }
+
   // This call is always safe by the assertion made in the constructor.
   def getSelf: TypeEnvClass = this.asInstanceOf[TypeEnvClass]
 
