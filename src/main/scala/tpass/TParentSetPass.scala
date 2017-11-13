@@ -105,7 +105,7 @@ class TParentSetPass[T] {
         }
       }
       case matchRow @ TExpMatchRow(pats, exp, env) =>
-        throw new ICE("""Error: TExpMatchRow should not reach this stage""")
+        applyMatchRow(item, matchRow)
       case fnDec @ TExpFn(patterns, typ) => {
         val newPatterns = patterns.map(applyMatchRow(item, _))
         val newTyp = apply(item, typ)
@@ -152,6 +152,7 @@ class TParentSetPass[T] {
 
       None
     }
+    case ident @ TIdentVar(name) => applyIdentVar(item, ident)
     // All other cases are base casses
     case other => None
   }
