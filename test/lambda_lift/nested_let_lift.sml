@@ -1,4 +1,4 @@
-(* t-compile: --dump-lambda-lift *)
+(* t-compile: --run-lambda-lift-verify --dump-lambda-lift *)
 
 val x =
   let 
