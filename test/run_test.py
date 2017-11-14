@@ -20,20 +20,16 @@ class Test(object):
         self.options = []
         self.compile_should_fail = False
 
-
     def add_scan(self, regex, dumpfile, times):
         self.scans.append((regex, dumpfile, times))
-
 
     def add_option(self, option):
         self.options.append(option)
 
-
     def set_compile_should_fail(self, fail):
-        self.compile_should_fail = fail;
+        self.compile_should_fail = fail
 
-
-    def execute(self, executable, file, full_filepath):
+    def execute(self, executable, file, full_filepath, options):
         """ Returns true if there was an error or the test failed
             to run as expected.  """
         # First do the build
@@ -42,7 +38,8 @@ class Test(object):
         print 'file is', full_filepath
 
         return_value = \
-            subprocess.call(executable.split(' ') + self.options + [file])
+            subprocess.call(executable.split(' ') + options +
+                            self.options + [file])
 
         if return_value != 0:
             build_failed = True
@@ -56,7 +53,6 @@ class Test(object):
                                   ' failed.'])
         else:
             return (test_failed, ['PASS: Build of ' + full_filepath])
-
 
     def run_scans(self, directory, filename):
         """ Filename points  to the original location of the
@@ -79,8 +75,8 @@ class Test(object):
             dumpfile = dumpfiles[0]
 
             if not os.path.exists(dumpfile):
-                results += ["FAIL: No dumpfile " + dumpfile + " for filename " \
-                           + filename]
+                results += ["FAIL: No dumpfile " + dumpfile +
+                            " for filename " + filename]
                 continue
 
             with open(dumpfile) as f:
@@ -93,12 +89,11 @@ class Test(object):
                     result = "FAIL: "
 
                 res_string = (result + dumpfile + " from " +
-                               filename + " scanned for '" +
-                               regex + "' ")
+                              filename + " scanned for '" +
+                              regex + "' ")
 
                 if times > 0:
                     res_string += str(times) + " times"
-
 
                 results.append(res_string)
 
@@ -199,7 +194,7 @@ def extract_information(filename):
     return test_data
 
 
-def run_test(filename, executable):
+def run_test(filename, executable, options):
     """ Given filename as some tests, this extracts
         the information we need (arguments, scan targets),
         runs  the test and checks the arguments.  """
@@ -212,7 +207,8 @@ def run_test(filename, executable):
     test_data = extract_information(name_only)
 
     # Now, do the build/run and FAIL if there were any errors.
-    (failed, failure_data) = test_data.execute(executable, name_only, filename)
+    (failed, failure_data) = \
+        test_data.execute(executable, name_only, filename, options)
     if failed:
         return failure_data
 
@@ -228,7 +224,7 @@ def dump_result_data(results, dumpfile):
             f.write(line + '\n')
 
 
-def run_all(filenames, dumpfile, executable):
+def run_all(filenames, dumpfile, executable, options):
     results = []
 
     print 'dump is', dumpfile
@@ -244,7 +240,7 @@ def run_all(filenames, dumpfile, executable):
         os.mkdir('execute')
         os.chdir('execute')
 
-        results += run_test(filename, executable)
+        results += run_test(filename, executable, options)
 
         os.chdir('..')
         # Clear the execute directory
@@ -280,9 +276,12 @@ if __name__ == "__main__":
     parser.add_argument('--output', dest='output_file', action='store',
                         default='test.res', help=('Output file to dump'
                                                   ' test results into'))
+    parser.add_argument('--options', dest='options', action='store',
+                        default='', help=('Options to set on every compilation'
+                                          ' instance. '))
     args = parser.parse_args()
 
     print "Executable is", args.executable
 
     tests = find_tests(args.regex_filter, args.root)
-    run_all(tests, args.output_file, args.executable)
+    run_all(tests, args.output_file, args.executable, args.options.split(' '))
