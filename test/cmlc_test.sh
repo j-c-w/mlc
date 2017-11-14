@@ -30,7 +30,9 @@ done
 # Arguments handled. We assume that we are running from
 # within the test directory.
 
+echo $(pwd)
 cd ..
+echo $(pwd)
 # Clean is run so that the one-jar is actually rebuilt.
 # Without clean being run, an unchanged project from the 
 # last one-jar build would result in no path to the 
@@ -43,3 +45,8 @@ cd test
 
 # Execute the testsuite
 ./run_test.py --executable="java -jar $jarfile"
+
+# Check for all passes:
+no_failures=$(grep -o 'FAIL' test.res | wc -l)
+
+exit $no_failures
