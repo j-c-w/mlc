@@ -8,6 +8,9 @@ class Arguments(arguments: Seq[String]) extends ScallopConf(arguments) {
   // stack traces of internal errors.
   val debug = opt[Boolean]()
 
+  // Optional pass options:
+  val runLambdaLiftVerify = opt[Boolean]()
+
   // Dump options
   val dumpAst = opt[Boolean]()
   val dumpChangeNames = opt[Boolean]()

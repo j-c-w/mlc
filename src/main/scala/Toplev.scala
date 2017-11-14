@@ -11,6 +11,7 @@ import ast_change_names.ASTChangeNames
 import typecheck.HindleyMilner
 import lower_ast.LowerAST
 import lambda_lift.LambdaLift
+import lambda_lift.LambdaLiftVerify
 
 object Toplev extends App {
   val cli = new Arguments(args)
@@ -33,4 +34,6 @@ object Toplev extends App {
   // on memory.
   val intermediate = LowerAST.execute(typechecked, cli.dumpTir())
   val lambda_lifted = LambdaLift.execute(intermediate, cli.dumpLambdaLift())
+  val _ = LambdaLiftVerify.optionalExecute(cli.runLambdaLiftVerify(),
+                                           lambda_lifted, false)
 }
