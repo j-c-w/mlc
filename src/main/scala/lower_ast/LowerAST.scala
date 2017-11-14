@@ -205,8 +205,9 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
       if (bigInt.compareTo(bigIntMax) == 1
           || bigInt.compareTo(bigIntMin) == -1) {
         // Out of range
-        throw new BadIntException("""Error: Constant %s is too large
-          to fit in an int (32 bits signed).""")
+        throw new BadIntException(
+          """Error: Constant %s is too large to fit in an int (32 bits
+          |signed).""".stripMargin.format(bigInt.toString()))
       } else {
         // Otherwise we may convert as normal:
         TConstInt(bigInt.intValue())

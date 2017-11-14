@@ -29,17 +29,24 @@ class Test(object):
     def set_compile_should_fail(self, fail):
         self.compile_should_fail = fail
 
-    def execute(self, executable, file, full_filepath, options):
+    def execute(self, executable, file, full_filepath, additional_options):
         """ Returns true if there was an error or the test failed
             to run as expected.  """
         # First do the build
         print 'compiling'
-        print 'with options', self.options
         print 'file is', full_filepath
 
+        # Scalop is not happy about duplicate flags. We therefore
+        # only present each argument once
+        deduplicated_options = self.options
+        for option in additional_options:
+            if not option in deduplicated_options:
+                deduplicated_options.append(option)
+
+        print 'with options', deduplicated_options
         return_value = \
-            subprocess.call(executable.split(' ') + options +
-                            self.options + [file])
+            subprocess.call(executable.split(' ') + deduplicated_options +
+                            [file])
 
         if return_value != 0:
             build_failed = True
@@ -276,12 +283,12 @@ if __name__ == "__main__":
     parser.add_argument('--output', dest='output_file', action='store',
                         default='test.res', help=('Output file to dump'
                                                   ' test results into'))
-    parser.add_argument('--options', dest='options', action='store',
-                        default='', help=('Options to set on every compilation'
+    parser.add_argument('--options', dest='options', action='append',
+                        default=[], help=('Options to set on every compilation'
                                           ' instance. '))
     args = parser.parse_args()
 
     print "Executable is", args.executable
 
     tests = find_tests(args.regex_filter, args.root)
-    run_all(tests, args.output_file, args.executable, args.options.split(' '))
+    run_all(tests, args.output_file, args.executable, args.options)
