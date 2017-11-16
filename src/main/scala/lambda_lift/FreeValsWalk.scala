@@ -3,7 +3,7 @@ package lambda_lift
 import exceptions.ICE
 import tir._
 import scala.collection.mutable.{HashSet,Set}
-import tpass.TTypeEnvPass
+import tpass.TTypeEnvPassUnit
 
 object FreeValsWalk {
   def apply(parentEnv: TTypeEnv,
@@ -21,7 +21,7 @@ object FreeValsWalk {
 }
 
 class FreeValsWalk(val topLevelEnv: TTypeEnv,
-                   val functionEnv: TTypeEnv) extends TTypeEnvPass {
+                   val functionEnv: TTypeEnv) extends TTypeEnvPassUnit {
   var freeValsSet: Set[(TExpIdent, TType)] =
     HashSet[(TExpIdent, TType)]()
 

@@ -2,7 +2,7 @@ package change_names
 
 import scala.collection.mutable.{HashMap,Map}
 import tir._
-import tpass.TTypeEnvPass
+import tpass.TTypeEnvPassUnit
 import typecheck.VariableGenerator
 
 /* This is a class that provides utilities for changing names.
@@ -19,7 +19,7 @@ import typecheck.VariableGenerator
  * to be implemented.
  */
 
-object ChangeIdentNames extends TTypeEnvPass {
+object ChangeIdentNames extends TTypeEnvPassUnit {
   def newNamesFor(namesToReplace: Map[TIdentVar, (TIdentVar, TType)],
                   expression: TExp, env: TTypeEnv): Unit = {
     val walk  = new ChangeIdentNamesWalk(namesToReplace)
