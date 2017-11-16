@@ -92,11 +92,11 @@ class LambdaLiftWalk(val program: TProgram)
                         innerEnv: TTypeEnv, typeEnvName: TIdent) = {
     // First, walk the patterns to see if they have anything that needs
     // to be lambda lifted.
-    val newPatterns = patterns.map(applyMatchRow(innerEnv, _))
+    val newPatterns = patterns.map(apply(innerEnv, _))
 
     // This stores the merged patterns.
     val updatedPatterns = (patterns zip newPatterns) map {
-      case (oldPat, Some(newPat)) => newPat
+      case (oldPat, Some(newPat)) => newPat.asInstanceOf[TExpMatchRow]
       case (oldPat, None) => oldPat
     }
 

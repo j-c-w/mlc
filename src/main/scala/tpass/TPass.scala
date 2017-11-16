@@ -66,6 +66,14 @@ trait TPass[T, U] {
     case TExpFn(patterns, typ) =>
       combine(combineList(patterns.map(apply(item, _))),
               apply(item, typ))
+    case TExpAssign(ident, expression) =>
+      combine(apply(item, ident), apply(item, expression))
+    case TExpFunLet(idents, expression, env) =>
+      combine(combineList(idents.map(apply(item, _))),
+              apply(item, expression))
+    case TExpFunLetMatchRow(patterns, exp, env) =>
+      combine(combineList(patterns.map(apply(item, _))),
+                          apply(item, exp))
   }
 
   def apply(item: T, p: TIdent): U = p match {
@@ -101,6 +109,12 @@ trait TPass[T, U] {
 
       combine(combineList(casesRes), identRes)
     }
+    case TJavaFun(ident, patterns) => {
+      val identRes = apply(item, ident)
+      val casesRes = patterns.map(apply(item, _))
+
+      combine(combineList(casesRes), identRes)
+    }
   }
 
   def apply(item: T, p: TProgram): U = {
@@ -108,6 +122,13 @@ trait TPass[T, U] {
     val valsRes = p.vals.map(apply(item, _))
 
     combine(combineList(funsRes), combineList(valsRes))
+  }
+
+  def apply(item: T, p: TJavaProgram): U = {
+    val mainRes = apply(item, p.main)
+    val funsRes = p.functions.map(apply(item, _))
+
+    combine(combineList(funsRes), mainRes)
   }
 
   def combineList(list: List[U]): U = 

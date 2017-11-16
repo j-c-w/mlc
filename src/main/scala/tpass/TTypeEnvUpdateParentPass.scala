@@ -13,33 +13,47 @@ class TTypeEnvUpdateParentPass extends TParentSetPass[TTypeEnv] {
         case (old, None) => old
       }
 
-      expResult match {
-        case None =>
-        case Some(expResult) => letExpr.exp = expResult
+      expResult.map(res => letExpr.exp = res)
+
+      None
+    }
+    case matchRow @ TExpMatchRow(pats, exp, rowEnv) => {
+      val expResult = apply(rowEnv, exp)
+      val patResults = pats.map(apply(rowEnv, _))
+
+      matchRow.pat = (pats zip patResults) map {
+        case (old, Some(newElem)) => newElem
+        case (old, None) => old
       }
 
+      expResult.map(res => matchRow.exp = res)
+
+      None
+    }
+    case letExpr @ TExpFunLet(decs, exp, letEnv) => {
+      val decsResults = decs.map(apply(letEnv, _))
+      val expResult = apply(letEnv, exp)
+
+      letExpr.valdecs = (decs zip decsResults) map {
+        case (old, Some(newDec)) => newDec.asInstanceOf[TIdentVar]
+        case (old, None) => old
+      }
+
+      expResult.map(res => letExpr.exp = res)
+      None
+    }
+    case matchRow @ TExpFunLetMatchRow(pats, exp, rowEnv) => {
+      val expResult = apply(rowEnv, exp)
+      val patResults = pats.map(apply(rowEnv, _))
+
+      matchRow.pat = (pats zip patResults) map {
+        case (old, Some(newElem)) => newElem
+        case (old, None) => old
+      }
+
+      expResult.map(res => matchRow.exp = res.asInstanceOf[TExpFunLet])
       None
     }
     case other => super.apply(env, exp)
   }
-
-  override def applyMatchRow(env: TTypeEnv, matchRow: TExpMatchRow) =
-    matchRow match {
-      case matchRow @ TExpMatchRow(pats, exp, rowEnv) => {
-        val expResult = apply(rowEnv, exp)
-        val patResults = pats.map(apply(rowEnv, _))
-
-        matchRow.pat = (pats zip patResults) map {
-          case (old, Some(newElem)) => newElem
-          case (old, None) => old
-        }
-
-        expResult match {
-          case None =>
-          case Some(expResult) => matchRow.exp = expResult
-        }
-
-        None
-      }
-    }
 }

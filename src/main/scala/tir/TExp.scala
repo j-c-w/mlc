@@ -64,7 +64,35 @@ case class TExpMatchRow(var pat: List[TPat], var exp: TExp, var env: TTypeEnv)
     pat.map(_.prettyPrint).mkString(" ") + " => " + exp.prettyPrint
 }
 
+/* This is removed from the tree during the lambda lifting pass.  */
 case class TExpFn(var patterns: List[TExpMatchRow], var funType: TIdent)
     extends TExp {
   def prettyPrint = "(fn " + patterns.map(_.prettyPrint).mkString("\n|") + ")"
+}
+
+/* These are only used after the flatten_let pass.  */
+case class TExpAssign(var ident: TIdentVar, var expression: TExp)
+    extends TExp {
+  def prettyPrint =
+    "Assign %s to (%s)".format(ident.prettyPrint, expression.prettyPrint)
+}
+
+case class TExpFunLet(var valdecs: List[TIdentVar],
+                      var exp: TExp, var env: TTypeEnv) extends TExp {
+  def prettyPrint = """
+    |FunLet
+    |%s
+    |In
+    |%s
+    |WithTypes:
+    |%s
+    |End""".stripMargin.format(valdecs.map(_.prettyPrint).mkString("\n"),
+                               exp.prettyPrint, env.prettyPrint)
+}
+
+case class TExpFunLetMatchRow(var pat: List[TPat], var exp: TExpFunLet,
+                              var env: TTypeEnv) extends TExp {
+  def prettyPrint = """
+%s => %s
+  """.format(pat.map(_.prettyPrint).mkString(" "), exp.prettyPrint)
 }

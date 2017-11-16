@@ -23,6 +23,14 @@ trait TTypeEnvPass extends TPass[TTypeEnv, Unit] {
       pat.foreach(apply(env, _))
       apply(env, exp)
     }
+    case TExpFunLet(decs, exp, env) => {
+      decs.foreach(apply(env, _))
+      apply(env, exp)
+    }
+    case TExpFunLetMatchRow(pat, exp, env) => {
+      pat.foreach(apply(env, _))
+      apply(env, exp)
+    }
     case other => super.apply(passedEnv, exp)
   }
 }
