@@ -16,6 +16,29 @@ import exceptions.ICE
  */
 
 class TParentSetPass[T] {
+  def getNew[T](old: T, possiblyNew: Option[T]): T = possiblyNew match {
+    case Some(actuallyNew) => actuallyNew
+    case None => old
+  }
+
+  def getNew[T](old: List[T], possiblyNew: List[Option[T]]): List[T] =
+    getNew(old, possiblyNew, (x: T) => x)
+
+  def getNew[T, U](old: List[T], possiblyNew: List[Option[U]],
+                   conversion: U => T): List[T] = {
+    // This are to detect bugs where it is natural
+    // to add to the items in a list in a program before
+    // this function returns.  In fact, because
+    // of the way that this is designed, it will
+    // be silently thrown away it if is done before.
+    assert(old.length == possiblyNew.length)
+
+    (old zip possiblyNew) map {
+      case (old, Some(newElem)) => conversion(newElem)
+      case (old, None) => old
+    }
+  }
+
   def apply(item: T, p: TConst): Option[TConst] = p match {
     // These are all bottom cases.
     case const => None
@@ -23,9 +46,11 @@ class TParentSetPass[T] {
 
   def apply(item: T, p: TExp): Option[TExp] = {
     p match {
-      case expConst @ TExpConst(const) => apply(item, const) match {
+      case expConst @ TExpConst(const) => {
+        apply(item, const) match {
         case None =>
         case Some(newChild) => expConst.const = newChild
+      }
       }
       case expIdent @ TExpIdent(ident) => apply(item, ident) match {
         case None =>
@@ -55,35 +80,23 @@ class TParentSetPass[T] {
       case expTuple @ TExpTuple(tuple) => {
         val newTuples = tuple.map(apply(item, _))
 
-        expTuple.elems = (tuple zip newTuples) map {
-          case (old, Some(newElem)) => newElem
-          case (old, None) => old
-        }
+        expTuple.elems = getNew(tuple, newTuples)
       }
       case expList @ TExpList(list) => {
         val newList = list.map(apply(item, _))
 
-        expList.elems = (list zip newList) map {
-          case (old, Some(newItem)) => newItem
-          case (old, None) => old
-        }
+        expList.elems = getNew(list, newList)
       }
       case expSeq @ TExpSeq(seqs) => {
         val newSeqs = seqs.map(apply(item, _))
 
-        expSeq.seq = (seqs zip newSeqs) map {
-          case (old, Some(newElem)) => newElem
-          case (old, None) => old
-        }
+        expSeq.seq = getNew(seqs, newSeqs)
       }
       case letExpr @ TExpLetIn(decs, exp, env) => {
         val decsResults = decs.map(apply(item, _))
         val expResult = apply(item, exp)
 
-        letExpr.decs = (decs zip decsResults) map {
-          case (old, Some(newDec)) => newDec
-          case (old, None) => old
-        }
+        letExpr.decs = getNew(decs, decsResults)
 
         expResult match {
           case None =>
@@ -94,10 +107,8 @@ class TParentSetPass[T] {
         val expResult = apply(item, exp)
         val casesResults = cases.map(apply(item, _))
 
-        caseExpr.cases = (cases zip casesResults) map {
-          case (old, Some(newElem)) => newElem.asInstanceOf[TExpMatchRow]
-          case (old, None) => old
-        }
+        caseExpr.cases = getNew(cases, casesResults,
+                                (x: TExp) => x.asInstanceOf[TExpMatchRow])
 
         expResult match {
           case None =>
@@ -108,10 +119,7 @@ class TParentSetPass[T] {
         val expResult = apply(item, exp)
         val patResults = pats.map(apply(item, _))
 
-        matchRow.pat = (pats zip patResults) map {
-          case (old, Some(newElem)) => newElem
-          case (old, None) => old
-        }
+        matchRow.pat = getNew(pats, patResults)
 
         expResult.map(exp => matchRow.exp = exp)
       }
@@ -121,10 +129,8 @@ class TParentSetPass[T] {
 
         newTyp.map(typ => fnDec.funType = typ)
 
-        fnDec.patterns = (patterns zip newPatterns) map {
-          case (old, Some(newPat)) => newPat.asInstanceOf[TExpMatchRow]
-          case (old, None) => old
-        }
+        fnDec.patterns = getNew(patterns, newPatterns,
+                                (x: TExp) => x.asInstanceOf[TExpMatchRow])
       }
       case assign @ TExpAssign(ident, expression) => {
         val newIdent = apply(item, ident)
@@ -137,20 +143,16 @@ class TParentSetPass[T] {
         val newVals = valdecs.map(apply(item, _))
         val newExp = apply(item, exp)
 
-        funLet.valdecs = (valdecs zip newVals) map {
-          case (old, Some(newVal)) => newVal.asInstanceOf[TIdentVar]
-          case (old, _) => old
-        }
+        funLet.valdecs = getNew(valdecs, newVals,
+                                (x: TIdent) => x.asInstanceOf[TIdentVar])
+
         newExp.map(exp => funLet.exp = exp)
       }
       case matchRow @ TExpFunLetMatchRow(pattern, exp, env) => {
         val expResult = apply(item, exp)
         val patResults = pattern.map(apply(item, _))
 
-        matchRow.pat = (pattern zip patResults) map {
-          case (old, Some(newElem)) => newElem
-          case (old, None) => old
-        }
+        matchRow.pat = getNew(pattern, patResults)
 
         expResult.map(exp => matchRow.exp = exp.asInstanceOf[TExpFunLet])
       }
@@ -162,11 +164,7 @@ class TParentSetPass[T] {
     case tuple @ TIdentTuple(subIdents) => {
       val newTypes = subIdents.map(apply(item, _))
 
-      tuple.subTypes = (subIdents zip newTypes) map {
-        case (old, Some(newType)) => newType
-        case (old, None) => old
-      }
-
+      tuple.subTypes = getNew(subIdents, newTypes)
       None
     }
     case ident @ TIdentVar(name) => None
@@ -188,10 +186,7 @@ class TParentSetPass[T] {
       case seqPat @ TPatSeq(seqs) => {
         val newSeqs = seqs.map(apply(item, _))
 
-        seqPat.seq = (seqs zip newSeqs) map {
-          case (old, Some(newSeq)) => newSeq
-          case (old, None) => old
-        }
+        seqPat.seq = getNew(seqs, newSeqs)
       }
       case listPat @ TListPat(items) => {
         val newItems = items.map(apply(item, _))
@@ -242,10 +237,7 @@ class TParentSetPass[T] {
       case tupleType @ TTupleType(subTypes) => {
         val newTypes = subTypes.map(apply(item, _))
 
-        tupleType.subTypes = (subTypes zip newTypes) map {
-          case (old, Some(newType)) => newType
-          case (old, None) => old
-        }
+        tupleType.subTypes = getNew(subTypes, newTypes)
       }
       case listType @ TListType(subType) => apply(item, subType) match {
         case None =>
@@ -270,22 +262,16 @@ class TParentSetPass[T] {
         val newPatterns = patterns.map(apply(item, _))
 
         newIdent.map(ident => fundec.name = ident.asInstanceOf[TIdentVar])
-        fundec.patterns = (patterns zip newPatterns) map {
-          case (old, Some(newMatchRow)) =>
-            newMatchRow.asInstanceOf[TExpMatchRow]
-          case (old, None) => old
-        }
+        fundec.patterns = getNew(patterns, newPatterns,
+                                 (x: TExp) => x.asInstanceOf[TExpMatchRow])
       }
       case fundec @ TJavaFun(ident, patterns) => {
         val newIdent = apply(item, ident)
         val newPatterns = patterns.map(apply(item, _))
 
         newIdent.map(ident => fundec.name = ident.asInstanceOf[TIdentVar])
-        fundec.cases = (patterns zip newPatterns) map {
-          case (old, Some(newMatchRow)) =>
-            newMatchRow.asInstanceOf[TExpFunLetMatchRow]
-          case (old, None) => old
-        }
+        fundec.cases = getNew(patterns, newPatterns,
+                              (x: TExp) => x.asInstanceOf[TExpFunLetMatchRow])
       }
     }
     None
@@ -295,34 +281,17 @@ class TParentSetPass[T] {
     val funsRes = p.funs.map(apply(item, _))
     val valsRes = p.vals.map(apply(item, _))
 
-    // These are to detect bugs where it is natural
-    // to add to the functions in a program before
-    // this function returns.  In fact, because
-    // of the way that this is designed, it will
-    // be silently thrown away it if is done before.
-    assert(p.funs.length == funsRes.length)
-    assert(p.vals.length == valsRes.length)
+    p.funs = getNew(p.funs, funsRes, (x: TDec) => x.asInstanceOf[TFun])
 
-    p.funs = (p.funs zip funsRes) map {
-      case (old, Some(newFun)) => newFun.asInstanceOf[TFun]
-      case (old, None) => old
-    }
-
-    p.vals = (p.vals zip valsRes) map {
-      case (old, Some(newVal)) => newVal.asInstanceOf[TVal]
-      case (old, None) => old
-    }
+    p.vals = getNew(p.vals, valsRes, (x: TDec) => x.asInstanceOf[TVal])
   }
 
   def apply(item: T, p: TJavaProgram): Unit = {
     val mainRes = apply(item, p.main)
     val funRes = p.functions.map(apply(item, _))
 
-    assert(p.functions.length == funRes.length)
     mainRes.map(main => p.main = main.asInstanceOf[TJavaFun])
-    p.functions = (p.functions zip funRes) map {
-      case (old, Some(newFun)) => newFun.asInstanceOf[TJavaFun]
-      case (old, None) => old
-    }
+    p.functions = getNew(p.functions, funRes,
+                         (x: TDec) => x.asInstanceOf[TJavaFun])
   }
 }
