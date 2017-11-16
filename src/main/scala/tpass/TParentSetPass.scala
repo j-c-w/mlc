@@ -295,6 +295,14 @@ class TParentSetPass[T] {
     val funsRes = p.funs.map(apply(item, _))
     val valsRes = p.vals.map(apply(item, _))
 
+    // These are to detect bugs where it is natural
+    // to add to the functions in a program before
+    // this function returns.  In fact, because
+    // of the way that this is designed, it will
+    // be silently thrown away it if is done before.
+    assert(p.funs.length == funsRes.length)
+    assert(p.vals.length == valsRes.length)
+
     p.funs = (p.funs zip funsRes) map {
       case (old, Some(newFun)) => newFun.asInstanceOf[TFun]
       case (old, None) => old
@@ -310,6 +318,7 @@ class TParentSetPass[T] {
     val mainRes = apply(item, p.main)
     val funRes = p.functions.map(apply(item, _))
 
+    assert(p.functions.length == funRes.length)
     mainRes.map(main => p.main = main.asInstanceOf[TJavaFun])
     p.functions = (p.functions zip funRes) map {
       case (old, Some(newFun)) => newFun.asInstanceOf[TJavaFun]

@@ -8,6 +8,8 @@ import tpass.TTypeEnvUpdateParentPass
 
 class LambdaLiftWalk(val program: TProgram)
     extends TTypeEnvUpdateParentPass {
+  var newToplevelFunctions = List[TFun]()
+
   override def apply(env: TTypeEnv, exp: TExp) = exp match {
     case let @ TExpLetIn(decs, exp, letEnv) => {
       // This is the only hard case here.
@@ -160,7 +162,7 @@ class LambdaLiftWalk(val program: TProgram)
     val newFunction = TFun(name, updatedPatterns)
     
     // Add this function to the top level:
-    program.funs = newFunction :: program.funs
+    newToplevelFunctions = newFunction :: newToplevelFunctions
 
     (freeValsExpTuple, freeValsType)
   }
