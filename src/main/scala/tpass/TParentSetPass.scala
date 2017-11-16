@@ -133,7 +133,7 @@ class TParentSetPass[T] {
         newIdent.map(ident => assign.ident = ident.asInstanceOf[TIdentVar])
         newExpression.map(exp => assign.expression = exp)
       }
-      case funLet @ TExpFunLet(valdecs, exp, env) => {
+      case funLet @ TExpFunLet(valdecs, exp) => {
         val newVals = valdecs.map(apply(item, _))
         val newExp = apply(item, exp)
 

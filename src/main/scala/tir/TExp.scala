@@ -77,17 +77,15 @@ case class TExpAssign(var ident: TIdentVar, var expression: TExp)
     "Assign %s to (%s)".format(ident.prettyPrint, expression.prettyPrint)
 }
 
-case class TExpFunLet(var valdecs: List[TIdentVar],
-                      var exp: TExp, var env: TTypeEnv) extends TExp {
+case class TExpFunLet(var valdecs: List[TIdentVar], var exp: TExp)
+    extends TExp {
   def prettyPrint = """
     |FunLet
     |%s
     |In
     |%s
-    |WithTypes:
-    |%s
     |End""".stripMargin.format(valdecs.map(_.prettyPrint).mkString("\n"),
-                               exp.prettyPrint, env.prettyPrint)
+                               exp.prettyPrint)
 }
 
 case class TExpFunLetMatchRow(var pat: List[TPat], var exp: TExpFunLet,

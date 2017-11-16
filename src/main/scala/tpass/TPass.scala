@@ -68,7 +68,7 @@ trait TPass[T, U] {
               apply(item, typ))
     case TExpAssign(ident, expression) =>
       combine(apply(item, ident), apply(item, expression))
-    case TExpFunLet(idents, expression, env) =>
+    case TExpFunLet(idents, expression) =>
       combine(combineList(idents.map(apply(item, _))),
               apply(item, expression))
     case TExpFunLetMatchRow(patterns, exp, env) =>
