@@ -139,6 +139,26 @@ class TParentSetPass[T] {
         newIdent.map(ident => assign.ident = ident.asInstanceOf[TIdentVar])
         newExpression.map(exp => assign.expression = exp)
       }
+      case head @ TExpListHead(list) => {
+        val newList = apply(item, list)
+
+        head.list = getNew(list, newList)
+      }
+      case tail @ TExpListTail(list) => {
+        val newList = apply(item, list)
+
+        tail.list = getNew(list, newList)
+      }
+      case tupleExtract @ TExpTupleExtract(tuple, index) => {
+        val newTuple = apply(item, tuple)
+
+        tupleExtract.tuple = getNew(tuple, newTuple)
+      }
+      case listExtract @ TExpListExtract(list, index) => {
+        val newList = apply(item, list)
+
+        listExtract.list = getNew(list, newList)
+      }
       case funLet @ TExpFunLet(valdecs, exp) => {
         val newVals = valdecs.map(apply(item, _))
         val newExp = apply(item, exp)

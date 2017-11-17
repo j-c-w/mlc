@@ -19,6 +19,11 @@ case class TIdentLongVar(var name: List[String]) extends TIdent {
   def prettyPrint = name.mkString(".")
 }
 
+/* This class is introduced in the LowerProgram pass.  */
+case class TArgumentNode(var argNumber: Int) extends TIdent {
+  def prettyPrint = "Argument_" + argNumber
+}
+
 case class TUnderscoreIdent() extends BuiltinIdent {
   def prettyPrint = "_"
 }

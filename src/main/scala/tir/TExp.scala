@@ -77,6 +77,26 @@ case class TExpAssign(var ident: TIdentVar, var expression: TExp)
     "Assign %s to (%s)".format(ident.prettyPrint, expression.prettyPrint)
 }
 
+case class TExpListHead(var list: TExp) extends TExp {
+  def prettyPrint =
+    "Head(%s)".format(list.prettyPrint)
+}
+
+case class TExpListTail(var list: TExp) extends TExp {
+  def prettyPrint =
+    "Tail(%s)".format(list.prettyPrint)
+}
+
+case class TExpTupleExtract(var tuple: TExp, var index: Int) extends TExp {
+  def prettyPrint =
+    "(%s)._%s".format(tuple.prettyPrint, index)
+}
+
+case class TExpListExtract(var list: TExp, var index: Int) extends TExp {
+  def prettyPrint =
+    "(%s)[%s]".format(list.prettyPrint, index)
+}
+
 case class TExpFunLet(var valdecs: List[TIdentVar], var exp: TExp)
     extends TExp {
   def prettyPrint = """

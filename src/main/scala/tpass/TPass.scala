@@ -68,6 +68,14 @@ trait TPass[T, U] {
               apply(item, typ))
     case TExpAssign(ident, expression) =>
       combine(apply(item, ident), apply(item, expression))
+    case TExpListHead(list) =>
+      apply(item, list)
+    case TExpListTail(list) =>
+      apply(item, list)
+    case TExpTupleExtract(tuple, index) =>
+      apply(item, tuple)
+    case TExpListExtract(list, index) =>
+      apply(item, list)
     case TExpFunLet(idents, expression) =>
       combine(combineList(idents.map(apply(item, _))),
               apply(item, expression))
