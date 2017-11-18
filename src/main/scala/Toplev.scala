@@ -12,6 +12,7 @@ import typecheck.HindleyMilner
 import lower_ast.LowerAST
 import lambda_lift.LambdaLift
 import lambda_lift.LambdaLiftVerify
+import lower_program.LowerProgram
 
 object Toplev extends App {
   val cli = new Arguments(args)
@@ -36,4 +37,6 @@ object Toplev extends App {
   val lambda_lifted = LambdaLift.execute(intermediate, cli.dumpLambdaLift())
   val _ = LambdaLiftVerify.optionalExecute(cli.runLambdaLiftVerify(),
                                            lambda_lifted, false)
+  val lowered_program = LowerProgram.execute(lambda_lifted,
+                                             cli.dumpLowerProgram())
 }
