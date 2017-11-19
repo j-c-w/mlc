@@ -123,6 +123,12 @@ trait TPass[T, U] {
 
       combine(combineList(casesRes), identRes)
     }
+    case TSimpleFun(ident, exp, env) => {
+      val identRes = apply(item, ident)
+      val expRes = apply(item, exp)
+
+      combine(identRes, expRes)
+    }
   }
 
   def apply(item: T, p: TProgram): U = {
@@ -133,6 +139,13 @@ trait TPass[T, U] {
   }
 
   def apply(item: T, p: TJavaProgram): U = {
+    val mainRes = apply(item, p.main)
+    val funsRes = p.functions.map(apply(item, _))
+
+    combine(combineList(funsRes), mainRes)
+  }
+
+  def apply(item: T, p: TSimpleFunctionProgram): U = {
     val mainRes = apply(item, p.main)
     val funsRes = p.functions.map(apply(item, _))
 

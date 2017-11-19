@@ -293,6 +293,14 @@ class TParentSetPass[T] {
         fundec.cases = getNew(patterns, newPatterns,
                               (x: TExp) => x.asInstanceOf[TExpFunLetMatchRow])
       }
+      case fundec @ TSimpleFun(ident, exp, env) => {
+        val newIdent = apply(item, ident)
+        val newExp = apply(item, exp)
+
+        fundec.name =
+          getNew(fundec.name, newIdent.map(_.asInstanceOf[TIdentVar]))
+        fundec.exp = getNew(fundec.exp, newExp)
+      }
     }
     None
   }
@@ -313,5 +321,14 @@ class TParentSetPass[T] {
     mainRes.map(main => p.main = main.asInstanceOf[TJavaFun])
     p.functions = getNew(p.functions, funRes,
                          (x: TDec) => x.asInstanceOf[TJavaFun])
+  }
+
+  def apply(item: T, p: TSimpleFunctionProgram): Unit = {
+    val mainRes = apply(item, p.main)
+    val funRes = p.functions.map(apply(item, _))
+
+    p.main = getNew(p.main, mainRes.map(_.asInstanceOf[TSimpleFun]))
+    p.functions = getNew(p.functions, funRes,
+                         (x: TDec) => x.asInstanceOf[TSimpleFun])
   }
 }

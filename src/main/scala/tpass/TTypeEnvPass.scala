@@ -23,4 +23,11 @@ trait TTypeEnvPass[T] extends TPass[TTypeEnv, T] {
     }
     case other => super.apply(passedEnv, exp)
   }
+
+  override def apply(passedEnv: TTypeEnv, dec: TDec): T = dec match {
+    case TSimpleFun(name, exp, env) => {
+      combine(apply(env, name), apply(env, exp))
+    }
+    case other => super.apply(passedEnv, dec)
+  }
 }
