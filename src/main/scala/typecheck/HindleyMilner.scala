@@ -496,35 +496,38 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
     for (patItem <- pat) {
       patItem match {
         case ASTPatWildcard(typs) => {
-          val typ = unifyTypeList(typs)
+          val defaultType = TypeVariableGenerator.getVar()
+          val unifier = unifyTypeList(defaultType :: typs)
 
-          astTypes = typ :: astTypes
-          astUnifiers = ASTUnifier() :: astUnifiers
+          astTypes = unifier(defaultType) :: astTypes
+          astUnifiers = unifier :: astUnifiers
         }
         case ASTPatVariable(variable, typs) => variable match {
           case ASTIdentVar(name) => {
-            val resType = unifyTypeList(typs) 
-            astTypes = resType :: astTypes
-            astUnifiers = ASTUnifier() :: astUnifiers
+            val defaultGenericType = TypeVariableGenerator.getVar()
+            val resUnifier = unifyTypeList(defaultGenericType :: typs) 
+
+            astTypes = resUnifier(defaultGenericType) :: astTypes
+            astUnifiers = resUnifier :: astUnifiers
 
             if (env.innermostHasType(variable))
               throw new BadPatternException("""Error, there are duplicate
                 varaibles in the pattern: %s""".format(patItem.prettyPrint))
             else
-              env.add(variable, resType, false)
+              env.add(variable, resUnifier(defaultGenericType), false)
           }
           case ASTEmptyListIdent() => {
             val emptyListType = ASTListType(TypeVariableGenerator.getVar())
-            val resType = unifyTypeList(emptyListType :: typs)
+            val resUnifier = unifyTypeList(emptyListType :: typs)
 
-            astTypes = resType :: astTypes
-            astUnifiers = ASTUnifier() :: astUnifiers
+            astTypes = resUnifier(emptyListType) :: astTypes
+            astUnifiers = resUnifier :: astUnifiers
           }
           case ASTUnitIdent() => {
-            val resType = unifyTypeList(ASTUnitType() :: typs)
+            val resUnifier = unifyTypeList(ASTUnitType() :: typs)
             
-            astTypes = resType :: astTypes
-            astUnifiers = ASTUnifier() :: astUnifiers
+            astTypes = ASTUnitType() :: astTypes
+            astUnifiers = resUnifier :: astUnifiers
           }
           case other =>
             throw new ICE("""Error, ident type %s is not expected
@@ -554,13 +557,16 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
 
           // The specified types must be used to constrain the actual
           // pattern.
-          val constraintedTyp = unifyTypeList(typs)
+          val genericTypeHead = TypeVariableGenerator.getVar()
+          val typListUnifier = unifyTypeList(genericTypeHead :: typs)
+          val constrainedTyp = typListUnifier(genericTypeHead)
           val typUnifier =
             if(seqTypes.length == 1)
-              constraintedTyp unify (seqTypes(0))
+              constrainedTyp unify (seqTypes(0))
             else
-              constraintedTyp unify (ASTTupleType(seqTypes.reverse))
+              constrainedTyp unify (ASTTupleType(seqTypes.reverse))
           unifier mguUnify typUnifier
+          unifier mguUnify typListUnifier
 
           // The types are combined into an ASTTupleType.
           astTypes =
@@ -597,9 +603,12 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
 
           // Finally, we must ensure that the type seen corresponds to
           // the type specified.
-          val specifiedType = unifyTypeList(typ)
+          val genericListType = ASTListType(TypeVariableGenerator.getVar())
+          val typListUnifier = unifyTypeList(genericListType :: typ)
+          val specifiedType = typListUnifier(genericListType)
           val specifiedUnifier = listType unify specifiedType
           unifier mguUnify specifiedUnifier
+          unifier mguUnify typListUnifier
 
           unifier(env)
 
@@ -613,12 +622,15 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
             case ASTConstFloat(_) => throw new BadPatternException(
               "Real %s in pattern".format(ident.prettyPrint))
             case _ => {
-              val specifiedType = unifyTypeList(typ)
+              val genericTyp = TypeVariableGenerator.getVar()
+              val typeListUnifier = unifyTypeList(genericTyp :: typ)
+              val specifiedType = typeListUnifier(genericTyp)
               val constTyp = ident.getType
 
               val unifier = specifiedType unify constTyp
+              typeListUnifier mguUnify unifier
 
-              astUnifiers = unifier :: astUnifiers
+              astUnifiers = typeListUnifier :: astUnifiers
               astTypes = constTyp :: astTypes
             }
           }
@@ -654,17 +666,15 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
     (astTypes.reverse, astUnifiers.reverse)
   }
 
-  /* This function takes a list of types and returns a single type
+  /* This function takes a list of types and returns a single unifier
    * that represents the entire list if that is possible. If that
    * is not possible, it throws an exception.
    *
-   * If the list is empty, it returns a generic type
+   * It is expected that the list is non-empty.
    */
-  def unifyTypeList(typList: List[ASTType]): ASTType = {
-    if (typList.length == 0) {
-      return TypeVariableGenerator.getVar()
-    }
-
+  def unifyTypeList(typList: List[ASTType]): ASTUnifier = {
+    assert(typList.length > 0)
+    
     val givenTypeUnifier = ASTUnifier()
     typList.tail.foldLeft (typList.head) {
       case (lastTyp, thisTyp) => {
@@ -678,7 +688,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
     }
 
     // Lastly, apply the unifier to the fist type specified.
-    givenTypeUnifier(typList.head)
+    givenTypeUnifier
   }
 
   /* This function takes a list of names (as would be delcared
