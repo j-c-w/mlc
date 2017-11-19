@@ -606,14 +606,14 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
           val genericListType = ASTListType(TypeVariableGenerator.getVar())
           val typListUnifier = unifyTypeList(genericListType :: typ)
           val specifiedType = typListUnifier(genericListType)
-          val specifiedUnifier = listType unify specifiedType
+          val specifiedUnifier = ASTListType(listType) unify specifiedType
           unifier mguUnify specifiedUnifier
           unifier mguUnify typListUnifier
 
           unifier(env)
 
           astUnifiers = unifier :: astUnifiers
-          astTypes = unifier(ASTListType(specifiedType)) :: astTypes
+          astTypes = unifier(specifiedType) :: astTypes
           
         }
         case ASTPatConst(ident, typ) => {
