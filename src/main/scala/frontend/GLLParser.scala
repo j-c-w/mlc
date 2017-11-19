@@ -63,12 +63,12 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
 
   lazy val float: Parser[ASTConstFloat] = (
     // Refactored: Replaced ~num with int
-      int ~ "." ~ num ~ "e" ~ int ^^ { case (int ~ _ ~ dec ~ _ ~ exp) =>
+      int ~ "." ~ num ~ "(e|E)".r ~ int ^^ { case (int ~ _ ~ dec ~ _ ~ exp) =>
             ASTConstFloat(int, dec, exp) }
-    | int ~ "e" ~ int             ^^ { case (int ~ _ ~ exp) =>
+    | int ~ "(e|E)".r ~ int             ^^ { case (int ~ _ ~ exp) =>
             ASTConstFloat(int, ASTConstInt(new BigInteger(new Array[Byte](1))),
                           exp) }
-    | int ~ "." ~ num             ^^ { case (int ~ _ ~ dec) =>
+    | int ~ "." ~ num                   ^^ { case (int ~ _ ~ dec) =>
             ASTConstFloat(int, dec, ASTConstInt(new BigInteger(new
             Array[Byte](1)))) }
   )
