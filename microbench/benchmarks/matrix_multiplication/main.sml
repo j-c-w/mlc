@@ -59,7 +59,6 @@ fun main () =
         val time = Timer.checkRealTimer(timer)
         val result_ok = if (result > 1.504300E14 andalso result < 1.504304E14)
                         then "pass" else "fail"
-        val _ = print(Real.toString(result))
       in
         (print("Execution Time: " ^ Time.toString(time) ^ "\n");
         print("Validation: " ^ result_ok ^ "\n"))
