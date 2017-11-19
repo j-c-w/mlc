@@ -21,6 +21,7 @@ object Toplev extends App {
 
   if (!file.exists) {
     println("Error, file " + file.toString + " doesn't exist")
+    System.exit(1)
   }
 
   Shared.filename = file.toString
