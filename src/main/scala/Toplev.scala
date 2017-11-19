@@ -13,6 +13,7 @@ import lower_ast.LowerAST
 import lambda_lift.LambdaLift
 import lambda_lift.LambdaLiftVerify
 import lower_program.LowerProgram
+import lower_program.LowerProgramVerify
 
 object Toplev extends App {
   val cli = new Arguments(args)
@@ -35,8 +36,10 @@ object Toplev extends App {
   // on memory.
   val intermediate = LowerAST.execute(typechecked, cli.dumpTir())
   val lambda_lifted = LambdaLift.execute(intermediate, cli.dumpLambdaLift())
-  val _ = LambdaLiftVerify.optionalExecute(cli.runLambdaLiftVerify(),
-                                           lambda_lifted, false)
+  val _0 = LambdaLiftVerify.optionalExecute(cli.runLambdaLiftVerify(),
+                                            lambda_lifted, false)
   val lowered_program = LowerProgram.execute(lambda_lifted,
                                              cli.dumpLowerProgram())
+  val _1 = LowerProgramVerify.optionalExecute(cli.runLowerProgramVerify(),
+                                              lowered_program, false)
 }

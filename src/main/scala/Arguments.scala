@@ -10,6 +10,7 @@ class Arguments(arguments: Seq[String]) extends ScallopConf(arguments) {
 
   // Optional pass options:
   val runLambdaLiftVerify = opt[Boolean]()
+  val runLowerProgramVerify = opt[Boolean]()
 
   // Dump options
   val dumpAst = opt[Boolean]()
