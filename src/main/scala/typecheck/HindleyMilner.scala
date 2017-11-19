@@ -501,16 +501,34 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
           astTypes = typ :: astTypes
           astUnifiers = ASTUnifier() :: astUnifiers
         }
-        case ASTPatVariable(variable, typ) => {
-          val resType = unifyTypeList(typ) 
-          astTypes = resType :: astTypes
-          astUnifiers = ASTUnifier() :: astUnifiers
+        case ASTPatVariable(variable, typs) => variable match {
+          case ASTIdentVar(name) => {
+            val resType = unifyTypeList(typs) 
+            astTypes = resType :: astTypes
+            astUnifiers = ASTUnifier() :: astUnifiers
 
-          if (env.innermostHasType(variable))
-            throw new BadPatternException("""Error, there are duplicate
-              varaibles in the pattern: %s""".format(patItem.prettyPrint))
-          else
-            env.add(variable, resType, false)
+            if (env.innermostHasType(variable))
+              throw new BadPatternException("""Error, there are duplicate
+                varaibles in the pattern: %s""".format(patItem.prettyPrint))
+            else
+              env.add(variable, resType, false)
+          }
+          case ASTEmptyListIdent() => {
+            val emptyListType = ASTListType(TypeVariableGenerator.getVar())
+            val resType = unifyTypeList(emptyListType :: typs)
+
+            astTypes = resType :: astTypes
+            astUnifiers = ASTUnifier() :: astUnifiers
+          }
+          case ASTUnitIdent() => {
+            val resType = unifyTypeList(ASTUnitType() :: typs)
+            
+            astTypes = resType :: astTypes
+            astUnifiers = ASTUnifier() :: astUnifiers
+          }
+          case other =>
+            throw new ICE("""Error, ident type %s is not expected
+              |in a pattern""".stripMargin.format(variable.prettyPrint))
         }
         case ASTPatSeq(seq, typs) => {
           // Note that there are no duplicate variable names
