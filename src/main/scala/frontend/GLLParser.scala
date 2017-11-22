@@ -373,11 +373,14 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   )
 
   lazy val expTail: Parser[ASTExp => ASTExp] = (
-      "(" ~ exp ~ ")" ~ expTail ^^ {
-      case (_ ~ app ~ _ ~ tail) => (fun: ASTExp) => 
+      "(" ~ expList ~ ")" ^^ {
+      case (_ ~ app ~ _) => (fun: ASTExp) => 
           // In this case, we do not push the function application all the way
           // in since.
-          tail(ASTExpFunApp(fun, app))
+          app match {
+            case List(appExp) => ASTExpFunApp(fun, appExp)
+            case expTuple => ASTExpFunApp(fun, ASTExpTuple(expTuple))
+          }
     }
     | exp               ^^ { case (app) => (fun: ASTExp) => { app match {
           case app @ ASTExpFunApp(function, application) =>
