@@ -5,40 +5,48 @@ import tir._
 import typecheck.VariableGenerator
 
 /* This is an object that provides helper methods for lowering
- * the program. 
+ * the program.
  */
 object AssignmentGeneration {
-  def convertToAssignNodeDec(dec: TDec): (List[TExp], List[TIdentVar]) =
+  def convertToAssignNodeDec(dec: TDec,
+                             typeEnv: TTypeEnv): (TExpSeq, List[TIdentVar]) =
     dec match {
       case TVal(ident, exp) => {
         // The idea in this case is to assign the whole expression
         // to some variable, then extract it peice by peice.
         val tempIdent = VariableGenerator.newTVariable()
 
-        val (exprs, ids) = convertToAssignNodeIdent(tempIdent, ident)
+        typeEnv.add(tempIdent, typeEnv.compoundTypeOf(ident), false)
 
-        (TExpAssign(tempIdent, exp) :: exprs, tempIdent :: ids)
+        val (assignExp, ids) =
+          convertToAssignNodeIdent(tempIdent, ident, typeEnv)
+
+        (TExpSeq(List(TExpAssign(tempIdent, exp), assignExp)),
+         tempIdent :: ids)
       }
       case _ => throw new ICE("""Error: Cannot convert a TFun or a TJavaFun
         into an assign.  Statement was: %s""".format(dec.prettyPrint))
     }
 
-  def convertToAssignNodeIdent(parentIdent: TIdent,
-                               declaration: TIdent): (List[TExp],
-                                                      List[TIdentVar]) =
+  def convertToAssignNodeIdent(parentIdent: TIdent, declaration: TIdent,
+                               typeEnv: TTypeEnv): (TExp, List[TIdentVar]) =
     declaration match {
       case decIdent @ TIdentVar(name) => {
-        (List(TExpAssign(decIdent, TExpIdent(parentIdent))),
+        (TExpSeq(List(TExpAssign(decIdent, TExpIdent(parentIdent)),
+                      TExpConst(TConstTrue()))),
          List(decIdent))
       }
-      case TIdentTuple(subIdents) =>
-        unpackList(subIdents, (index =>
-            TExpTupleExtract(TExpIdent(parentIdent), index)),
-                   convertToAssignNodeIdent)
-      case TUnderscoreIdent() => (List(), List())
-      case TUnitIdent() => (List(), List())
+      case TIdentTuple(subIdents) => {
+        unpackList(subIdents, (index => {
+                      (TExpTupleExtract(TExpIdent(parentIdent), index),
+                       typeEnv.compoundTypeOf(subIdents(index)))
+                   }),
+                   convertToAssignNodeIdent, typeEnv)
+      }
+      case TUnderscoreIdent() => (TExpConst(TConstTrue()), List())
+      case TUnitIdent() => (TExpConst(TConstTrue()), List())
       case _ => throw new ICE("""Error, identifier %s was not expected
-        |as an l-value""".stripMargin.format(declaration.prettyPrint))
+        |in a pattern match""".stripMargin.format(declaration.prettyPrint))
     }
 
   /* Given some parent identifier from which to extract
@@ -46,43 +54,148 @@ object AssignmentGeneration {
    * a list of expressions that should be used to extract
    * a pattern
    */
-  def convertToAssignNodePat(parentIdent: TIdent,
-                             pat: TPat): (List[TExp], List[TIdentVar]) =
+  def convertToAssignNodePat(parentIdent: TIdent, pat: TPat,
+                             typeEnv: TTypeEnv): (TExp, List[TIdentVar]) =
     pat match {
       case TPatVariable(identVar) =>
-        (List(TExpAssign(identVar, TExpIdent(parentIdent))), List(identVar))
+        (TExpSeq(List(TExpAssign(identVar, TExpIdent(parentIdent)),
+                      TExpConst(TConstTrue()))),
+         List(identVar))
       case TPatIdentifier(TIdentVar(_)) => throw new ICE("""Error: A TIdentVar
         |in a TPatIdentifier should not occur""".stripMargin)
-      case TPatIdentifier(_) => (List(), List())
-      case TPatSeq(elems) =>
-        unpackList(elems, (index =>
-                                TExpTupleExtract(TExpIdent(parentIdent), index)),
-                   convertToAssignNodePat)
-      case TListPat(listElems) =>
-        unpackList(listElems, (index =>
-                                TExpListExtract(TExpIdent(parentIdent), index)),
-                   convertToAssignNodePat)
-      case TPatConst(_) => (List(), List())
-      case TPatWildcard() => (List(), List())
+      case TPatIdentifier(id) => id match {
+        // It is safe to simply return true when matching unit
+        // as there is no other value that can pass typechecking
+        // and match this type.
+        case TUnitIdent() => (TExpConst(TConstTrue()), List())
+        // Offload this to a conversion with a list match that is
+        // empty.
+        case TEmptyListIdent() =>
+          convertToAssignNodePat(parentIdent, TListPat(List()), typeEnv)
+        case _ =>
+          throw new ICE("Unpexected TPatIdentifier %s".format(id.prettyPrint))
+      }
+      case TPatSeq(elems) => {
+        val elemsTypesList = typeEnv.getOrFail(parentIdent) match {
+          case TTupleType(typs) => typs
+          case other =>
+            if (elems.length == 1)
+              List(other)
+            else
+              throw new ICE("""Cannot pattern match a tuple
+                |to %s not of tuple type""".
+                stripMargin.format(other.prettyPrint))
+        }
+
+        // Since tuples are guaranteed to be the right length by type
+        // checking, we do not have to insert any  checks here.
+        unpackList(elems,
+                   (index => {
+                     (TExpTupleExtract(TExpIdent(parentIdent), index),
+                      elemsTypesList(index))
+                   }),
+                   convertToAssignNodePat, typeEnv)
+      }
+      // Note that this case must be able to handle an empty list.
+      case TListPat(listElems) => {
+        val rawType = typeEnv.getOrFail(parentIdent) match {
+          case TListType(typ) => typ
+          case _ => throw new ICE("""Error cannot list pattern match
+            | a non list type""".stripMargin)
+        }
+        // This is compiled to a check that the parent is of the right length.
+        // If it is, then extract all this stuff and true.  Otherwise, false.
+        val (assignExprs, idents) =
+          unpackList(listElems,
+                     (index => {
+                       (TExpListExtract(TExpIdent(parentIdent), index),
+                        rawType)
+                     }),
+                     convertToAssignNodePat, typeEnv)
+
+        val comparisonType = VariableGenerator.newTVariable()
+
+        // Insert the comparison type into the type environment
+        typeEnv.add(comparisonType,
+                    TFunctionType(TTupleType(List(TIntType(), TIntType())),
+                                  TBoolType()),
+                    false)
+
+        (TExpIf(
+          TExpFunApp(
+            TExpIdent(TIntEqualsIdent()),
+            TExpTuple(List(TExpConst(TConstInt(listElems.length)),
+                           TExpListLength(TExpIdent(parentIdent)))),
+            comparisonType),
+          // There is no need for a true constant at the end of this.
+          // It the assignExprs are true, then the match will be true.
+          assignExprs,
+          TExpConst(TConstFalse())),
+         idents)
+      }
+      case TPatConst(_) =>
+        (TExpSeq(List(TExpConst(TConstTrue()))), List())
+      case TPatWildcard() =>
+        (TExpSeq(List(TExpConst(TConstTrue()))), List())
       case TPatCons(head, tail) => {
+        // The idea is that this is transformed into the if statement:
+        //
+        //   if (parent.length > 0) then
+        //      Assign(head, parent.head)
+        //      Assign(tail, parent.tail)
+        //      true
+        //   else
+        //      false
+
         // Do the same thing for the head and the tail:
         val headIdent = VariableGenerator.newTVariable()
         val tailIdent = VariableGenerator.newTVariable()
 
-        val headExpresssion =
+        // Insert these types into the environment:
+        val rawType = typeEnv.getOrFail(parentIdent) match {
+          case TListType(typ) => typ
+          case _ => throw new ICE("""
+            |Trying to pattern match a list without a list type
+            |as parent. """.stripMargin)
+        }
+
+        typeEnv.add(headIdent, rawType, false)
+        typeEnv.add(tailIdent, TListType(rawType), false)
+
+        val headExpression =
           TExpAssign(headIdent, TExpListHead(TExpIdent(parentIdent)))
-        val tailExpresssion =
+        val tailExpression =
           TExpAssign(tailIdent, TExpListTail(TExpIdent(parentIdent)))
 
         // Calculate the sub-expressions:
         val (headSubExprs, headSubIdents) =
-          convertToAssignNodePat(headIdent, head)
+          convertToAssignNodePat(headIdent, head, typeEnv)
         val (tailSubExprs, tailSubIdents) =
-          convertToAssignNodePat(tailIdent, tail)
+          convertToAssignNodePat(tailIdent, tail, typeEnv)
 
-        (((headExpresssion :: headSubExprs) :::
-          (tailExpresssion :: tailSubExprs)),
-         List(headIdent, tailIdent) ::: headSubIdents ::: tailSubIdents)
+        // Add the type of the function call to the environment.
+        val intCompareTypeID = VariableGenerator.newTVariable()
+        val intCompareType =
+          TFunctionType(TTupleType(List(TIntType(), TIntType())),
+                        TBoolType())
+
+        typeEnv.add(intCompareTypeID, intCompareType, false)
+
+        val newExp =
+          TExpIf(
+            TExpFunApp(
+              TExpIdent(TIntGTIdent()),
+              TExpTuple(List(TExpListLength(TExpIdent(parentIdent)),
+                             TExpConst(TConstInt(0)))),
+              intCompareTypeID),
+            // Then do the sub expressions.
+            TExpSeq(List(headExpression, tailExpression,
+                         combineExprsAnd(List(headSubExprs, tailSubExprs),
+                                         typeEnv))),
+            // Otherwise, do nothing but return false.
+            TExpConst(TConstFalse()))
+         (newExp,
+          List(headIdent, tailIdent) ::: headSubIdents ::: tailSubIdents)
       }
     }
 
@@ -93,9 +206,10 @@ object AssignmentGeneration {
    * a new TExp that represents
    * getting it out.  Returns a list of expressions and a list of new
    * introduced identifiers.  */
-  def unpackList[T](elems: List[T], assignRHS: (Int) => TExp,
-                       recursiveCall: (TIdentVar, T) =>
-                         (List[TExp], List[TIdentVar])) = {
+  def unpackList[T](elems: List[T], assignRHS: (Int) => (TExp, TType),
+                    recursiveCall: (TIdentVar, T, TTypeEnv) =>
+                       (TExp, List[TIdentVar]),
+                    typeEnv: TTypeEnv) = {
     // Create a set of variables that can be used for each element.
     val intermediateIdents =
       elems.map(elem => VariableGenerator.newTVariable())
@@ -103,24 +217,54 @@ object AssignmentGeneration {
     var subElemsIdents = List[TIdentVar]()
     // Now create a list of generation expressions that assign
     // these variables and use them to assign the sub-expressions:
-    val assignments =
+    val computations =
       (intermediateIdents zip (elems zip (0 until elems.length))) map {
         case (assignIdent, (elem, index)) => {
-          val (expressions, idents) = recursiveCall(assignIdent, elem)
+          // Get the actual assignment expression:
+          val (assignExp, assignType) = assignRHS(index)
+          // Add the type for the assignIdent
+          typeEnv.add(assignIdent, assignType, false)
+
+          val (expressions, idents) = recursiveCall(assignIdent, elem, typeEnv)
           subElemsIdents = idents ::: subElemsIdents
 
           // First, assign to the identifier:
-          TExpAssign(assignIdent, assignRHS(index)) ::
+          TExpSeq(List(TExpAssign(assignIdent, assignExp),
             // Then add the assignments for the sub identifier
-            expressions
+            expressions))
         }
       }
 
-    (assignments.flatten, intermediateIdents ::: subElemsIdents)
+    val conditionalAssignment = combineExprsAnd(computations, typeEnv)
+
+    (conditionalAssignment, intermediateIdents ::: subElemsIdents)
+  }
+
+  def combineExprsAnd(expr: List[TExp], typeEnv: TTypeEnv): TExp = {
+    val funAppType = TFunctionType(
+      TTupleType(List(TBoolType(), TBoolType())),
+      TBoolType())
+    expr.foldRight(TExpConst(TConstTrue()): TExp) {
+      case (nextExp, currentExp) => {
+        val boolFunctionTypeID = VariableGenerator.newTVariable()
+        val boolFunctionType =
+          TFunctionType(TTupleType(List(TBoolType(), TBoolType())),
+                        TBoolType())
+
+        typeEnv.add(boolFunctionTypeID, boolFunctionType, false)
+
+        TExpFunApp(TExpIdent(TAnd()),
+                   TExpTuple(List(nextExp, currentExp)),
+                   boolFunctionTypeID)
+      }
+    }
   }
 
   /* This creates a list of assignment expressions that correspond
    * to assigning the variables to the patterns that they match.
+   *
+   * The expression is  a boolean expression that evalueates
+   * to true if the pattern matches and false otherwise.
    *
    * It inserts the TArgumentNode to represent identifiers
    * that come from indexed arguments.
@@ -128,14 +272,12 @@ object AssignmentGeneration {
    * For 'case' expressions, the TArgumentNode s always point to
    * 1.
    */
-  def generateAssignsFromPattern(pats: List[TPat]) = {
-    var number = -1
-    // Create a pair of argument numbers and identifiers.
-    val argNumberPatternPairs =
-      pats.map(x => { number += 1; (x, TArgumentNode(number))} )
+  def generateAssignsFromPattern(pats: List[TPat], parents: List[TIdent],
+                                 env: TTypeEnv) = {
+    val (assignments, ident) = (pats zip parents).map {
+      case (pat, argIdent) => convertToAssignNodePat(argIdent, pat, env)
+    }.unzip
 
-    argNumberPatternPairs.map {
-      case (pat, argIdent) => convertToAssignNodePat(argIdent, pat)
-    }
+    (combineExprsAnd(assignments, env), ident)
   }
 }

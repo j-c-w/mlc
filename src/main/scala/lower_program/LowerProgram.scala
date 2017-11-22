@@ -11,56 +11,98 @@ object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
     val letEnv = new TTypeEnv(Some(rowEnv))
 
     val functionIdent = VariableGenerator.newTVariable()
+
+    // Also need to add this new function to the type environment.
+    val functionType = TFunctionType(TUnitType(), TUnitType())
+    parentEnv.add(functionIdent, functionType, false)
+
     val valsExpression = TExpLetIn(vals, TExpIdent(TUnitIdent()), letEnv)
 
     val pattern = TExpMatchRow(List(TPatIdentifier(TUnitIdent())),
                                valsExpression, rowEnv)
-
-    lowerFun(TFun(functionIdent, List(pattern)))
+    lowerFun(TFun(functionIdent, List(pattern)), parentEnv)
   }
 
-  def lowerFun(fun: TFun) =
-    TJavaFun(fun.name, lowerPatterns(fun.patterns))
+  def lowerFun(fun: TFun, parent: TTypeEnv) = {
+    val (representativeExp, newEnv) =
+      lowerPatterns(fun.name, fun.patterns, parent)
+    TJavaFun(fun.name, representativeExp, newEnv)
+  }
 
-  def lowerPatterns(patterns: List[TExpMatchRow]) = {
-    var resultPatterns = List[TExpFunLetMatchRow]()
-    for (row @ TExpMatchRow(pattern, _, env) <- patterns) {
-      val removeLetsWalk = new RemoveLetsWalk()
-      // Remove the lets from the expression
+  def lowerPatterns(name: TIdentVar, patterns: List[TExpMatchRow],
+                    parentEnv: TTypeEnv) = {
+    // The first pattern is just to throw. This is inserted
+    // as the last 'else' case.
+    var resultPattern: TExp = TExpThrow(TIdentMatchError())
+    val resultEnv = new TTypeEnv(Some(parentEnv))
+    var allIdentifiers = List[TIdentVar]()
+
+    val mergeEnvsWalk = new MergeTypeEnvsWalk(resultEnv)
+
+    // This stores the argument types as a list.  So, if the type
+    // is a -> b -> c, this is [a, b]
+    val argumentTypesList = functionArgumentTypeList(parentEnv.getOrFail(name))
+    
+    // We use the reversed pattern so that the innermost nested else
+    // case is covered first.
+    for (row @ TExpMatchRow(pattern, _, env) <- patterns.reverse) {
+      // Ensure that all the identifiers from the expression are in
+      // the resultEnv
+      mergeEnvsWalk.apply(env, row)
+
+      val removeLetsWalk = new RemoveLetsWalk(resultEnv)
+      // Remove the lets from the expression.
       val identifiers =
-        (new GatherLetIdentifiersWalk(env)).apply(env, row.exp).toList
+        (new GatherLetIdentifiersWalk(resultEnv)).apply(resultEnv,
+                                                        row.exp).toList
       val newOutterExp = removeLetsWalk.apply((), row.exp)
 
       newOutterExp.map(newExp => row.exp = newExp)
+
+      // Since these are functions, we generate the function arguments
+      // so that the pattern matching knows what to extract from:
+      val arguments: List[TIdent] =
+        (0 until pattern.length).map(TArgumentNode(name, _)).toList
+
+      assert(arguments.length == argumentTypesList.length)
+
+      // These arguments must be added to the type environment.
+      (arguments zip argumentTypesList).foreach {
+        case (arg, argType) => resultEnv.add(arg, argType, false)
+      }
 
       // And now convert the pattern into a list of expressions
       // that uses the nth place argument to convert the
       // expressions.
       val (patternAssigns, patternTemps) =
-        AssignmentGeneration.generateAssignsFromPattern(pattern).unzip
-
-      row.exp = row.exp match {
-        case TExpSeq(expressions) =>
-          TExpSeq(patternAssigns.flatten ::: expressions)
-        case _ => TExpSeq(patternAssigns.flatten :+ row.exp)
-      }
+        AssignmentGeneration.
+          generateAssignsFromPattern(pattern, arguments, resultEnv)
 
       // Finally, construct the new patterns.  This involes
       // create the fun let with the row expression as computed above.
       //
       // We must ensure that all temp identifiers are in the identifier
       // list.
-      val allIdentifiers =
+      allIdentifiers =
         identifiers ::: patternTemps.flatten :::
-        removeLetsWalk.accumulatedIdents.toList
-      resultPatterns =
-        TExpFunLetMatchRow(pattern, TExpFunLet(allIdentifiers, row.exp),
-                           env) :: resultPatterns
+        removeLetsWalk.accumulatedIdents.toList ::: allIdentifiers
+
+      resultPattern = TExpIf(patternAssigns, row.exp, resultPattern)
     }
 
-    // To avoid appending to the list for each pattern,
-    // we reverse the list here.
-    resultPatterns.reverse
+    // We put the result pattern in a Let binding since later
+    // passes require that all variables that require stack
+    // space are bound within let expressions.
+    (TExpFunLet(allIdentifiers, resultPattern), resultEnv)
+  }
+
+  /* Given some (possibly curried) function type, this returns a list
+   * of all the arguments of that function.  Note that this DOES NOT INCLUDE
+   * the result type of the function.  */
+  def functionArgumentTypeList(typ: TType): List[TType] = typ match {
+    case TFunctionType(arg, res) => arg :: functionArgumentTypeList(res)
+    // Do not include the result type
+    case other => List[TType]()
   }
 
   def run(tree: TProgram) = {
@@ -69,6 +111,7 @@ object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
     tree.typeEnv.add(mainFunction.name,
                      TFunctionType(TUnitType(), TUnitType()), false)
 
-    new TJavaProgram(tree.typeEnv, mainFunction, tree.funs.map(lowerFun(_)))
+    new TJavaProgram(tree.typeEnv, mainFunction,
+                     tree.funs.map(lowerFun(_, tree.typeEnv)))
   }
 }

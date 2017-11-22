@@ -50,7 +50,7 @@ class FunLetsIntegrityWalk extends TUnitPass {
   override def apply(u: Unit, program: TJavaProgram) = {
     // Add all the functions first.
     (program.main :: program.functions).foreach {
-      case TJavaFun(ident, exprs) => variablesInLets += ident
+      case TJavaFun(ident, exprs, env) => variablesInLets += ident
     }
 
     apply(u, program.main)
@@ -72,13 +72,6 @@ class FunLetsIntegrityWalk extends TUnitPass {
 
       apply(u, exp)
     }
-    case TExpFunLetMatchRow(pattern, expr, env) => {
-      // Swap the order because the variables
-      // are declared within the fun let here.
-      apply(u, expr)
-
-      pattern.foreach(apply(u, _))
-    }
     case TExpFunApp(exp, app, typ) => {
       // We do not walk the typ here.
       apply(u, exp)
@@ -88,8 +81,8 @@ class FunLetsIntegrityWalk extends TUnitPass {
   }
 
   override def apply(u: Unit, dec: TDec) = dec match {
-    case TJavaFun(name, rhs) =>
-      rhs.foreach(apply(u, _))
+    case TJavaFun(name, rhs, env) =>
+      apply(u, rhs)
     case _ => super.apply(u, dec)
   }
 }
@@ -100,7 +93,7 @@ class AssignIntegrityWalk extends TUnitPass {
   override def apply(u: Unit, program: TJavaProgram) = {
     // Add all the functions first.
     (program.main :: program.functions).foreach {
-      case TJavaFun(ident, exprs) => assignedVariables += ident
+      case TJavaFun(ident, exprs, env) => assignedVariables += ident
     }
 
     apply(u, program.main)
@@ -140,9 +133,9 @@ class AssignIntegrityWalk extends TUnitPass {
   }
 
   override def apply(u: Unit, dec: TDec) = dec match {
-    case TJavaFun(name, rhs) => {
+    case TJavaFun(name, rhs, env) => {
       assignedVariables.add(name)
-      rhs.foreach(apply(u, _))
+      apply(u, rhs)
     }
     case _ => super.apply(u, dec)
   }
