@@ -248,22 +248,22 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         (mgu, ASTTupleType(resType))
       }
       case ASTExpList(elems) => {
-        // We type this by cheating a little bit. Note
-        // that the type of some: [a, b, c] is the same
-        // as the type of: a :: b :: c :: [].
-        // So, we generate a tree of that representation
-        // and type that instead.
-        val consList =
-          elems.foldRight[ASTExp](ASTExpIdent(ASTEmptyListIdent())) {
-            case (listItem, list) => ASTExpFunApp(
-                                      ASTExpIdent(ASTConsIdent()),
-                                      ASTExpTuple(List(
-                                        listItem,
-                                        list))
-                                      )
-          }
+        // This used to be typed by using the other case.  However, that leads
+        // to Stackoverflow errors.  Instead, we attempt to give each element
+        // a type, then unify those types.
+        val mgu = ASTUnifier()
+        var listTyp: ASTType = TypeVariableGenerator.getVar()
 
-        principalType(env, consList)
+        for (elem <- elems) {
+          val (unifier, typ) = principalType(env, elem)
+
+          mgu mguUnify unifier
+          mgu mguUnify (listTyp unify typ)
+
+          listTyp = mgu(listTyp)
+        }
+
+        (mgu, listTyp)
       }
       case letStmt @ ASTExpLetIn(decs, exp) => {
         // Let-In is an example of a type that requires the construction
