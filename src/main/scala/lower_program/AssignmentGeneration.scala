@@ -75,16 +75,27 @@ object AssignmentGeneration {
         case _ =>
           throw new ICE("Unpexected TPatIdentifier %s".format(id.prettyPrint))
       }
-      case TPatSeq(elems) => {
+      case seq @ TPatSeq(elems) => {
         val elemsTypesList = typeEnv.getOrFail(parentIdent) match {
-          case TTupleType(typs) => typs
+          case tuple @ TTupleType(typs) =>
+            // This check is required because the typechecker removes
+            // excess tuples around elements. So, ((((1)))) becomes
+            // 'int', which is correct, but it means that this recursion
+            // breaks (because the first descent gets the type 'int' and
+            // all subsequent descents are broken).  The solution to the
+            // problem is to just return the list of the type if the pat
+            // seq was a singleton seq.
+            if (elems.length == 1)
+              List(tuple)
+            else
+              typs
           case other =>
             if (elems.length == 1)
               List(other)
             else
-              throw new ICE("""Cannot pattern match a tuple
+              throw new ICE("""Cannot pattern match a tuple (%s)
                 |to %s not of tuple type""".
-                stripMargin.format(other.prettyPrint))
+                stripMargin.format(seq.prettyPrint, other.prettyPrint))
         }
 
         // Since tuples are guaranteed to be the right length by type
