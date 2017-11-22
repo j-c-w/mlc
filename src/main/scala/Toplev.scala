@@ -39,8 +39,16 @@ object Toplev extends App {
   val lambda_lifted = LambdaLift.execute(intermediate, cli.dumpLambdaLift())
   val _0 = LambdaLiftVerify.optionalExecute(cli.runLambdaLiftVerify(),
                                             lambda_lifted, false)
+
+  // Optimizations on the TIR
+
+  // Lower the TIR down into TIR+Assigns.
   val lowered_program = LowerProgram.execute(lambda_lifted,
                                              cli.dumpLowerProgram())
   val _1 = LowerProgramVerify.optionalExecute(cli.runLowerProgramVerify(),
                                               lowered_program, false)
+
+  // Optimizations on TIR+Assigns
+
+  // Lower TIR+Assigns into byteR
 }
