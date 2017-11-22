@@ -6,4 +6,4 @@ fun g x = ~ x + x
 (* Regression. We expect the ~ and 'x' function to apply to the first
 * argument only. *)
 (* t-scan: ~ \(x\): ast *)
-(* t-scan: x \(1\): ast *)
+(* t-scan: \(x\)\(1\): ast *)
