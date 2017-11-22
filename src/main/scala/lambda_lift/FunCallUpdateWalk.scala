@@ -88,7 +88,7 @@ class FunCallUpdateWalk(val funID: TIdentVar, val newParams: TExp,
         apply((), exp)
       }
     }
-    case parent @ TExpCase(exp, cases) => {
+    case parent @ TExpCase(exp, cases, typ) => {
       // The cases cannot directly be the function:
       cases.foreach(apply((), _))
 
