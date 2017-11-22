@@ -263,7 +263,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
           listTyp = mgu(listTyp)
         }
 
-        (mgu, listTyp)
+        (mgu, ASTListType(listTyp))
       }
       case letStmt @ ASTExpLetIn(decs, exp) => {
         // Let-In is an example of a type that requires the construction
