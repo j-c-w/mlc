@@ -311,7 +311,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
 
         (unifier, typ)
       }
-      case ASTExpIfThenElse(cond, ifTrue, ifFalse) => {
+      case ifThenElse @ ASTExpIfThenElse(cond, ifTrue, ifFalse) => {
         val (condUnifier, condType) = principalType(env, cond)
         condUnifier.specializeVerify(condType, ASTBoolType())
         condUnifier(env)
@@ -331,16 +331,26 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         mgu.mguUnify(casesUnifier)
 
         if (mgu(trueType) != mgu(falseType))
-          throw new ICE("""Types %s and % s should have unified
+          throw new ICE("""Types %s and %s should have unified
             but failed to""".format(trueType, falseType))
+
+        // We need to add the type of the result to the environment.
+        val branchTypeID = VariableGenerator.newVariable()
+        env.add(branchTypeID, mgu(trueType), false)
+        ifThenElse.branchType = Some(branchTypeID)
 
         (mgu, mgu(trueType))
       }
-      case ASTExpCase(cond, cases) => {
+      case caseStmt @ ASTExpCase(cond, cases) => {
         // This is approachable as an annonymous function typing
         // and a fun-app. (Note that this is a reduction in the SML-97
         // spec.)
-        principalType(env, ASTExpFunApp(ASTExpFn(cases), cond))
+        val fnDec = ASTExpFunApp(ASTExpFn(cases), cond)
+        val (unifier, typ) = principalType(env, fnDec)
+
+        // We need to set up the correct case type in the statement:
+        caseStmt.applicationType = fnDec.callType
+        (unifier, typ)
       }
       case matchRow @ ASTExpMatchRow(pat, exp) =>
         // This should never be called. It needs to be handled specially

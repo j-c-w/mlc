@@ -115,6 +115,8 @@ case class ASTExpTyped(val exp: ASTExp, val typ: ASTType) extends ASTExp {
 
 case class ASTExpIfThenElse(val cond: ASTExp, val taken: ASTExp,
                             val notTaken: ASTExp) extends ASTExp {
+  var branchType: Option[ASTIdentVar] = None
+
   def prettyPrint = """
   ( if %s then
       %s
@@ -125,6 +127,10 @@ case class ASTExpIfThenElse(val cond: ASTExp, val taken: ASTExp,
 
 case class ASTExpCase(val exp: ASTExp, val caseList: List[ASTExpMatchRow])
     extends ASTExp {
+  // This stores the type of the case expression as if it were a function.
+  // (i.e. (typeof(exp)) -> (typeof(caseList)))
+  var applicationType: Option[ASTIdent] = None
+
   def prettyPrint = """ ( match %s with %s ) """.format(exp.prettyPrint,
         (caseList map (_.prettyPrint)).mkString("\n| "))
 }

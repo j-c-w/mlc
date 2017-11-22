@@ -6,6 +6,7 @@ import toplev.Pass
 import java.math.BigInteger
 import toplev.GenericTypeEnv
 import toplev.Shared
+import typecheck.VariableGenerator
 
 import frontend._
 import tir._
@@ -297,7 +298,7 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
     case ASTExpSeq(exps) =>
       TExpSeq(exps.map(lowerAST(_, env)))
     case ASTExpTyped(exp, typ) => lowerAST(exp, env)
-    case ASTExpIfThenElse(cond, ifTrue, ifFalse) => {
+    case ifThenElse @ ASTExpIfThenElse(cond, ifTrue, ifFalse) => {
       // For the sake of keeping the IR smaller, we implement this
       // as a case statement.
       val loweredEnv = lowerEnv(env)
@@ -307,10 +308,23 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
       val ifFalseCase = TExpMatchRow(List(TPatConst(TConstFalse())),
                                      lowerAST(ifFalse, env),
                                      new TTypeEnv(Some(loweredEnv)))
-      TExpCase(lowerAST(cond, env), List(ifTrueCase, ifFalseCase))
+
+      // Since this is an if, we know that the expression has type
+      // boolean.
+      val boolTypeRef = VariableGenerator.newTVariable()
+      loweredEnv.add(boolTypeRef,
+                     lowerAST(ASTFunctionType(ASTBoolType(),
+                                              env.getOrFail(
+                                                ifThenElse.branchType.get)),
+                              env),
+                     false)
+
+      TExpCase(lowerAST(cond, env), List(ifTrueCase, ifFalseCase),
+               boolTypeRef)
     }
-    case ASTExpCase(exp, cases) =>
-      TExpCase(lowerAST(exp, env), cases.map(lowerMatchRowAST(_, env)))
+    case stmt @ ASTExpCase(exp, cases) =>
+      TExpCase(lowerAST(exp, env), cases.map(lowerMatchRowAST(_, env)),
+               lowerAST(stmt.applicationType.get, env))
     case row @ ASTExpMatchRow(pattern, expr) =>
       TExpMatchRow(pattern.map(lowerAST(_, env)), lowerAST(expr, env),
                    lowerEnv(row.env.get))
