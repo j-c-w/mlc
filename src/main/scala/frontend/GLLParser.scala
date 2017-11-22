@@ -62,16 +62,26 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
 
   // Omitted: word
 
+  // These all match pairs becase the conversion needs to know the number
+  // of zeroes before a decimal point.  The zeroesInt and zeroesNum
+  // record the length of the constants they measure.
   lazy val float: Parser[ASTConstFloat] = (
     // Refactored: Replaced ~num with int
-      int ~ "." ~ num ~ "(e|E)".r ~ int ^^ { case (int ~ _ ~ dec ~ _ ~ exp) =>
-            ASTConstFloat(int, dec, exp) }
-    | int ~ "(e|E)".r ~ int             ^^ { case (int ~ _ ~ exp) =>
-            ASTConstFloat(int, ASTConstInt(new BigInteger(new Array[Byte](1))),
-                          exp) }
-    | int ~ "." ~ num                   ^^ { case (int ~ _ ~ dec) =>
-            ASTConstFloat(int, dec, ASTConstInt(new BigInteger(new
-            Array[Byte](1)))) }
+      zeroesInt ~ "." ~ zeroesNum ~ "(e|E)".r ~ zeroesInt  ^^ {
+          case (int ~ _ ~ dec ~ _ ~ exp) =>
+            ASTConstFloat(int._2, (dec._1, dec._2), exp._2)
+      }
+    | zeroesInt ~ "(e|E)".r ~ zeroesInt                    ^^ {
+          case (int ~ _ ~ exp) =>
+            ASTConstFloat(int._2,
+                          (0, ASTConstInt(new BigInteger(new Array[Byte](1)))),
+                          exp._2)
+    }
+    | zeroesInt ~ "." ~ zeroesNum                          ^^ {
+          case (int ~ _ ~ dec) =>
+            ASTConstFloat(int._2, (dec._1, dec._2),
+                          ASTConstInt(new BigInteger(new Array[Byte](1))))
+    }
   )
 
   lazy val char: Parser[ASTConstChar] = (
@@ -108,6 +118,20 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     // Note, may not start with a 0
     """[1-9][0-9]*""".r        ^^ { (int) => ASTConstInt(new BigInteger(int)) }
     | "0"                      ^^ { (_) => ASTConstInt(new BigInteger("0")) }
+  )
+
+  // This returns a tuple of the number of digits in the number and the
+  // number itself (represented as a big int)
+  lazy val zeroesInt: Parser[(Int, ASTConstInt)] = (
+      "~" ~ zeroesNum           ^^ { case(_ ~ num)
+            => (num._1, ASTConstInt(num._2.int.negate())) }
+    | zeroesNum
+  )
+
+  lazy val zeroesNum: Parser[(Int, ASTConstInt)] = (
+    """[0-9]+""".r             ^^ {
+      (int) => (int.length, ASTConstInt(new BigInteger(int)))
+    }
   )
 
   // Identifiers
