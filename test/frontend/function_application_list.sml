@@ -2,6 +2,6 @@
 
 fun f x = x
 val x =
-  (f [1]; f(1, 2))
+  (f [1]; f [1, 2, 3, 4]; f(1, 2))
 
 (* Regression: Lists were not treated as simple identifiers in the grammar. *)

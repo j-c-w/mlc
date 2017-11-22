@@ -428,7 +428,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     | con                   ^^ { (con) => ASTExpConst(con) }
     | "(" ~ exp ~ ")"       ^^ { case (_ ~ exp ~ _) => exp }
     | "(" ~ expTuple ~ ")"  ^^ { case (_ ~ exp ~ _) => ASTExpTuple(exp) }
-    | "[" ~ expTuple ~ "]"  ^^ { case (_ ~ exp ~ _) => ASTExpList(exp) }
+    | "[" ~ expList ~ "]"  ^^ { case (_ ~ exp ~ _) => ASTExpList(exp) }
   )
 
   lazy val expLetIn: Parser[ASTExp] =
