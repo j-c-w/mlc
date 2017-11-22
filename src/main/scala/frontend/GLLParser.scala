@@ -1,9 +1,10 @@
 package frontend
 
-import scala.util.parsing.combinator._
-import scala.util.parsing.input._
+import exceptions.ICE
 import java.math.BigDecimal
 import java.math.BigInteger
+import scala.util.parsing.combinator._
+import scala.util.parsing.input._
 import toplev.Pass
 
 /* This file contains the parser description.  It has been
@@ -110,12 +111,12 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   )
 
   // Identifiers
-  
+
   // Refactored into 'id' and 'restrictedID' for use
   // in situations where not all the special characers can
   // be used
   lazy val id: Parser[ASTIdent] = (
-    // Since these characters all have special meaning, we 
+    // Since these characters all have special meaning, we
     // interpret them individually.
     // Note that these are ordered so as to keep any
     // that prefix any others at the bottom
@@ -202,9 +203,6 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   lazy val exp: Parser[ASTExp] = (
       infixApp ~ expTail             ^^ { case (infix ~ expTail)
             => expTail(infix) }
-    // Inserted: UnOp ~ exp for dealing with unary operations
-    | unOp ~ exp ~ expTail           ^^ { case (unop ~ exp ~ expTail)
-            => expTail(ASTExpUnOpApply(unop, exp)) }
     // Refactored: (exp1 dots expn) replaced by the above
     // Omitted: raise exp
     // Omitted: exp handle match
@@ -315,8 +313,11 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
       }
     // The ordering of these two is important! ID's tend to eat
     // some constants (depite my best efforts)
+    | unOp ~ simpleExp                    ^^ {
+            case (unop ~ simpleExp) => ASTExpUnOpApply(unop, simpleExp)
+    }
     | con ~ infix7Tail                    ^^ {
-          case (con ~ infix7Tail) => infix7Tail(ASTExpConst(con)) }
+            case (con ~ infix7Tail) => infix7Tail(ASTExpConst(con)) }
     | longid ~ infix7Tail                 ^^ { case (id ~ infix7Tail)
         => id match {
             case ASTLongIdent(Nil) => unreachable
@@ -325,21 +326,24 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
               infix7Tail(ASTExpIdent(ASTLongIdent(ids)))
         }
     }
-    | id ~ infix7Tail                     ^^ {
-          case (exp ~ tail) => tail(ASTExpIdent(exp))
+    | id ~ infix7                     ^^ {
+          case (exp ~ tail) => ASTExpFunApp(ASTExpIdent(exp), tail)
     }
-    | "let" ~ decs ~ "in" ~ expSeq ~ "end" ~ infix7Tail ^^ {
-          case (_ ~ decs ~ _ ~ seq ~ _ ~ infix7Tail) =>
-             infix7Tail(ASTExpLetIn(decs, seq)) }
+    | expLetIn ~ infix7Tail ^^ {
+          case (letIn ~ infix7Tail) =>
+             infix7Tail(letIn)
+    }
     // Note that () and [] are treated as special values are so
     // are not considered as part of these expressions.
     // A single bracketing has to be treated as a special case
     | "(" ~ expSeq ~ ")" ~ infix7Tail      ^^ {
         case (_ ~ exp ~ _ ~ infix7Tail) =>
-          infix7Tail(ASTExpSeq(exp)) }
+          infix7Tail(ASTExpSeq(exp))
+    }
     | "(" ~ expTuple ~ ")" ~ infix7Tail    ^^ {
         case (_ ~ exp ~ _ ~ infix7Tail) =>
-          infix7Tail(ASTExpTuple(exp)) }
+          infix7Tail(ASTExpTuple(exp))
+    }
     // We use this rather than expTuple because expList allows
     // for singleton lists whereas expTuple excludes tuples
     // of size 1
@@ -374,7 +378,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
 
   lazy val expTail: Parser[ASTExp => ASTExp] = (
       "(" ~ expList ~ ")" ^^ {
-      case (_ ~ app ~ _) => (fun: ASTExp) => 
+      case (_ ~ app ~ _) => (fun: ASTExp) =>
           // In this case, we do not push the function application all the way
           // in since.
           app match {
@@ -382,10 +386,11 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
             case expTuple => ASTExpFunApp(fun, ASTExpTuple(expTuple))
           }
     }
-    | exp               ^^ { case (app) => (fun: ASTExp) => { app match {
+    | simpleExp ~ expTail    ^^ { case (app ~ tail) =>
+        (fun: ASTExp) => { app match {
           case app @ ASTExpFunApp(function, application) =>
-            app.leftAssociate(fun)
-          case value => ASTExpFunApp(fun, value)
+            tail(app.leftAssociate(fun))
+          case value => tail(ASTExpFunApp(fun, value))
         }
       }
     }
@@ -393,6 +398,17 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
           ((exp: ASTExp) => ASTExpTyped(exp, typ)) }
     | ""                ^^ { (_) => (x: ASTExp) => x }
   )
+
+  lazy val simpleExp: Parser[ASTExp] = (
+      id                    ^^ { (id) => ASTExpIdent(id) }
+    | con                   ^^ { (con) => ASTExpConst(con) }
+    | "(" ~ exp ~ ")"       ^^ { case (_ ~ exp ~ _) => exp }
+  )
+
+  lazy val expLetIn: Parser[ASTExp] =
+    "let" ~ decs ~ "in" ~ expSeq ~ "end" ^^ {
+      case (_ ~ decs ~ _ ~ seq ~ _) => ASTExpLetIn(decs, seq)
+    }
 
   lazy val expTuple: Parser[List[ASTExp]] = (
     exp ~ "," ~ expList        ^^ {
@@ -424,7 +440,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   )
 
   // Patterns
-  
+
   // Restructured to avoid left recursion.
   lazy val pat: Parser[ASTPat] = (
       con ~ patTail                     ^^ { case (con ~ patTail)
@@ -459,10 +475,10 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     // as they result in an exponential blowup if allowed to continue
     // past here.
     | "[" ~ pat ~ "]" ~ patTail     ^^ {
-          case (_ ~ pat ~ _ ~ patTail) => 
+          case (_ ~ pat ~ _ ~ patTail) =>
                    patTail._1(ASTListPat(List(pat), patTail._2)) }
     | "[" ~ patList ~ "]" ~ patTail     ^^ {
-          case (_ ~ ASTPatSeq(patSeq, _) ~ _ ~ patTail) => 
+          case (_ ~ ASTPatSeq(patSeq, _) ~ _ ~ patTail) =>
                    patTail._1(ASTListPat(patSeq, patTail._2)) }
     // Omitted: (op) id (:typ) as pat; layed
   )
@@ -482,7 +498,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     | ""  ^^ { (_) => List[ASTType]() }
   )
 
-  // Note that the second argument of ASTPatSeq is a list of 
+  // Note that the second argument of ASTPatSeq is a list of
   // types that is assigned to this sequence (as a WHOLE)
   lazy val patList: Parser[ASTPatSeq] = (
       pat ~ "," ~ patList            ^^ { case (pat ~ _ ~ ASTPatSeq(list, Nil))
@@ -490,11 +506,11 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     | pat                            ^^ { (pat) => ASTPatSeq(List(pat), Nil) }
     | ""                             ^^ { (_) => ASTPatSeq(Nil, Nil) }
   )
-  
+
   // Omitted: patrow
 
   // Types
-  
+
   lazy val typ: Parser[ASTType] = (
     // Restructure: Rename var to tyvar as var is a keyword.
     // Restructure: use typTail to avoid ambiguity
@@ -551,7 +567,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
       // Refactor: Replace pat with valIDs to keep some
       // simplicity. Cost is some valid expressions.
       // Restricted as special characters may not appear
-      // Refactor: 
+      // Refactor:
     valIDs ~ "=" ~ exp  ^^ {
         case (id ~ _ ~ exp) => ASTValBind(id, exp) }
       // Omitted pat = exp and valbind
