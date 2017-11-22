@@ -103,17 +103,17 @@ class TParentSetPass[T] {
           case Some(expResult) => letExpr.exp = expResult
         }
       }
-      case caseExpr @ TExpCase(exp, cases) => {
+      case caseExpr @ TExpCase(exp, cases, typIdent) => {
         val expResult = apply(item, exp)
         val casesResults = cases.map(apply(item, _))
+        val typIdentResults = apply(item, typIdent)
 
         caseExpr.cases = getNew(cases, casesResults,
                                 (x: TExp) => x.asInstanceOf[TExpMatchRow])
 
-        expResult match {
-          case None =>
-          case Some(expResult) => caseExpr.exp = expResult
-        }
+
+        typIdentResults.map(typ => caseExpr.applicationType = typ)
+        expResult.map(expResult => caseExpr.exp = expResult)
       }
       case matchRow @ TExpMatchRow(pats, exp, env) => {
         val expResult = apply(item, exp)
@@ -159,6 +159,11 @@ class TParentSetPass[T] {
 
         listExtract.list = getNew(list, newList)
       }
+      case listLength @ TExpListLength(list) => {
+        val newList = apply(item, list)
+
+        listLength.list = getNew(listLength.list, newList)
+      }
       case funLet @ TExpFunLet(valdecs, exp) => {
         val newVals = valdecs.map(apply(item, _))
         val newExp = apply(item, exp)
@@ -168,13 +173,21 @@ class TParentSetPass[T] {
 
         newExp.map(exp => funLet.exp = exp)
       }
-      case matchRow @ TExpFunLetMatchRow(pattern, exp, env) => {
-        val expResult = apply(item, exp)
-        val patResults = pattern.map(apply(item, _))
+      case ifStmt @ TExpIf(cond, ifTrue, ifFalse) => {
+        val newCond = apply(item, cond)
+        val newTrue = apply(item, ifTrue)
+        val newFalse = apply(item, ifFalse)
 
-        matchRow.pat = getNew(pattern, patResults)
+        ifStmt.cond = getNew(ifStmt.cond, newCond)
+        ifStmt.ifTrue = getNew(ifStmt.ifTrue, newTrue)
+        ifStmt.ifFalse = getNew(ifStmt.ifFalse, newFalse)
+      }
+      case throwExp @ TExpThrow(throwable) => {
+        val newThrowable = apply(item, throwable)
 
-        expResult.map(exp => matchRow.exp = exp.asInstanceOf[TExpFunLet])
+        throwExp.throwable =
+          getNew(throwExp.throwable,
+                 newThrowable).asInstanceOf[TIdentThrowable]
       }
     }
     None
@@ -285,21 +298,12 @@ class TParentSetPass[T] {
         fundec.patterns = getNew(patterns, newPatterns,
                                  (x: TExp) => x.asInstanceOf[TExpMatchRow])
       }
-      case fundec @ TJavaFun(ident, patterns) => {
-        val newIdent = apply(item, ident)
-        val newPatterns = patterns.map(apply(item, _))
-
-        newIdent.map(ident => fundec.name = ident.asInstanceOf[TIdentVar])
-        fundec.cases = getNew(patterns, newPatterns,
-                              (x: TExp) => x.asInstanceOf[TExpFunLetMatchRow])
-      }
-      case fundec @ TSimpleFun(ident, exp, env) => {
+      case fundec @ TJavaFun(ident, exp, env) => {
         val newIdent = apply(item, ident)
         val newExp = apply(item, exp)
 
-        fundec.name =
-          getNew(fundec.name, newIdent.map(_.asInstanceOf[TIdentVar]))
-        fundec.exp = getNew(fundec.exp, newExp)
+        newIdent.map(ident => fundec.name = ident.asInstanceOf[TIdentVar])
+        newExp.map(exp => fundec.exp = exp)
       }
     }
     None
@@ -321,14 +325,5 @@ class TParentSetPass[T] {
     mainRes.map(main => p.main = main.asInstanceOf[TJavaFun])
     p.functions = getNew(p.functions, funRes,
                          (x: TDec) => x.asInstanceOf[TJavaFun])
-  }
-
-  def apply(item: T, p: TSimpleFunctionProgram): Unit = {
-    val mainRes = apply(item, p.main)
-    val funRes = p.functions.map(apply(item, _))
-
-    p.main = getNew(p.main, mainRes.map(_.asInstanceOf[TSimpleFun]))
-    p.functions = getNew(p.functions, funRes,
-                         (x: TDec) => x.asInstanceOf[TSimpleFun])
   }
 }

@@ -24,20 +24,11 @@ class TTypeEnvUpdateParentPass extends TParentSetPass[TTypeEnv] {
 
       None
     }
-    case matchRow @ TExpFunLetMatchRow(pats, exp, rowEnv) => {
-      val expResult = apply(rowEnv, exp)
-      val patResults = pats.map(apply(rowEnv, _))
-
-      matchRow.pat = getNew(pats, patResults)
-
-      expResult.map(res => matchRow.exp = res.asInstanceOf[TExpFunLet])
-      None
-    }
     case other => super.apply(env, exp)
   }
 
   override def apply(passedEnv: TTypeEnv, dec: TDec) = dec match {
-    case fundec @ TSimpleFun(name, exp, env) => {
+    case fundec @ TJavaFun(name, exp, env) => {
       val nameResult = apply(env, name)
       val expResult = apply(env, exp)
 

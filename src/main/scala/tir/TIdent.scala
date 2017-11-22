@@ -19,8 +19,10 @@ case class TIdentLongVar(var name: List[String]) extends TIdent {
   def prettyPrint = name.mkString(".")
 }
 
-/* This class is introduced in the LowerProgram pass.  */
-case class TArgumentNode(var argNumber: Int) extends TIdent {
+/* This class is introduced in the LowerProgram pass.
+ * The first argument is to make the node unique.  */
+case class TArgumentNode(var funname: TIdentVar,
+                         var argNumber: Int) extends TIdent {
   def prettyPrint = "Argument_" + argNumber
 }
 
@@ -174,4 +176,11 @@ case class TNot() extends BuiltinIdent {
 
 case class TPrint() extends BuiltinIdent {
   def prettyPrint = " print "
+}
+
+/* This class has some special cases for built in exceptions.  */
+trait TIdentThrowable extends TIdent
+
+case class TIdentMatchError() extends TIdentThrowable {
+  def prettyPrint = "raise MatchError"
 }

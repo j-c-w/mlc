@@ -51,11 +51,12 @@ trait TPass[T, U] {
 
       combine(expResult, combineList(decsResults))
     }
-    case TExpCase(exp, cases) => {
+    case TExpCase(exp, cases, typ) => {
       val expResult = apply(item, exp)
       val casesResults = cases.map(apply(item, _))
+      val typResult = apply(item, typ)
 
-      combine(expResult, combineList(casesResults))
+      combine(combine(expResult, combineList(casesResults)), typResult)
     }
     case TExpMatchRow(pats, exp, env) => {
       val expResult = apply(item, exp)
@@ -76,12 +77,17 @@ trait TPass[T, U] {
       apply(item, tuple)
     case TExpListExtract(list, index) =>
       apply(item, list)
+    case TExpListLength(list) =>
+      apply(item, list)
     case TExpFunLet(idents, expression) =>
       combine(combineList(idents.map(apply(item, _))),
               apply(item, expression))
-    case TExpFunLetMatchRow(patterns, exp, env) =>
-      combine(combineList(patterns.map(apply(item, _))),
-                          apply(item, exp))
+    case TExpIf(cond, ifTrue, ifFalse) =>
+      combine(combine(apply(item, cond),
+                      apply(item, ifTrue)),
+              apply(item, ifFalse))
+    case TExpThrow(throwable) =>
+      apply(item, throwable)
   }
 
   def apply(item: T, p: TIdent): U = p match {
@@ -117,17 +123,11 @@ trait TPass[T, U] {
 
       combine(combineList(casesRes), identRes)
     }
-    case TJavaFun(ident, patterns) => {
+    case TJavaFun(ident, exp, env) => {
       val identRes = apply(item, ident)
-      val casesRes = patterns.map(apply(item, _))
+      val casesRes = apply(item, exp)
 
-      combine(combineList(casesRes), identRes)
-    }
-    case TSimpleFun(ident, exp, env) => {
-      val identRes = apply(item, ident)
-      val expRes = apply(item, exp)
-
-      combine(identRes, expRes)
+      combine(casesRes, identRes)
     }
   }
 
@@ -139,13 +139,6 @@ trait TPass[T, U] {
   }
 
   def apply(item: T, p: TJavaProgram): U = {
-    val mainRes = apply(item, p.main)
-    val funsRes = p.functions.map(apply(item, _))
-
-    combine(combineList(funsRes), mainRes)
-  }
-
-  def apply(item: T, p: TSimpleFunctionProgram): U = {
     val mainRes = apply(item, p.main)
     val funsRes = p.functions.map(apply(item, _))
 

@@ -18,14 +18,11 @@ trait TTypeEnvPass[T] extends TPass[TTypeEnv, T] {
     case TExpMatchRow(pat, exp, env) => {
       combine(combineList(pat.map(apply(env, _))), apply(env, exp))
     }
-    case TExpFunLetMatchRow(pat, exp, env) => {
-      combine(combineList(pat.map(apply(env, _))), apply(env, exp))
-    }
     case other => super.apply(passedEnv, exp)
   }
 
   override def apply(passedEnv: TTypeEnv, dec: TDec): T = dec match {
-    case TSimpleFun(name, exp, env) => {
+    case TJavaFun(name, exp, env) => {
       combine(apply(env, name), apply(env, exp))
     }
     case other => super.apply(passedEnv, dec)

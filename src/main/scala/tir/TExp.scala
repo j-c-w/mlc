@@ -49,7 +49,10 @@ case class TExpLetIn(var decs: List[TDec], var exp: TExp, var env: TTypeEnv)
                          exp.prettyPrint)
 }
 
-case class TExpCase(var exp: TExp, var cases: List[TExpMatchRow])
+// Note that application type is a function type here, with
+// type from exp -> cases.
+case class TExpCase(var exp: TExp, var cases: List[TExpMatchRow],
+                    var applicationType: TIdent)
     extends TExp {
   def prettyPrint = """
   |match %s with
@@ -97,6 +100,10 @@ case class TExpListExtract(var list: TExp, var index: Int) extends TExp {
     "(%s)[%s]".format(list.prettyPrint, index)
 }
 
+case class TExpListLength(var list: TExp) extends TExp {
+  def prettyPrint = "Length of (%s)".format(list.prettyPrint)
+}
+
 case class TExpFunLet(var valdecs: List[TIdentVar], var exp: TExp)
     extends TExp {
   def prettyPrint = """
@@ -108,9 +115,15 @@ case class TExpFunLet(var valdecs: List[TIdentVar], var exp: TExp)
                                exp.prettyPrint)
 }
 
-case class TExpFunLetMatchRow(var pat: List[TPat], var exp: TExpFunLet,
-                              var env: TTypeEnv) extends TExp {
+case class TExpIf(var cond: TExp, var ifTrue: TExp, var ifFalse: TExp)
+    extends TExp {
   def prettyPrint = """
-%s => %s
-  """.format(pat.map(_.prettyPrint).mkString(" "), exp.prettyPrint)
+  |If (%s)
+  |Then (%s)
+  |Else (%s)""".stripMargin.format(cond.prettyPrint, ifTrue.prettyPrint,
+                                   ifFalse.prettyPrint)
+}
+
+case class TExpThrow(var throwable: TIdentThrowable) extends TExp {
+  def prettyPrint = "throw (%s)".format(throwable.prettyPrint)
 }
