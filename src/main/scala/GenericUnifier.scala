@@ -123,7 +123,8 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
   private def noneNew(): Boolean =
     newMap.size == 0
 
-  def apply[TypeEnvClass, From <: GenericPrintable]
+  def apply[TypeEnvClass <: GenericTypeEnv[TypeEnvClass, From, TypeVariable],
+            From <: GenericPrintable]
         (env: GenericTypeEnv[TypeEnvClass, From, TypeVariable]) = {
     // We must check every type in the environment.
     env.foreachUnshadowed({ case (name, (typ, qualifiedTypes)) => {

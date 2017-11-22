@@ -14,7 +14,8 @@ import exceptions._
  * a nesting level are unique.
  */
 
-abstract class GenericTypeEnv[TypeEnvClass,
+abstract class GenericTypeEnv[TypeEnvClass <: GenericTypeEnv[TypeEnvClass,
+                                                             From, To],
                               From <: GenericPrintable,
                               To <: GenericPrintable with GenericType[To]]
                (val parent: Option[GenericTypeEnv[TypeEnvClass, From, To]]) {
@@ -105,6 +106,14 @@ abstract class GenericTypeEnv[TypeEnvClass,
     }
   }
 
+  /* Given some other environment, this adds all the elements from the
+   * bottom level oof the other type env.  */
+  def addBottomLevelEnv(other: TypeEnvClass) =
+    other.foreachInnermost {
+      case (otherID, (otherType, otherVars)) =>
+        add(otherID, otherType, otherVars)
+    }
+
   /* The default qualified types is all the types or none of the
    * types
    */
@@ -179,21 +188,31 @@ abstract class GenericTypeEnv[TypeEnvClass,
     }
   }
 
+  /* This returns a tuple of the type of the identifier and a set
+   * of the quantified variables.  */
+  def getRaw(id: From): Option[(To, Option[GenericTypeSet[To]])] = {
+    val mapContents = map.get(id)
+
+    mapContents match {
+      case Some(pair) => Some(pair)
+      case None => // Try the parent
+        parent match {
+          case Some(parentEnv) => parentEnv.getRaw(id)
+          case None => None
+        }
+    }
+  }
+
   /* This gets a value from the map and substitutes
    * any quantified variables in for new variables.
    */
   def get(id: From): Option[To] = {
-    val mapContents = map.get(id)
-
-    mapContents match {
+    getRaw(id) match {
       case Some((typ, Some(qualifiedTypes))) =>
         Some(typ.typeClone(qualifiedTypes))
       case Some((typ, None)) => Some(typ)
-      case None => // Try the parent
-        parent match {
-          case Some(parentEnv) => parentEnv.get(id)
-          case None => None
-        }
+      // getRaw checks the parent, so this function does not have to.
+      case None => None
     }
   }
 
@@ -278,6 +297,11 @@ abstract class GenericTypeEnv[TypeEnvClass,
     getNoSubsitute(id).getOrElse(throw new ICE("""Error: Type %s
       |does not appear to be part of the environment""".stripMargin.format(
         id.prettyPrint)))
+
+  def insertInto(id: From, ttypeEnv: TypeEnvClass) = {
+    val (to, qualifiedTypes) = getRaw(id).get
+    ttypeEnv.add(id, to, qualifiedTypes)
+  }
 
   /* This iterates over all elements in the environment and it's parents. */
   def foreachAll(f : (((From, (To, Option[GenericTypeSet[To]])))
