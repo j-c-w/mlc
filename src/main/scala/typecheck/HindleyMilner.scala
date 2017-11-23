@@ -86,13 +86,21 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         //
         // Where f is 'a -> 'b. Then, we need to change (this instance of)
         // the 'b into ('c, 'd) to match with the tuple type.
-        val adjustedTyp = lhs match {
-          case ASTIdentTuple(exp :: Nil) => typ
-          case ASTIdentTuple(exps) =>
-            ASTTupleType(exps.map(_ => TypeVariableGenerator.getVar()))
-          // Adding list types would require additions here.
-        }
+        def genAdjustedTyp(idents: ASTIdent, typ: ASTType): ASTType =
+          idents match {
+            case ASTIdentTuple(exp :: Nil) => typ
+            case ASTIdentTuple(exps) => {
+              val resType =
+                ASTTupleType(exps.map(typ =>
+                    genAdjustedTyp(typ, TypeVariableGenerator.getVar())))
+              unifier mguUnify (typ unify resType)
+              resType
+            }
+            // Adding list types would require additions here.
+            case other => typ
+          }
 
+        val adjustedTyp = genAdjustedTyp(lhs, typ)
         unifier mguUnify (typ unify adjustedTyp)
 
         // We update the environment with the new types
@@ -148,14 +156,12 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         val (funType, resultEnvs, unifier) =
           listPatternType(patterns, types, exprs, env)
 
-        // We unify the generated function type and the orignally added
-        // function type, then apply the unifier.
-        val funTypeUnifier = env.getOrFail(idents(0)) unify funType
-        funTypeUnifier.apply(env)
-
+        val functionTypeUnifier = funType unify env.getOrFail(idents(0))
         // Finally, re-add this function (forall qualified) to the
         // global environment
-        env.updateId(idents(0), env.getOrFail(idents(0)), true)
+        env.updateId(idents(0),
+                     functionTypeUnifier(env.getOrFail(idents(0))), true)
+
         // We need to apply the unifier as the function definition may
         // have modified a non-polymorphic type.
         unifier.apply(env)
