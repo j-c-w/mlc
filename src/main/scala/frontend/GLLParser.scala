@@ -205,6 +205,9 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     | "bool" ~ tyvarTail                     ^^ { case (_ ~ tail) =>
                 tail(ASTBoolType())
     }
+    | "unit" ~ tyvarTail                     ^^ { case (_ ~ tail) =>
+                tail(ASTUnitType())
+    }
     // Refactored: Lists are the tail here because they are
     // left recursive
     | "[A-Za-z][A-Za-z0-9_']*".r ~ tyvarTail ^^ { case (name ~ tail) =>
