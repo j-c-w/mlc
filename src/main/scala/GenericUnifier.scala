@@ -94,17 +94,27 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
   }
 
   def selfApply(from: TypeVariable) = {
+    // To avoid potential infinite loops here, we count
+    // and throw an exception if things get too low.
+    var failCount = 10000
     var newType = map(from)
     var tyVars = newType.getTypeVars()
-    tyVars = tyVars.filter(x => map.contains(x))
+    tyVars = tyVars.filter(x => map.contains(x) && x != from)
 
     while (tyVars.size > 0) {
       for (tyVar <- tyVars) {
+        val introducedTyVars = map(tyVar).getTypeVars()
         newType = newType.substituteFor(tyVar, map(tyVar))
       }
 
       tyVars = newType.getTypeVars()
-      tyVars = tyVars.filter(x => map.contains(x))
+      tyVars = tyVars.filter(x => map.contains(x) && x != from)
+
+      failCount -= 1
+      if (failCount <= 0) {
+        throw new ICE("""Error: Trying to substitue into %s has taken 10000
+          substitutions so has been aborted""".format(from.prettyPrint))
+      }
     }
 
     map(from) = newType

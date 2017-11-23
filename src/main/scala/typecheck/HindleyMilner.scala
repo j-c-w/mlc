@@ -333,7 +333,10 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
 
         // Since we have chosen to use Ocaml semantics here,
         // we may 'unify' rather the specialize these types.
-        unifier mguUnify unifier.unifyTo(inferedTyp, typ)
+        // Note that the ordering is important here.  It can
+        // lead to cycles in the unifier if we unify the infered
+        // typ to the typ.
+        unifier mguUnify unifier.unifyTo(typ, inferedTyp)
 
         (unifier, typ)
       }
