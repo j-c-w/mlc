@@ -64,8 +64,17 @@ object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
       val arguments: List[TIdent] =
         (0 until pattern.length).map(TArgumentNode(name, _)).toList
 
-      assert(arguments.length == argumentTypesList.length)
-
+      // We used to check that these arguments were the same length.
+      // However, there are problems with doing this for functions
+      // like this:
+      //    fun f x = fn y => 1
+      // 
+      // (Which has the same type as fun f x y = 1)
+      //
+      // And so the first would fail an assertion because the arguments
+      // were shorter than the types list (which was extracted purely from
+      // the types).
+      // Therefore, we silently chop off any additional elements in the list.
       // These arguments must be added to the type environment.
       (arguments zip argumentTypesList).foreach {
         case (arg, argType) => resultEnv.add(arg, argType, false)
