@@ -80,9 +80,24 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         // Note that the unifier is not used here.
         val (unifier, typ) = principalType(env, rhs)
 
+        // Before inserting the types as found, we must ensure that
+        // typ is of the correct approximate type to match. Consider;
+        // let val (a, b) = f x ....
+        //
+        // Where f is 'a -> 'b. Then, we need to change (this instance of)
+        // the 'b into ('c, 'd) to match with the tuple type.
+        val adjustedTyp = lhs match {
+          case ASTIdentTuple(exp :: Nil) => typ
+          case ASTIdentTuple(exps) =>
+            ASTTupleType(exps.map(_ => TypeVariableGenerator.getVar()))
+          // Adding list types would require additions here.
+        }
+
+        unifier mguUnify (typ unify adjustedTyp)
+
         // We update the environment with the new types
         // as appropriate.
-        insertTypes(env, lhs, typ)
+        insertTypes(env, lhs, adjustedTyp)
         unifier.apply(env)
         unifier
       }
@@ -132,10 +147,15 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         // environment (because they are all different)
         val (funType, resultEnvs, unifier) =
           listPatternType(patterns, types, exprs, env)
-        
-        // Finally, add this function (forall qualified) to the
+
+        // We unify the generated function type and the orignally added
+        // function type, then apply the unifier.
+        val funTypeUnifier = env.getOrFail(idents(0)) unify funType
+        funTypeUnifier.apply(env)
+
+        // Finally, re-add this function (forall qualified) to the
         // global environment
-        env.updateId(idents(0), funType, true)
+        env.updateId(idents(0), env.getOrFail(idents(0)), true)
         // We need to apply the unifier as the function definition may
         // have modified a non-polymorphic type.
         unifier.apply(env)
