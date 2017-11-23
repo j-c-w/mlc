@@ -3,4 +3,4 @@
 
 fun foreach (f: 'a -> unit) =()
 
-(* t-scan: ASTUnitType *)
+(* t-scan: ASTUnitType: ast *)
