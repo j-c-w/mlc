@@ -7,6 +7,7 @@ object STDReal extends LibraryPackage {
     case List("fromInt") => Some(ASTFunctionType(ASTIntType(), ASTRealType()))
     case List("toString") =>
       Some(ASTFunctionType(ASTRealType(), ASTStringType()))
+    case List("toInt") => Some(ASTFunctionType(ASTRealType(), ASTIntType()))
     case _ => None
   }
 
