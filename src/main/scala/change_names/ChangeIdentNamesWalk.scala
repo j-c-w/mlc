@@ -16,9 +16,8 @@ class ChangeIdentNamesWalk(namesToReplace: Map[TIdentVar, (TIdentVar, TType)])
         val (newName, identType) = namesToReplace(ident)
 
         // Also ensure that the new variable is in the type environment here:
-        if (!typeEnv.hasType(newName)) {
+        if (!typeEnv.hasType(newName))
           typeEnv.add(newName, identType, false)
-        }
 
         Some(newName)
       } else {
@@ -26,5 +25,21 @@ class ChangeIdentNamesWalk(namesToReplace: Map[TIdentVar, (TIdentVar, TType)])
       }
     }
     case other => super.apply(typeEnv, other)
+  }
+
+  /* We also ensure that the new variables are inserted into the same
+   * envs that their parents are inserted into.
+   */
+  override def onTouchEnv(env: TTypeEnv) = {
+    namesToReplace.foreach {
+      case (oldIdent, (newIdent, typ)) => {
+        if (!env.hasType(newIdent)
+            && env.hasType(oldIdent)) {
+          // Also sanity check that the types are the same.
+          assert(env.getOrFail(oldIdent) == typ)
+          env.add(newIdent, typ, false)
+        }
+      }
+    }
   }
 }
