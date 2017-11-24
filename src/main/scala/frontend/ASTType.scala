@@ -462,11 +462,19 @@ case class ASTNumberType(id: String) extends ASTTypeVar {
     case ASTRealType() => ASTUnifier(this, other)
     case ASTIntType() => ASTUnifier(this, other)
     case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
+    case ASTIntStringType(id) => {
+      val unifier = ASTUnifier()
+
+      unifier.specializeNV(other, ASTIntType())
+      unifier.specializeNV(this, ASTIntType())
+      unifier
+    }
+    case ASTComparableType(id) => ASTUnifier(other, this)
     case ASTEqualityTypeVar(name) => {
       val unifier = ASTUnifier()
 
-      unifier.specializeNV(other, ASTRealType())
-      unifier.specializeNV(this, ASTRealType())
+      unifier.specializeNV(other, ASTIntType())
+      unifier.specializeNV(this, ASTIntType())
       unifier
     }
     case _ => throw new UnificationError(this, other)
@@ -503,6 +511,8 @@ case class ASTComparableType(val id: String) extends ASTTypeVar {
     case ASTRealType() => ASTUnifier(this, other)
     case ASTIntType() => ASTUnifier(this, other)
     case ASTStringType() => ASTUnifier(this, other)
+    case ASTIntStringType(id) => ASTUnifier(this, other)
+    case ASTNumberType(id) => ASTUnifier(this, other)
     case _ => throw new SpecializationError(this, other)
   }
 
@@ -515,6 +525,8 @@ case class ASTComparableType(val id: String) extends ASTTypeVar {
     case ASTRealType() => ASTUnifier(this, other)
     case ASTIntType() => ASTUnifier(this, other)
     case ASTStringType() => ASTUnifier(this, other)
+    case ASTIntStringType(id) => ASTUnifier(this, other)
+    case ASTNumberType(id) => ASTUnifier(this, other)
     case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
     case ASTEqualityTypeVar(name) => {
       val unifier = ASTUnifier()
@@ -572,6 +584,16 @@ case class ASTIntStringType(val id: String) extends ASTTypeVar {
         ASTUnifier(other, this)
     case ASTIntType() => ASTUnifier(this, other)
     case ASTStringType() => ASTUnifier(this, other)
+    case ASTComparableType(id) => ASTUnifier(other, this)
+    case ASTNumberType(id) => {
+      // In this case, we must specialize both to int types.
+      val unifier = ASTUnifier()
+
+      unifier.specializeNV(this, ASTIntType())
+      unifier.specializeNV(other, ASTIntType())
+
+      unifier
+    }
     case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
     case ASTEqualityTypeVar(name) => ASTUnifier(other, this)
     case _ => throw new UnificationError(this, other)
