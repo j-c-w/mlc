@@ -30,7 +30,7 @@ class LambdaLiftWalk(val program: TProgram)
       // Check if any VALs are actually just FnDecs. Do this
       // by first walking the vals with this (so to extract the
       // annon function definitions).
-      // 
+      //
       // Then check that each val has RHS that is a function
       // identifier.
       //
@@ -83,10 +83,10 @@ class LambdaLiftWalk(val program: TProgram)
 
   /* This takes the parts of the function provided and it moves
    * the function out to the top level. It does not
-   * deal with the deleteion of the inner version of the function.
+   * deal with the deletion of the inner version of the function.
    *
    * 'name' corresponds to the name that the function will have at
-   * the top level. 
+   * the top level.
    * 'typeEnvName' corresponds to the name used to get to the function
    * type in the environment.
    */
@@ -142,7 +142,9 @@ class LambdaLiftWalk(val program: TProgram)
 
         // And also update the matchRow environment:
         freeValsList.map {
-          case (TExpIdent(freeVal), typ: TType) => env.add(freeVal, typ, false)
+          case (TExpIdent(freeVal), typ: TType) => {
+            env.add(freeVal, typ, false)
+          }
         }
       }
     }
@@ -155,12 +157,12 @@ class LambdaLiftWalk(val program: TProgram)
     // because the walk will replace it with the one in the pattern
     // as a first step anyways.
     ChangeIdentNames.newNamesFor(freeValsNamesList zip freeValsTypesList,
-                                 TExpFn(patterns, name),
+                                 TExpFn(updatedPatterns, name),
                                  innerEnv)
 
     // Actually make the new function call:
     val newFunction = TFun(name, updatedPatterns)
-    
+
     // Add this function to the top level:
     newToplevelFunctions = newFunction :: newToplevelFunctions
 
