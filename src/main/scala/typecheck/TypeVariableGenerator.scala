@@ -1,6 +1,7 @@
 package typecheck
 
 import frontend._
+import tir._
 
 /* This class generates unique type variables.
  */
@@ -12,6 +13,12 @@ object TypeVariableGenerator {
     tyVarId = tyVarId + 1
 
     return new ASTUnconstrainedTypeVar("$" + stringFor(tyVarId))
+  }
+
+  def getTVar(): TUnconstrainedTypeVar = {
+    tyVarId = tyVarId + 1
+
+    return new TUnconstrainedTypeVar("$" + stringFor(tyVarId))
   }
 
   def getEqualityVar(): ASTEqualityTypeVar = {

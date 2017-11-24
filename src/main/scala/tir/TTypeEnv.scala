@@ -2,6 +2,7 @@ package tir
 
 import toplev.GenericTypeEnv
 import tpass.TPass
+import typecheck.TypeVariableGenerator
 
 /*
  * This is a type environment for the TIR representation.
@@ -21,6 +22,7 @@ class TTypeEnv(parent: Option[TTypeEnv])
    */
   def compoundTypeOf(ident: TIdent): TType = ident match {
     case TIdentTuple(subTypes) => TTupleType(subTypes.map(compoundTypeOf(_)))
+    case TUnderscoreIdent() => TypeVariableGenerator.getTVar()
     case other => super.getOrFail(other)
   }
 }
