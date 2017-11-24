@@ -1,13 +1,17 @@
 package toplev
 
-import scala.collection.mutable.HashMap
 import exceptions._
+import scala.collection.mutable.HashMap
 
 /* This is a class that contains a generic unifier.  */
 
 abstract class GenericUnifier[TypeVariable <: GenericPrintable
                                               with GenericType[TypeVariable]] {
   private val map = new HashMap[TypeVariable, TypeVariable]()
+  // This introduces an early failure mode if a loop is inserted
+  // into the unifier.  It is only enabled in debug mode because
+  // it is costly.
+  private val assertNoLoops = Shared.verifyUnifiers
 
   // This keeps track of any newly entered variables so
   // that only variables that are relevant are applied to each
@@ -31,6 +35,10 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
         specializeNV(key, value)
       }
     }
+
+    if (assertNoLoops) {
+      selfApply()
+    }
   }
 
   def mguUnify(other: GenericUnifier[TypeVariable]): Unit = {
@@ -44,6 +52,10 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
       } else {
         specializeNV(key, value)
       }
+    }
+
+    if (assertNoLoops) {
+      selfApply()
     }
   }
 
@@ -88,6 +100,23 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
           map(otherKey) = otherValue.substituteFor(key, value)
         }
       }
+    }
+
+    for ((key, value) <- map) {
+      // We only do this check for single type variables.
+      // (i.e. not Bool or Int or Function etc.
+      if (key.getTypeVars.size == 1)
+        for ((otherKey, otherValue) <- map) {
+          if (otherValue.contains(key)) {
+            throw new ICE("""Error: Cycle in unifier, from: 
+              | %s -> %s
+              | and
+              | %s -> %s""".stripMargin.format(key.prettyPrint,
+                                               value.prettyPrint,
+                                               otherKey.prettyPrint,
+                                               otherValue.prettyPrint))
+          }
+        }
     }
 
     setNoneNew()
