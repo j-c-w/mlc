@@ -17,8 +17,8 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
   override def treeToString(tree: ASTProgram) = """
   %s
 
-  __ Program ___ 
-  
+  __ Program ___
+
   %s
 
   ___ Formatted Version ___
@@ -43,7 +43,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
                             decs: List[ASTDeclaration]): Unit = {
     for (dec <- decs) {
       principalType(env, dec)
-      
+
       // This is done after every declaration. If this is going too slow,,
       // it could be applied to the unifier instead (which would mean
       // delaying the application of the unifier until this level).
@@ -61,7 +61,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
    *
    * There is a caveat, which is that 'env' is MUTABLE and thus may not
    * be modified on something that could turn out to be a mispredict.
-   */ 
+   */
   def principalType(env: ASTTypeEnv,
                     decs: List[ASTDeclaration]): ASTUnifier = {
     val unifier = ASTUnifier()
@@ -120,7 +120,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         // Require that all the idents are string identifiers, not
         // some symbols:
         if (idents.exists(x => !x.isInstanceOf[ASTIdentVar])) {
-          throw new InferenceException("The function identifiers " + 
+          throw new InferenceException("The function identifiers " +
             idents.toString + " are not valid")
         }
 
@@ -177,7 +177,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
       }
     }
 
-  def principalType(env: ASTTypeEnv, expr: ASTExp): (ASTUnifier, ASTType) = 
+  def principalType(env: ASTTypeEnv, expr: ASTExp): (ASTUnifier, ASTType) =
     expr match {
       case ASTExpConst(const) => (ASTUnifier(), const.getType)
       case ASTExpIdent(ident) => {
@@ -186,7 +186,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
             Error: Identifier %s is not defined. """.format(ident.prettyPrint))
           case Some(typ) => typ
         }
-        
+
         (ASTUnifier(), foundIdent)
       }
       case application @ ASTExpFunApp(fun, app) => {
@@ -234,7 +234,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         // These will be converted later in the compilation anyway.
         val prefixFunction =
           ASTExpFunApp(ASTExpIdent(fun), ASTExpTuple(List(op1, op2)))
-        
+
         val result =
           principalType(env, prefixFunction)
 
@@ -253,7 +253,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
       case ASTExpTuple(elems) => {
         // These may require unification, e.g. in
         //    fun f x = (not(x), x + 1)
-        // but the order is not specified. The unification 
+        // but the order is not specified. The unification
         // may be done at the end.
         val unifiers = (elems map (x => principalType(env, x)))
 
@@ -304,7 +304,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
 
         // Type the declarations:
         val decsUnifier = principalType(letEnv, decs)
-        
+
         // Then return the type of the let:
         // We intentionally  return the toplevel environment
         // since the let local environment is not relevant
@@ -389,7 +389,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
       case fn @ ASTExpFn(body) => {
         // This is very similar to the function type. We do the same
         // thing here:
-        
+
         // Body is a list of ASTExpMatchRows(ASTPat, ASTExp):
         val patterns = body map { case ASTExpMatchRow(pat, _) => pat }
         val exprs = body map { case ASTExpMatchRow(_, expr) => expr }
@@ -410,7 +410,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         val funTypeIdentifier = VariableGenerator.newVariable()
 
         env.add(funTypeIdentifier,
-                // For safety, we assert here that this is indeed 
+                // For safety, we assert here that this is indeed
                 // a function type.
                 unifier(typ).asInstanceOf[ASTFunctionType],
                 false)
@@ -451,7 +451,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         |Do are not all the same length""".stripMargin.format(
           patterns.map(_.map(_.prettyPrint).mkString(" ")).mkString("\n")))
     }
-    
+
     for (i <- 0 until patterns.length) {
       val pattern = patterns(i)
       val exp = exprs(i)
@@ -503,7 +503,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
     }
 
     // We do this with the original list because we want
-    // the bracketing to be with the first element as the 
+    // the bracketing to be with the first element as the
     // 'most outside' element. This effectively reverses the list.
     val functionType =
       argType.foldRight(resultType) {
@@ -531,7 +531,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
     // so that the '::' method can be used.
     var astTypes = List[ASTType]()
     var astUnifiers = List[ASTUnifier]()
-        
+
     for (patItem <- pat) {
       patItem match {
         case ASTPatWildcard(typs) => {
@@ -544,7 +544,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         case ASTPatVariable(variable, typs) => variable match {
           case ASTIdentVar(name) => {
             val defaultGenericType = TypeVariableGenerator.getVar()
-            val resUnifier = unifyTypeList(defaultGenericType :: typs) 
+            val resUnifier = unifyTypeList(defaultGenericType :: typs)
 
             astTypes = resUnifier(defaultGenericType) :: astTypes
             astUnifiers = resUnifier :: astUnifiers
@@ -564,7 +564,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
           }
           case ASTUnitIdent() => {
             val resUnifier = unifyTypeList(ASTUnitType() :: typs)
-            
+
             astTypes = ASTUnitType() :: astTypes
             astUnifiers = resUnifier :: astUnifiers
           }
@@ -632,7 +632,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
             // element (note that tuples are considered a single
             // element)
             unifier mguUnify(elemUnifiers(0))
-            
+
             // The difference is with the unification, which must be
             // done to a single type.
             val thisElemUnifier = listType unify elemTyp(0)
@@ -653,7 +653,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
 
           astUnifiers = unifier :: astUnifiers
           astTypes = unifier(specifiedType) :: astTypes
-          
+
         }
         case ASTPatConst(ident, typ) => {
           // Reals are not a valid pattern identifier.
@@ -713,7 +713,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
    */
   def unifyTypeList(typList: List[ASTType]): ASTUnifier = {
     assert(typList.length > 0)
-    
+
     val givenTypeUnifier = ASTUnifier()
     typList.tail.foldLeft (typList.head) {
       case (lastTyp, thisTyp) => {
@@ -748,9 +748,10 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
     case (ASTIdentTuple(Nil), _) => unreachable
     // Note that '_' is a special identifier.
     // We do not add that.
-    case (ASTIdentTuple(ident :: Nil), typ) =>
+    case (ASTIdentTuple(ident :: Nil), typ) => {
       env.add(ident, typ, true)
-    case (ASTIdentTuple(idents), ASTTupleType(typList)) => 
+    }
+    case (ASTIdentTuple(idents), ASTTupleType(typList)) =>
       // We note that each one of these names could be an ASTIdentTuple,
       // so we repeat the process.
       if (idents.length != typList.length)
