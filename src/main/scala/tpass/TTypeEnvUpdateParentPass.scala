@@ -5,6 +5,8 @@ import tir._
 class TTypeEnvUpdateParentPass extends TParentSetPass[TTypeEnv] {
   override def apply(env: TTypeEnv, exp: TExp) = exp match {
     case letExpr @ TExpLetIn(decs, exp, letEnv) => {
+      onTouchEnv(letEnv)
+
       val decsResults = decs.map(apply(letEnv, _))
       val expResult = apply(letEnv, exp)
 
@@ -15,6 +17,8 @@ class TTypeEnvUpdateParentPass extends TParentSetPass[TTypeEnv] {
       None
     }
     case matchRow @ TExpMatchRow(pats, exp, rowEnv) => {
+      onTouchEnv(rowEnv)
+
       val expResult = apply(rowEnv, exp)
       val patResults = pats.map(apply(rowEnv, _))
 
@@ -29,6 +33,8 @@ class TTypeEnvUpdateParentPass extends TParentSetPass[TTypeEnv] {
 
   override def apply(passedEnv: TTypeEnv, dec: TDec) = dec match {
     case fundec @ TJavaFun(name, exp, env) => {
+      onTouchEnv(env)
+
       val nameResult = apply(env, name)
       val expResult = apply(env, exp)
 
@@ -39,4 +45,8 @@ class TTypeEnvUpdateParentPass extends TParentSetPass[TTypeEnv] {
     }
     case other => super.apply(passedEnv, other)
   }
+
+  /* This is a function that can be used to update type environments
+   * the first time they are touched.  */
+  def onTouchEnv(env: TTypeEnv): Unit = {}
 }
