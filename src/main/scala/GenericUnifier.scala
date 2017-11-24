@@ -271,9 +271,17 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
   // without verification that it is a sensible thing to do.
   //
   // Only atomic specializations are allowed.
+  //
+  // If this would introduce a cycle in the unifier, then we deal
+  // with that issue by flipping from and to.
   def specializeNV(from: TypeVariable, to: TypeVariable) = {
-    map(from) = to
-    newMap(from) = true
+    if (map.contains(to) && map(to) == from) {
+      // In this case we do nothing intentionally to avoid
+      // introducing a loop in the unifier.
+    } else {
+      map(from) = to
+      newMap(from) = true
+    }
   }
 
   private def hasType(typ: TypeVariable) =

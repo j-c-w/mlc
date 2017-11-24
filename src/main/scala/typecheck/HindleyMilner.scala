@@ -284,7 +284,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
           val (unifier, typ) = principalType(env, elem)
 
           mgu mguUnify unifier
-          mgu mguUnify (listTyp unify typ)
+          mgu mguUnify (typ unify listTyp)
 
           listTyp = mgu(listTyp)
         }
@@ -336,7 +336,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         // Note that the ordering is important here.  It can
         // lead to cycles in the unifier if we unify the infered
         // typ to the typ.
-        unifier mguUnify unifier.unifyTo(typ, inferedTyp)
+        unifier mguUnify unifier.unifyTo(inferedTyp, typ)
 
         (unifier, typ)
       }
