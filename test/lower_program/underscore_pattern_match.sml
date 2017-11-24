@@ -1,4 +1,4 @@
-(* t-compile: --verify-lower-program *)
+(* t-compile: --run-lower-program-verify *)
 (* Regression: Since we don't bother keeping the types for
 * underscore identifiers, the tuple generator was having a hard
 * time keeping track of the type.  This was resolved by giving

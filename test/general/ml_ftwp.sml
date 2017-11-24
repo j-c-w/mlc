@@ -1,4 +1,4 @@
-(* t-compile: --verify *)
+(* t-compile: --verify-all *)
 
 (**** ML Programs from Chapter 3 of
   ML for the Working Programmer, 2nd edition
