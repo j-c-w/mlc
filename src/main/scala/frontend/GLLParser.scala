@@ -415,7 +415,13 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   )
 
   lazy val infix8Tail: Parser[ASTExp => ASTExp] = (
-      simpleExp ~ infix8Tail ^^ { case (app ~ tail) =>
+      // This is added as a special case, as in this case, if
+      // exp is a function application, we do not want to left
+      // associate within the function application.
+      "(" ~ exp ~ ")" ~ infix8Tail ^^ { case (_ ~ app ~ _ ~ tail) =>
+        (fun: ASTExp) => tail(ASTExpFunApp(fun, app))
+      }
+    | simpleExp ~ infix8Tail       ^^ { case (app ~ tail) =>
         (fun: ASTExp) => { app match {
           case app @ ASTExpFunApp(function, application) =>
             tail(app.leftAssociate(fun))
