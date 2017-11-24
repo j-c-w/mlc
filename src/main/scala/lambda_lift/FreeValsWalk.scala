@@ -30,7 +30,7 @@ class FreeValsWalk(val topLevelEnv: TTypeEnv,
       // This valdec is declared on some internal LetIn.
       // Therefore, we do not want to procees the LHS, and
       // we only consider the RHS.
-      apply(env, valdec)
+      apply(env, rhs)
     case fndec @ TFun(name, patterns) =>
       throw new ICE("Expect inner TFun's to have been removed")
   }
