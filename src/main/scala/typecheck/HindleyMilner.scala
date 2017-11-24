@@ -474,7 +474,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
       // Finally, compute the unification of the result types
       // to ensure that those are all the same.
       // And that any assigned types in the pattern propagate through.
-      val resultTypeUnifier = resultType unify (expUnifier(expType))
+      val resultTypeUnifier = (expUnifier(expType)) unify resultType
       resultTypeUnifier mguUnifyAll patUnifier
 
       resultType = resultTypeUnifier(resultType)
