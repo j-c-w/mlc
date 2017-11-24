@@ -195,8 +195,8 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
 
         val resultType = TypeVariableGenerator.getVar()
 
-        val mgu = ASTType.unify(ASTFunctionType(appType, resultType),
-                                   declaredFunType)
+        val mgu = ASTType.unify(declaredFunType,
+                                ASTFunctionType(appType, resultType))
 
         // This is used for later optimizations. It is helpful
         // to know exactly what types the function is going
