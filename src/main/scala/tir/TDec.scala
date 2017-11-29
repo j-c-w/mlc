@@ -15,7 +15,7 @@ case class TFun(var name: TIdentVar, var patterns: List[TExpMatchRow])
 }
 
 /* This is inserted by the let lowering pass. */
-case class TJavaFun(var name: TIdentVar, var exp: TExp, env: TTypeEnv)
+case class TJavaFun(var name: TIdentVar, var exp: TExpFunLet, env: TTypeEnv)
     extends TDec {
   def prettyPrint = """
   |fun %s =
