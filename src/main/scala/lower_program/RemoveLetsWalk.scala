@@ -49,8 +49,7 @@ class RemoveLetsWalk(val replacementEnv: TTypeEnv)
           Some(new TExpSeq(assignmentExpressions :+ newExp))
       }
     }
-    case caseExp @ TExpCase(exp: TExp, patterns: List[TExpMatchRow],
-                            typeID: TIdentVar) => {
+    case caseExp @ TExpCase(exp, patterns, typeID) => {
       val newExp = apply(u, exp)
       val expressionIdentifier = VariableGenerator.newTVariable()
 
@@ -102,6 +101,7 @@ class RemoveLetsWalk(val replacementEnv: TTypeEnv)
       |into match rows which should be done in the parents of the let
       |rows to distinguish between node types that should be treated
       |differentely""".stripMargin)
-    case other => super.apply(u, exp)
+    case other =>
+      super.apply(u, exp)
   }
 }
