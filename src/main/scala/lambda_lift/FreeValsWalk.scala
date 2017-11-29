@@ -3,7 +3,7 @@ package lambda_lift
 import exceptions.ICE
 import tir._
 import scala.collection.mutable.{HashSet,Set}
-import tpass.TTypeEnvPassUnit
+import tpass.TTypeEnvUnitPass
 
 object FreeValsWalk {
   def apply(parentEnv: TTypeEnv,
@@ -11,7 +11,7 @@ object FreeValsWalk {
     var resultSet = new HashSet[(TExpIdent, TType)]()
 
     patterns.foreach((pat) => {
-      val walk = new FreeValsWalk(parentEnv, pat.env)
+      val walk = new FreeValsWalk(pat.env)
       walk(parentEnv, pat)
       resultSet = resultSet.union(walk.freeValsSet)
     })
@@ -20,8 +20,7 @@ object FreeValsWalk {
   }
 }
 
-class FreeValsWalk(val topLevelEnv: TTypeEnv,
-                   val functionEnv: TTypeEnv) extends TTypeEnvPassUnit {
+class FreeValsWalk(val functionEnv: TTypeEnv) extends TTypeEnvUnitPass {
   var freeValsSet: Set[(TExpIdent, TType)] =
     HashSet[(TExpIdent, TType)]()
 
@@ -39,8 +38,7 @@ class FreeValsWalk(val topLevelEnv: TTypeEnv,
     case TExpIdent(identVar @ TIdentVar(name)) => {
       // We check whether the identifier was declared between this
       // environment and the top function environment. 
-      if (!topLevelEnv.hasType(identVar)
-          && !env.hasTypeBetweenInclusive(functionEnv, identVar)) {
+      if (!env.hasTypeBetweenInclusive(functionEnv, identVar)) {
         freeValsSet +=
           ((TExpIdent(identVar), env.getNoSubsituteOrFail(identVar)))
       }

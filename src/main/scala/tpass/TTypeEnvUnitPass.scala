@@ -2,7 +2,7 @@ package tpass
 
 import tir._
 
-trait TTypeEnvPassUnit extends TTypeEnvPass[Unit] {
+trait TTypeEnvUnitPass extends TTypeEnvPass[Unit] {
   def default = ()
   def combine(x: Unit, y: Unit) = x
 }
