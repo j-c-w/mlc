@@ -290,17 +290,17 @@ abstract class GenericTypeEnv[TypeEnvClass <: GenericTypeEnv[TypeEnvClass,
   /* This returns the value from the map without
    * substituting in for the quantified types.
    */
-  def getNoSubsitute(id: From): Option[To] =
+  def getNoSubstitute(id: From): Option[To] =
     if (map.contains(id))
       map.get(id).map(_._1)
     else
       parent match {
-        case Some(parentEnv) => parentEnv.getNoSubsitute(id)
+        case Some(parentEnv) => parentEnv.getNoSubstitute(id)
         case None => None
       }
 
   def getNoSubstituteOrFail(id: From): To =
-    getNoSubsitute(id).getOrElse(throw new ICE("""Error: Type %s
+    getNoSubstitute(id).getOrElse(throw new ICE("""Error: Type %s
       |does not appear to be part of the environment""".stripMargin.format(
         id.prettyPrint)))
 
