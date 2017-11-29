@@ -5,6 +5,7 @@ import change_names.ChangeIdentNames
 import exceptions.ICE
 import tir._
 import tpass.TTypeEnvUpdateParentPass
+import typecheck.VariableGenerator
 
 class LambdaLiftWalk(val program: TProgram)
     extends TTypeEnvUpdateParentPass {
@@ -73,9 +74,19 @@ class LambdaLiftWalk(val program: TProgram)
       // for this.
       val newName = TIdentVar(FunctionNameGenerator.newAnonymousName())
 
-      insertFunctionFor(newName, patterns, env, typIdent)
+      val (freeValsTuple, freeValsType) =
+        insertFunctionFor(newName, patterns, env, typIdent)
 
-      Some(TExpIdent(newName))
+      // Create a new type variable reference for the introduced function
+      // application.
+      val applicationIdent = VariableGenerator.newTVariable()
+
+      env.add(applicationIdent,
+              TFunctionType(freeValsType, env.getOrFail(typIdent)), false)
+
+      // The only use of this funciton is where it is declared.
+      // Update that use.
+      Some(TExpFunApp(TExpIdent(newName), freeValsTuple, applicationIdent))
     }
     case _ => super.apply(env, exp)
   }
@@ -124,10 +135,9 @@ class LambdaLiftWalk(val program: TProgram)
     val freeValsExpTuple =
       new TExpTuple(freeValsNamesList.map(new TExpIdent(_)))
 
+    // The old type cannot be removed from the env because it is
+    // still needed when replacing the function application types.
     val oldFunctionType = innerEnv.getNoSubsituteOrFail(typeEnvName)
-    // And update the environments.
-    // Remove from the inner environment:
-    innerEnv.remove(typeEnvName)
 
     // Add to the top level environment.
     val newFunctionType = new TFunctionType(freeValsType, oldFunctionType)
