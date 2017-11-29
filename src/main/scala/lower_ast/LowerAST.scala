@@ -28,7 +28,12 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
       dec match {
         case funbind @ ASTFunBind(cases) => {
           val tIdent =  cases(0)._1 match {
-            case ASTIdentVar(name) => TIdentVar(name)
+            case ident @ ASTIdentVar(name) =>
+              if (env.topLevelHasType(ident)) {
+                TTopLevelIdent(name)
+              } else {
+                TIdentVar(name)
+              }
             case _ => unreachable
           }
 
@@ -70,7 +75,15 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
   def lowerAST(ident: ASTIdent, env: ASTTypeEnv,
                typ: Option[ASTIdent]): TIdent =
     ident match {
-      case ASTIdentVar(id) => TIdentVar(id)
+      case ident @ ASTIdentVar(id) => 
+        // If the variable is a top level identifer, then
+        // we need to mark it as being one here.  Otherwise,
+        // we may return a normal TIdentVar
+        if (env.topLevelHasType(ident)) {
+          TTopLevelIdent(id)
+        } else {
+          TIdentVar(id)
+        }
       case ASTLongIdent(ids) => TIdentLongVar(ids.map{
         case ASTIdentVar(name) => name
         case id @ _ => throw new ICE("""ASTLongIdent contains non-ASTIdentVar
