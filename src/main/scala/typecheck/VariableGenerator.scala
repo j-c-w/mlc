@@ -1,7 +1,7 @@
 package typecheck
 
 import frontend.ASTIdentVar
-import tir.TIdentVar
+import tir.{TIdentVar,TTopLevelIdent}
 
 object VariableGenerator {
   private var number: Int = 0
@@ -16,6 +16,12 @@ object VariableGenerator {
     number += 1
 
     TIdentVar(getStringFor(number))
+  }
+
+  def newTTopLevelVariable(): TTopLevelIdent = {
+    number += 1
+
+    TTopLevelIdent(getStringFor(number))
   }
 
   def getStringFor(num: Int): String = num match {
