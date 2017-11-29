@@ -8,10 +8,11 @@ import tpass.TTypeEnvUpdateParentPass
  * names as it goes.
  */
 
-class ChangeIdentNamesWalk(namesToReplace: Map[TIdentVar, (TIdentVar, TType)])
+class ChangeIdentNamesWalk(namesToReplace: Map[TNamedIdent,
+                                               (TNamedIdent, TType)])
     extends TTypeEnvUpdateParentPass {
   override def apply(typeEnv: TTypeEnv, ident: TIdent) = ident match {
-    case ident @ TIdentVar(name) => {
+    case ident : TNamedIdent => {
       if (namesToReplace.contains(ident)) {
         val (newName, identType) = namesToReplace(ident)
 

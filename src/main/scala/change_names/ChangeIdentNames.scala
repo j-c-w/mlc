@@ -20,7 +20,7 @@ import typecheck.VariableGenerator
  */
 
 object ChangeIdentNames extends TTypeEnvUnitPass {
-  def newNamesFor(namesToReplace: Map[TIdentVar, (TIdentVar, TType)],
+  def newNamesFor(namesToReplace: Map[TNamedIdent, (TNamedIdent, TType)],
                   expression: TExp, env: TTypeEnv): Unit = {
     val walk  = new ChangeIdentNamesWalk(namesToReplace)
 
@@ -34,10 +34,10 @@ object ChangeIdentNames extends TTypeEnvUnitPass {
    *
    * 'expressionEnv's scope is kept as small as possible.
    */
-  def newNamesFor(toReplace: List[(TIdentVar, TType)],
+  def newNamesFor(toReplace: List[(TNamedIdent, TType)],
                   expression: TExp, expressionEnv: TTypeEnv): Unit = {
-    val map: Map[TIdentVar, (TIdentVar, TType)] =
-      new HashMap[TIdentVar, (TIdentVar, TType)]()
+    val map: Map[TNamedIdent, (TNamedIdent, TType)] =
+      new HashMap[TNamedIdent, (TNamedIdent, TType)]()
 
     for ((name, typ) <- toReplace) {
       map(name) = (VariableGenerator.newTVariable(), typ)
