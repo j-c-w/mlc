@@ -299,7 +299,7 @@ abstract class GenericTypeEnv[TypeEnvClass <: GenericTypeEnv[TypeEnvClass,
         case None => None
       }
 
-  def getNoSubsituteOrFail(id: From): To =
+  def getNoSubstituteOrFail(id: From): To =
     getNoSubsitute(id).getOrElse(throw new ICE("""Error: Type %s
       |does not appear to be part of the environment""".stripMargin.format(
         id.prettyPrint)))

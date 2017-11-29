@@ -40,7 +40,7 @@ class FreeValsWalk(val functionEnv: TTypeEnv) extends TTypeEnvUnitPass {
       // environment and the top function environment. 
       if (!env.hasTypeBetweenInclusive(functionEnv, identVar)) {
         freeValsSet +=
-          ((TExpIdent(identVar), env.getNoSubsituteOrFail(identVar)))
+          ((TExpIdent(identVar), env.getNoSubstituteOrFail(identVar)))
       }
     }
     case TExpMatchRow(pattern, expr, matchRowEnv) =>

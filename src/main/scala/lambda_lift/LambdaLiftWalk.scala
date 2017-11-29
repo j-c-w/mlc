@@ -46,7 +46,25 @@ class LambdaLiftWalk(val program: TProgram)
       // and create a lambda lifted function that
       // takes those variables as parameters.
       for (fun <- fundecs) {
-        val oldFunctionType = letEnv.getNoSubsituteOrFail(fun.name)
+        val oldFunctionType = letEnv.getNoSubstituteOrFail(fun.name)
+        val oldName = fun.name
+        // Then set the function to have a new top level name
+        // and update the uses of that function:
+        val newName = fun.name match {
+          case TIdentVar(name) => TTopLevelIdent(name)
+          case other => throw new ICE("""Error: Cannot lift a non
+            |ident var""".stripMargin)
+        }
+
+        val nameReplacementMap =
+          new HashMap[TNamedIdent, (TNamedIdent, TType)]()
+        nameReplacementMap(fun.name) = (newName, letEnv.getOrFail(fun.name))
+        ChangeIdentNames.newNamesFor(nameReplacementMap, let, letEnv)
+
+        // And we need to update the function itself, which is the only
+        // other place this could be used.
+        fun.name = newName
+
         val (freeValsTuple, freeValsType) =
           insertFunctionFor(fun.name, fun.patterns, letEnv, fun.name)
 
@@ -65,18 +83,6 @@ class LambdaLiftWalk(val program: TProgram)
         let.exp = exp
         funCallUpdateWalk((), let)
 
-        // Now, update the function name so that it is a top level
-        // function:
-        val newName = fun.name match {
-          case TIdentVar(name) => TTopLevelIdent(name)
-          case other => throw new ICE("""Error: Cannot lift a non
-            |ident var""".stripMargin)
-        }
-
-        val nameReplacementMap =
-          new HashMap[TNamedIdent, (TNamedIdent, TType)]()
-        nameReplacementMap(fun.name) = (newName, env.getOrFail(fun.name))
-        ChangeIdentNames.newNamesFor(nameReplacementMap, let, letEnv)
       }
 
       // Update the vals:
@@ -85,7 +91,7 @@ class LambdaLiftWalk(val program: TProgram)
     }
     case expFn @ TExpFn(patterns, typIdent) => {
       // Get out the old function type before it is substituted.
-      val oldFunctionType = env.getNoSubsituteOrFail(typIdent)
+      val oldFunctionType = env.getNoSubstituteOrFail(typIdent)
 
       // Create a new function name and a new function at the top level
       // for this.
@@ -153,7 +159,7 @@ class LambdaLiftWalk(val program: TProgram)
       new TExpTuple(freeValsNamesList.map(new TExpIdent(_)))
 
     // And remove the old function type
-    val oldFunctionType = innerEnv.getNoSubsituteOrFail(typeEnvName)
+    val oldFunctionType = innerEnv.getNoSubstituteOrFail(typeEnvName)
     innerEnv.remove(typeEnvName)
 
     // Add to the top level environment.
