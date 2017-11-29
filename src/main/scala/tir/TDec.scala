@@ -5,7 +5,7 @@ import tpass.TPass
 
 sealed trait TDec extends GenericPrintable
 
-case class TFun(var name: TIdentVar, var patterns: List[TExpMatchRow])
+case class TFun(var name: TNamedIdent, var patterns: List[TExpMatchRow])
     extends TDec {
   def prettyPrint = """
   |fun %s
@@ -15,7 +15,7 @@ case class TFun(var name: TIdentVar, var patterns: List[TExpMatchRow])
 }
 
 /* This is inserted by the let lowering pass. */
-case class TJavaFun(var name: TIdentVar, var exp: TExpFunLet, env: TTypeEnv)
+case class TJavaFun(var name: TNamedIdent, var exp: TExpFunLet, env: TTypeEnv)
     extends TDec {
   def prettyPrint = """
   |fun %s =

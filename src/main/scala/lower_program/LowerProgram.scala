@@ -30,7 +30,7 @@ object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
     TJavaFun(fun.name, representativeExp, newEnv)
   }
 
-  def lowerPatterns(name: TIdentVar, patterns: List[TExpMatchRow],
+  def lowerPatterns(name: TNamedIdent, patterns: List[TExpMatchRow],
                     parentEnv: TTypeEnv) = {
     // The first pattern is just to throw. This is inserted
     // as the last 'else' case.

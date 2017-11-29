@@ -35,7 +35,7 @@ import typecheck.VariableGenerator
  * closure as a partial function application!
  */
 
-class FunCallUpdateWalk(val funID: TIdentVar, val newParams: TExp,
+class FunCallUpdateWalk(val funID: TNamedIdent, val newParams: TExp,
                         val newParamsType: TType, val oldFunctionType: TType,
                         val env: TTypeEnv)
     extends TPass[Unit, Unit] {
@@ -124,7 +124,7 @@ class FunCallUpdateWalk(val funID: TIdentVar, val newParams: TExp,
   /* This generates a new expression to slot into the tree.  */
   def updateFunCallReturn(exp: TExp): (Boolean, TExp) = exp match {
     case expIdent @ TExpIdent(otherIdent) => otherIdent match {
-      case TIdentVar(name) => if (name == funID.name) {
+      case ident : TNamedIdent => if (ident == funID) {
         // We must add the call type to the top level environment here.
         val callType = TFunctionType(newParamsType, oldFunctionType)
         val callTypeIdent = VariableGenerator.newTVariable()

@@ -64,7 +64,6 @@ class LambdaLiftWalk(val program: TProgram)
         funCallUpdateWalk((), let)
       }
 
-
       // Update the vals:
       let.decs = valdecs
       None
@@ -90,7 +89,7 @@ class LambdaLiftWalk(val program: TProgram)
    * 'typeEnvName' corresponds to the name used to get to the function
    * type in the environment.
    */
-  def insertFunctionFor(name: TIdentVar, patterns: List[TExpMatchRow],
+  def insertFunctionFor(name: TNamedIdent, patterns: List[TExpMatchRow],
                         innerEnv: TTypeEnv, typeEnvName: TIdent) = {
     // First, walk the patterns to see if they have anything that needs
     // to be lambda lifted.

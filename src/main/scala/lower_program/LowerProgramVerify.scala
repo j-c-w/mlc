@@ -88,7 +88,7 @@ class FunLetsIntegrityWalk extends TUnitPass {
 }
 
 class AssignIntegrityWalk extends TUnitPass {
-  val assignedVariables: Set[TIdentVar] = new HashSet[TIdentVar]()
+  val assignedVariables: Set[TNamedIdent] = new HashSet[TNamedIdent]()
 
   override def apply(u: Unit, program: TJavaProgram) = {
     // Add all the functions first.
