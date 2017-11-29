@@ -1,4 +1,4 @@
-(* t-compile: --dump-lambda-lift --dump-lower-ast *)
+(* t-compile: --dump-lambda-lift --dump-tir *)
 
 val x =
   let fun y x = x
@@ -15,4 +15,4 @@ val x =
 
 (* Duplicated since we have one for the type environment.  *)
 (* t-scan-times-2: TopLevel_ : lower_ast *)
-(* t-scan-times-4: TopLevel_ : lambda_lift *)
+(* t-scan-times-5: TopLevel_ : lambda_lift *)
