@@ -4,6 +4,7 @@ import tir._
 import toplev.Pass
 import tpass.TPass
 import typecheck.VariableGenerator
+import scala.collection.mutable.{HashSet,Set}
 
 object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
   def generateMain(vals: List[TVal], parentEnv: TTypeEnv) = {
@@ -35,7 +36,7 @@ object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
     // as the last 'else' case.
     var resultPattern: TExp = TExpThrow(TIdentMatchError())
     val resultEnv = new TTypeEnv(Some(parentEnv))
-    var allIdentifiers = List[TIdentVar]()
+    var allIdentifiers: Set[TNamedIdent] = new HashSet[TNamedIdent]()
 
     val mergeEnvsWalk = new MergeTypeEnvsWalk(resultEnv)
 
@@ -92,9 +93,9 @@ object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
       //
       // We must ensure that all temp identifiers are in the identifier
       // list.
-      allIdentifiers =
-        identifiers ::: patternTemps.flatten :::
-        removeLetsWalk.accumulatedIdents.toList ::: allIdentifiers
+      allIdentifiers ++= identifiers 
+      allIdentifiers ++= patternTemps.flatten
+      allIdentifiers ++= removeLetsWalk.accumulatedIdents.toList
 
       resultPattern = TExpIf(patternAssigns, row.exp, resultPattern)
     }

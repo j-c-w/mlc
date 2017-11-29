@@ -1,5 +1,6 @@
 package tir
 
+import scala.collection.mutable.Set
 import toplev.GenericPrintable
 import tpass.TPass
 
@@ -104,7 +105,7 @@ case class TExpListLength(var list: TExp) extends TExp {
   def prettyPrint = "Length of (%s)".format(list.prettyPrint)
 }
 
-case class TExpFunLet(var valdecs: List[TIdentVar], var exp: TExp)
+case class TExpFunLet(var valdecs: Set[TNamedIdent], var exp: TExp)
     extends TExp {
   def prettyPrint = """
     |FunLet

@@ -80,7 +80,7 @@ trait TPass[T, U] {
     case TExpListLength(list) =>
       apply(item, list)
     case TExpFunLet(idents, expression) =>
-      combine(combineList(idents.map(apply(item, _))),
+      combine(combineList(idents.map(apply(item, _)).toList),
               apply(item, expression))
     case TExpIf(cond, ifTrue, ifFalse) =>
       combine(combine(apply(item, cond),

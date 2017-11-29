@@ -39,7 +39,7 @@ class TTypeEnvUpdateParentPass extends TParentSetPass[TTypeEnv] {
       val expResult = apply(env, exp)
 
       fundec.name = getNew(name, nameResult.map(_.asInstanceOf[TIdentVar]))
-      fundec.exp = getNew(exp, expResult)
+      fundec.exp = getNew(exp, expResult.map(_.asInstanceOf[TExpFunLet]))
 
       None
     }

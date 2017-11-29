@@ -7,23 +7,34 @@ sealed trait TIdent extends GenericPrintable
 
 sealed trait BuiltinIdent extends TIdent
 
+sealed trait TNamedIdent extends TIdent
+
 case class TIdentTuple(var subTypes: List[TIdent]) extends TIdent {
   def prettyPrint = "(" + subTypes.map(_.prettyPrint).mkString(", ") + ")"
 }
 
-case class TIdentVar(var name: String) extends TIdent {
+case class TIdentVar(var name: String) extends TNamedIdent {
   def prettyPrint = name
 }
 
-case class TIdentLongVar(var name: List[String]) extends TIdent {
+case class TIdentLongVar(var name: List[String]) extends TNamedIdent {
   def prettyPrint = name.mkString(".")
 }
 
 /* This class is introduced in the LowerProgram pass.
  * The first argument is to make the node unique.  */
 case class TArgumentNode(var funname: TIdentVar,
-                         var argNumber: Int) extends TIdent {
+                         var argNumber: Int) extends TNamedIdent {
   def prettyPrint = "Argument_" + argNumber
+}
+
+case class TTopLevelIdent(var name: String) extends TNamedIdent {
+  def prettyPrint = "TopLevel_" + name
+}
+
+case class TNumberedIdentVar(var name: String, var number: Int)
+    extends TNamedIdent {
+  def prettyPrint = name + "_" + number.toString
 }
 
 case class TUnderscoreIdent() extends BuiltinIdent {

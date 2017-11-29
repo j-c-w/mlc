@@ -44,7 +44,7 @@ object NoLetsWalk extends TUnitPass {
 }
 
 class FunLetsIntegrityWalk extends TUnitPass {
-  val variablesInLets: Set[TIdentVar] = new HashSet[TIdentVar]()
+  val variablesInLets: Set[TNamedIdent] = new HashSet[TNamedIdent]()
 
 
   override def apply(u: Unit, program: TJavaProgram) = {
