@@ -3,6 +3,7 @@ package lambda_lift
 import ast_change_names.FunctionNameGenerator
 import change_names.ChangeIdentNames
 import exceptions.ICE
+import scala.collection.mutable.HashMap
 import tir._
 import tpass.TTypeEnvUpdateParentPass
 import typecheck.VariableGenerator
@@ -63,6 +64,19 @@ class LambdaLiftWalk(val program: TProgram)
         let.decs = valdecs ::: fundecs
         let.exp = exp
         funCallUpdateWalk((), let)
+
+        // Now, update the function name so that it is a top level
+        // function:
+        val newName = fun.name match {
+          case TIdentVar(name) => TTopLevelIdent(name)
+          case other => throw new ICE("""Error: Cannot lift a non
+            |ident var""".stripMargin)
+        }
+
+        val nameReplacementMap =
+          new HashMap[TNamedIdent, (TNamedIdent, TType)]()
+        nameReplacementMap(fun.name) = (newName, env.getOrFail(fun.name))
+        ChangeIdentNames.newNamesFor(nameReplacementMap, let, letEnv)
       }
 
       // Update the vals:
@@ -70,9 +84,12 @@ class LambdaLiftWalk(val program: TProgram)
       None
     }
     case expFn @ TExpFn(patterns, typIdent) => {
+      // Get out the old function type before it is substituted.
+      val oldFunctionType = env.getNoSubsituteOrFail(typIdent)
+
       // Create a new function name and a new function at the top level
       // for this.
-      val newName = TIdentVar(FunctionNameGenerator.newAnonymousName())
+      val newName = TTopLevelIdent(FunctionNameGenerator.newAnonymousName())
 
       val (freeValsTuple, freeValsType) =
         insertFunctionFor(newName, patterns, env, typIdent)
@@ -82,7 +99,7 @@ class LambdaLiftWalk(val program: TProgram)
       val applicationIdent = VariableGenerator.newTVariable()
 
       env.add(applicationIdent,
-              TFunctionType(freeValsType, env.getOrFail(typIdent)), false)
+              TFunctionType(freeValsType, oldFunctionType), false)
 
       // The only use of this funciton is where it is declared.
       // Update that use.
@@ -135,9 +152,9 @@ class LambdaLiftWalk(val program: TProgram)
     val freeValsExpTuple =
       new TExpTuple(freeValsNamesList.map(new TExpIdent(_)))
 
-    // The old type cannot be removed from the env because it is
-    // still needed when replacing the function application types.
+    // And remove the old function type
     val oldFunctionType = innerEnv.getNoSubsituteOrFail(typeEnvName)
+    innerEnv.remove(typeEnvName)
 
     // Add to the top level environment.
     val newFunctionType = new TFunctionType(freeValsType, oldFunctionType)
