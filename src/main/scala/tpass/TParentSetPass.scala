@@ -136,7 +136,8 @@ class TParentSetPass[T] {
         val newIdent = apply(item, ident)
         val newExpression = apply(item, expression)
 
-        newIdent.map(ident => assign.ident = ident.asInstanceOf[TIdentVar])
+        newIdent.map(ident =>
+            assign.ident = ident.asInstanceOf[TTopLevelIdent])
         newExpression.map(exp => assign.expression = exp)
       }
       case head @ TExpListHead(list) => {
@@ -303,7 +304,7 @@ class TParentSetPass[T] {
         val newIdent = apply(item, ident)
         val newPatterns = patterns.map(apply(item, _))
 
-        newIdent.map(ident => fundec.name = ident.asInstanceOf[TIdentVar])
+        newIdent.map(ident => fundec.name = ident.asInstanceOf[TNamedIdent])
         fundec.patterns = getNew(patterns, newPatterns,
                                  (x: TExp) => x.asInstanceOf[TExpMatchRow])
       }
@@ -311,7 +312,7 @@ class TParentSetPass[T] {
         val newIdent = apply(item, ident)
         val newExp = apply(item, exp)
 
-        newIdent.map(ident => fundec.name = ident.asInstanceOf[TIdentVar])
+        newIdent.map(ident => fundec.name = ident.asInstanceOf[TNamedIdent])
         newExp.map(exp => fundec.exp = exp.asInstanceOf[TExpFunLet])
       }
     }
