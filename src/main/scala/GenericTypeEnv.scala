@@ -70,12 +70,18 @@ abstract class GenericTypeEnv[TypeEnvClass <: GenericTypeEnv[TypeEnvClass,
         })
       }
 
-  // This call is always safe by the assertion made in the constructor.
+  /* This call is always safe by the assertion made in the constructor.  */
   def getSelf: TypeEnvClass = this.asInstanceOf[TypeEnvClass]
 
-  /* This seaches only this environment for the type. */
+  /* This seaches only this environment for the type.  */
   def innermostHasType(id: From): Boolean =
     map.contains(id)
+
+  /* This searches only the top level environment for the type.  */
+  def topLevelHasType(id: From): Boolean = parent match {
+    case Some(parentEnv) => parentEnv.topLevelHasType(id)
+    case None => innermostHasType(id)
+  }
 
   def add(id: From, typ: To, qualified: Boolean): Unit =
     if (qualified)
