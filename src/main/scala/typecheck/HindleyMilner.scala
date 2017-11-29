@@ -144,11 +144,18 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         val types = cases map (_._3)
         val exprs = cases map (_._4)
 
+        val from = TypeVariableGenerator.getVar()
+        val to = TypeVariableGenerator.getVar()
+
+        // Create a set of the variables that we are allowed to quantify
+        // over.
+        val generatedSet = ASTTypeSet()
+        generatedSet.insert(from)
+        generatedSet.insert(to)
+
         // Since functions may be recursive, insert a template for this
         // function (NOT qualified so it may be resolved by a unifier)
-        env.add(idents(0), ASTFunctionType(TypeVariableGenerator.getVar(),
-                                           TypeVariableGenerator.getVar()),
-                false)
+        env.add(idents(0), ASTFunctionType(from, to), false)
 
         // The pattern matching function does not return a unifier.
         // That is done internally. Each pattern row gets an associated
@@ -156,15 +163,23 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         val (funType, resultEnvs, unifier) =
           listPatternType(patterns, types, exprs, env)
 
-        val functionTypeUnifier = funType unify env.getOrFail(idents(0))
-        // Finally, re-add this function (forall qualified) to the
-        // global environment
-        env.updateId(idents(0),
-                     functionTypeUnifier(env.getOrFail(idents(0))), true)
+        val functionTypeUnifier =
+          env.getNoSubstituteOrFail(idents(0)) unify funType
 
+        unifier mguUnify functionTypeUnifier
         // We need to apply the unifier as the function definition may
         // have modified a non-polymorphic type.
         unifier.apply(env)
+
+        // Finally, re-add this function (forall qualified) to the
+        // global environment.
+        //
+        // We only want to generalize the type variables that are
+        // created in this function definition.  See
+        // test /typecheck/function_generalization.sml.
+        env.updateId(idents(0),
+                     functionTypeUnifier(env.getNoSubstituteOrFail(idents(0))),
+                     true)
 
         // We finally set the row environments so that we don't loose those
         fun.rowEnvs = Some(resultEnvs)
@@ -208,7 +223,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         application.callType = Some(callTypeVariable)
 
         // Then, so that the type of the call can actually be accessed,
-        // add it to the environment. We do not want this type to
+        // add it to the environment.  We do not want this type to
         // be forall quantified so that it can be changed by
         // future unifier applications.
         env.add(callTypeVariable,
