@@ -75,7 +75,7 @@ case class TExpFn(var patterns: List[TExpMatchRow], var funType: TIdent)
 }
 
 /* These are only used after the flatten_let pass.  */
-case class TExpAssign(var ident: TIdentVar, var expression: TExp)
+case class TExpAssign(var ident: TNamedIdent, var expression: TExp)
     extends TExp {
   def prettyPrint =
     "Assign %s to (%s)".format(ident.prettyPrint, expression.prettyPrint)

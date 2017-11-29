@@ -31,10 +31,20 @@ object AssignmentGeneration {
   def convertToAssignNodeIdent(parentIdent: TIdent, declaration: TIdent,
                                typeEnv: TTypeEnv): (TExp, List[TIdentVar]) =
     declaration match {
-      case decIdent @ TIdentVar(name) => {
+      case decIdent : TNamedIdent => {
+        // If the identifier is not a TIdentVar, then it must be a
+        // Top level ident, in which case it should not be added
+        // to the list of identifiers
+        val localIdents = decIdent match {
+          case ident @ TIdentVar(name) => List(ident)
+          case TTopLevelIdent(name) => List[TIdentVar]()
+          case other => throw new ICE("""Error: Unexpected identifier
+            |%s""".stripMargin.format(other.prettyPrint))
+        }
+
         (TExpSeq(List(TExpAssign(decIdent, TExpIdent(parentIdent)),
                       TExpConst(TConstTrue()))),
-         List(decIdent))
+         localIdents)
       }
       case TIdentTuple(subIdents) => {
         unpackList(subIdents, (index => {
