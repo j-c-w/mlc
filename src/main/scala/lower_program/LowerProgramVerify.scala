@@ -30,7 +30,7 @@ object LowerProgramVerify
     // it is used.
     (new AssignIntegrityWalk()).apply((), tree)
 
-    EnvironmentSoundnessWalk((), tree)
+    EnvironmentSoundnessWalk(tree.typeEnv, tree)
     tree
   }
 }
