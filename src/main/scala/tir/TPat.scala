@@ -3,7 +3,7 @@ package tir
 import toplev.GenericPrintable
 import tpass.TPass
 
-sealed trait TPat extends GenericPrintable
+sealed trait TPat extends TTree
 
 case class TPatWildcard() extends TPat {
   def prettyPrint = "_"

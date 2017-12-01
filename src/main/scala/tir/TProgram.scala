@@ -7,7 +7,7 @@ import tpass.TPass
  * we can un-interleave the definition of vals and functions.
  */
 case class TProgram(var typeEnv: TTypeEnv, var funs: List[TFun],
-                    var vals: List[TVal]) extends GenericPrintable {
+                    var vals: List[TVal]) extends TTree {
   def prettyPrint: String = """
   %s
 

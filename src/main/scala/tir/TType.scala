@@ -12,7 +12,7 @@ import tpass.TPass
  * any type sets to remain.
  */
 
-sealed trait TType extends GenericPrintable with GenericType[TType] {
+sealed trait TType extends TTree with GenericType[TType] {
   // These are left unimplemented as they are not
   // required by this phase of the compiler.
   //

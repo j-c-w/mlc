@@ -3,7 +3,7 @@ package tir
 import toplev.GenericPrintable
 import tpass.TPass
 
-sealed trait TIdent extends GenericPrintable
+sealed trait TIdent extends TTree
 
 sealed trait BuiltinIdent extends TIdent
 

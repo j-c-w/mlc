@@ -39,6 +39,17 @@ class TParentSetPass[T] {
     }
   }
 
+  def apply(item: T, p: TTree): Unit = p match {
+    case t: TConst => apply(item, t)
+    case e: TExp => apply(item, e)
+    case i: TIdent => apply(item, i)
+    case p: TPat => apply(item, p)
+    case t: TType => apply(item, t)
+    case d: TDec => apply(item, d)
+    case p: TProgram => apply(item, p)
+    case j: TJavaProgram => apply(item, j)
+  }
+
   def apply(item: T, p: TConst): Option[TConst] = p match {
     // These are all bottom cases.
     case const => None

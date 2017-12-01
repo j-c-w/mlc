@@ -9,7 +9,7 @@ import tpass.TPass
  * may be replaced by any other TExp.
  */
 
-sealed trait TExp extends GenericPrintable
+sealed trait TExp extends TTree
 
 case class TExpConst(var const: TConst) extends TExp {
   def prettyPrint = const.prettyPrint

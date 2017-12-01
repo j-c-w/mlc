@@ -20,6 +20,17 @@ trait TPass[T, U] {
   def default: U
   def combine(recursiveResult: U, otherResult: U): U
 
+  def apply(item: T, p: TTree): U = p match {
+    case t: TConst => apply(item, t)
+    case e: TExp => apply(item, e)
+    case i: TIdent => apply(item, i)
+    case p: TPat => apply(item, p)
+    case t: TType => apply(item, t)
+    case d: TDec => apply(item, d)
+    case p: TProgram => apply(item, p)
+    case j: TJavaProgram => apply(item, j)
+  }
+
   def apply(item: T, p: TConst): U = p match {
     // These are all bottom cases.
     case const => default

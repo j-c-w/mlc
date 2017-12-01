@@ -3,7 +3,7 @@ package tir
 import toplev.GenericPrintable
 import tpass.TPass
 
-sealed trait TConst extends GenericPrintable
+sealed trait TConst extends TTree
 
 case class TConstInt(val int: Int) extends TConst {
   def prettyPrint = Integer.toString(int)

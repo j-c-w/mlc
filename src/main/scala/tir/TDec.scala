@@ -3,7 +3,7 @@ package tir
 import toplev.GenericPrintable
 import tpass.TPass
 
-sealed trait TDec extends GenericPrintable
+sealed trait TDec extends TTree
 
 case class TFun(var name: TNamedIdent, var patterns: List[TExpMatchRow])
     extends TDec {

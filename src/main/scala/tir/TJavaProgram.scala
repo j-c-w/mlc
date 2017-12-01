@@ -9,7 +9,7 @@ import toplev.GenericPrintable
 
 case class TJavaProgram(var typeEnv: TTypeEnv, var main: TJavaFun,
                         var functions: List[TJavaFun])
-    extends GenericPrintable {
+    extends TTree {
   def prettyPrint = """
 Main: %s
 
