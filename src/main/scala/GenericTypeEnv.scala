@@ -151,10 +151,7 @@ abstract class GenericTypeEnv[TypeEnvClass <: GenericTypeEnv[TypeEnvClass,
       parent match {
         case Some(parentEnv) =>
           parentEnv.updateIdNoValidate(id, newTyp, qualifiedTypes)
-        case None => {
-          throw new ICE(""" Error, type %s not found in the map""".format(
-            id.prettyPrint))
-        }
+        case None => notFound(id)
       }
   }
 
@@ -188,8 +185,7 @@ abstract class GenericTypeEnv[TypeEnvClass <: GenericTypeEnv[TypeEnvClass,
     } else {
       parent match {
         case Some(parentEnv) => parentEnv.remove(x)
-        case None => throw new ICE("""Type %s not found,
-          |so could not be removed""".stripMargin.format(x.prettyPrint))
+        case None => notFound(x)
       }
     }
   }
@@ -209,6 +205,10 @@ abstract class GenericTypeEnv[TypeEnvClass <: GenericTypeEnv[TypeEnvClass,
     }
   }
 
+  def getRawOrFail(id: From): (To, Option[GenericTypeSet[To]]) = {
+    getRaw(id).getOrElse(notFound(id))
+  }
+
   /* This gets a value from the map and substitutes
    * any quantified variables in for new variables.
    */
@@ -223,8 +223,7 @@ abstract class GenericTypeEnv[TypeEnvClass <: GenericTypeEnv[TypeEnvClass,
   }
 
   def getOrFail(id: From): To = {
-    get(id).getOrElse(throw new ICE(""" Error, type %s not found in
-      |the environment""".stripMargin.format(id.prettyPrint)))
+    get(id).getOrElse(notFound(id))
   }
 
   /* This returns all the unquantified types for some variable
@@ -300,14 +299,16 @@ abstract class GenericTypeEnv[TypeEnvClass <: GenericTypeEnv[TypeEnvClass,
       }
 
   def getNoSubstituteOrFail(id: From): To =
-    getNoSubstitute(id).getOrElse(throw new ICE("""Error: Type %s
-      |does not appear to be part of the environment""".stripMargin.format(
-        id.prettyPrint)))
+    getNoSubstitute(id).getOrElse(notFound(id))
 
   def insertInto(id: From, ttypeEnv: TypeEnvClass) = {
-    val (to, qualifiedTypes) = getRaw(id).get
+    val (to, qualifiedTypes) = getRawOrFail(id)
     ttypeEnv.add(id, to, qualifiedTypes)
   }
+
+  private def notFound(id: From) =
+    throw new ICE(""" Error, type %s not found in
+      |the environment""".stripMargin.format(id.prettyPrint))
 
   /* This iterates over all elements in the environment and it's parents. */
   def foreachAll(f : (((From, (To, Option[GenericTypeSet[To]])))
