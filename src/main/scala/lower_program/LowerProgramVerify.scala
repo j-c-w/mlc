@@ -1,6 +1,7 @@
 package lower_program
 
 import exceptions.ICE
+import environment_soundness.EnvironmentSoundnessWalk
 import scala.collection.mutable.{HashSet,Set}
 import tir._
 import toplev.OptionalPass
@@ -29,6 +30,7 @@ object LowerProgramVerify
     // it is used.
     (new AssignIntegrityWalk()).apply((), tree)
 
+    EnvironmentSoundnessWalk((), tree)
     tree
   }
 }

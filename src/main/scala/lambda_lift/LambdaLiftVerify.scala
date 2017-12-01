@@ -1,9 +1,10 @@
 package lambda_lift
 
+import environment_soundness.EnvironmentSoundnessWalk
 import exceptions.ICE
 import tir._
-import tpass.TPass
 import toplev.OptionalPass
+import tpass.TPass
 
 /* This class contains a walk to the tree to make sure that:
  *   (1) there are no Fns left
@@ -36,6 +37,8 @@ object LambdaLiftVerify extends OptionalPass[TProgram]("verify")
 
   def run(tree: TProgram) = {
     apply((), tree)
+    // Also check the soundness of the environment
+    EnvironmentSoundnessWalk(tree.typeEnv, tree)
     tree
   }
 }
