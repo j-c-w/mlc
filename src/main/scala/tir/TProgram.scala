@@ -16,4 +16,7 @@ case class TProgram(var typeEnv: TTypeEnv, var funs: List[TFun],
   %s
   """.format(typeEnv.prettyPrint, (funs.map(_.prettyPrint)).mkString("\n"),
              vals.map(_.prettyPrint).mkString("\n"))
+
+  def nodeClone =
+    new TProgram(typeEnv, funs.map(_.nodeClone), vals.map(_.nodeClone))
 }

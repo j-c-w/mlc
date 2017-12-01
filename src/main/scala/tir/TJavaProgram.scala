@@ -15,4 +15,7 @@ Main: %s
 
 %s
   """.format(main.prettyPrint, functions.map(_.prettyPrint).mkString("\n\n"))
+
+  def nodeClone: TJavaProgram =
+    new TJavaProgram(typeEnv, main.nodeClone, functions.map(_.nodeClone))
 }
