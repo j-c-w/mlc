@@ -56,14 +56,9 @@ class LambdaLiftWalk(val program: TProgram)
             |ident var""".stripMargin)
         }
 
-        // We need to update the function itself, which is the only
-        // other place this could be used.
-        //
-        // The uses of the function will be updated later.
-        fun.name = newName
-
         val (freeValsTuple, freeValsType) =
-          insertFunctionFor(fun.name, fun.patterns, letEnv, oldName)
+          insertFunctionFor(newName, Some(oldName), fun.patterns,
+                            letEnv, oldName)
 
         // create a new valdec name:
         val valdecName = VariableGenerator.newTVariable()
@@ -74,7 +69,13 @@ class LambdaLiftWalk(val program: TProgram)
 
         letEnv.add(callTypeIdent, callType, false)
         letEnv.add(valdecName, oldFunctionType, false)
-        
+
+        // We need to update the function itself, which is the only
+        // other place this could be used.
+        //
+        // The uses of the function are updated below.
+        fun.name = newName
+
         // There are two sections to the update:
         //    - First, we do the update of other functions.  These will
         //      be lifted, so need to refer to the top level fundec.
@@ -158,7 +159,7 @@ class LambdaLiftWalk(val program: TProgram)
       val newName = TTopLevelIdent(FunctionNameGenerator.newAnonymousName())
 
       val (freeValsTuple, freeValsType) =
-        insertFunctionFor(newName, patterns, env, typIdent)
+        insertFunctionFor(newName, None, patterns, env, typIdent)
 
       // Create a new type variable reference for the introduced function
       // application.
@@ -178,13 +179,15 @@ class LambdaLiftWalk(val program: TProgram)
    * the function out to the top level. It does not
    * deal with the deletion of the inner version of the function.
    *
-   * 'name' corresponds to the name that the function will have at
-   * the top level.
+   * 'newName' corresponds to the name that the function will have at
+   * the top level.  'oldName' corresponds to the name the function used
+   * to have.  It may be None for annonymous functions.
    * 'typeEnvName' corresponds to the name used to get to the function
    * type in the environment.
    */
-  def insertFunctionFor(name: TNamedIdent, patterns: List[TExpMatchRow],
-                        innerEnv: TTypeEnv, typeEnvName: TIdent) = {
+  def insertFunctionFor(newName: TNamedIdent, oldName: Option[TNamedIdent],
+                        patterns: List[TExpMatchRow], innerEnv: TTypeEnv,
+                        typeEnvName: TIdent) = {
     // First, walk the patterns to see if they have anything that needs
     // to be lambda lifted.
     val newPatterns = patterns.map(apply(innerEnv, _))
@@ -200,7 +203,7 @@ class LambdaLiftWalk(val program: TProgram)
     // Note that this does not contain any functions
     // as we assume that those will be lambda lifted.
     val freeValsList =
-      FreeValsWalk(program.typeEnv, patterns)
+      FreeValsWalk(program, oldName, program.typeEnv, patterns)
 
     // In addition to the above two, we need a plain list of the free
     // val types, a plain list of the freeVal names, and
@@ -225,7 +228,7 @@ class LambdaLiftWalk(val program: TProgram)
 
     // Add to the top level environment.
     val newFunctionType = new TFunctionType(freeValsType, oldFunctionType)
-    program.typeEnv.add(name, newFunctionType, true)
+    program.typeEnv.add(newName, newFunctionType, true)
 
     // Adjust the patterns to take the new arguments:
     updatedPatterns.foreach {
@@ -250,15 +253,29 @@ class LambdaLiftWalk(val program: TProgram)
     // because the walk will replace it with the one in the pattern
     // as a first step anyways.
     ChangeIdentNames.newNamesFor(freeValsNamesList zip freeValsTypesList,
-                                 TExpFn(updatedPatterns, name),
+                                 TExpFn(updatedPatterns, newName),
                                  innerEnv)
 
     // Actually make the new function call:
-    val newFunction = TFun(name, updatedPatterns)
+    val newFunction = TFun(newName, updatedPatterns)
 
-    // Add this function to the top level:
+    // Add this function to the top level. This is for certain parts of this
+    // function that work only on the new functions.
     newToplevelFunctions = newFunction :: newToplevelFunctions
+    // While this is to build up the new program.  It is also accumulated
+    // here for the sake of the dec finder.
+    program.funs = newFunction :: program.funs
 
     (freeValsExpTuple, freeValsType)
+  }
+
+  override def apply(env: TTypeEnv, p: TProgram): Unit = {
+    val funsRes = p.funs.map(apply(env, _))
+    val valsRes = p.vals.map(apply(env, _))
+
+    // We do not set p.funs here because that is set by the inner
+    // function using mutability.
+
+    p.vals = getNew(p.vals, valsRes, (x: TDec) => x.asInstanceOf[TVal])
   }
 }
