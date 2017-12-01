@@ -7,6 +7,9 @@ object LambdaLift extends Pass[TProgram, TProgram]("lambda_lift") {
   def run(tree: TProgram) = {
     val walk = new LambdaLiftWalk(tree)
     walk(tree.typeEnv, tree)
+
+    walk.newToplevelFunctions.foreach(
+      UniqueifyVariablesWalk.uniqueify(walk.introducedVariables, _))
     tree
   }
 }

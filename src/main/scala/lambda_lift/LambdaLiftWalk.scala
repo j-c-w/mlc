@@ -12,6 +12,21 @@ class LambdaLiftWalk(val program: TProgram)
     extends TTypeEnvUpdateParentPass {
   var newToplevelFunctions = List[TFun]()
 
+  // This is to keep the list of variables that should be uniqueified once
+  // this pass is finished.
+  //
+  // They cannot be uniqueified during this pass because we need to be
+  // able to look through previously lambda lifted functions to check
+  // for free variables.  That is:
+  //
+  // val z = 10
+  // fun f x = let fun g y = f y + 1 in z end
+  //
+  // We need 'g' to be passed 'z' (so that it can pass it on to 'f')
+  // and so names cannot be uniqueified until later.
+  var introducedVariables =
+    new HashMap[TNamedIdent, (List[TNamedIdent], List[TType])]()
+
   override def apply(env: TTypeEnv, exp: TExp) = exp match {
     case let @ TExpLetIn(decs, exp, letEnv) => {
       // This is the only hard case here.
@@ -116,7 +131,8 @@ class LambdaLiftWalk(val program: TProgram)
         // Second part (replace names within the valdecs):
         val newVal =
           TVal(valdecName,
-               TExpFunApp(TExpIdent(fun.name), freeValsTuple, callTypeIdent))
+               TExpFunApp(TExpIdent(fun.name),
+                          freeValsTuple.nodeClone, callTypeIdent))
 
         // replace all uses of the function with uses of the new
         // valdec.
@@ -222,6 +238,10 @@ class LambdaLiftWalk(val program: TProgram)
     val freeValsExpTuple =
       new TExpTuple(freeValsNamesList.map(new TExpIdent(_)))
 
+    // Add these new variables and types (that will need to be uniqueified)
+    // to the map for uniqueification:
+    introducedVariables(newName) = (freeValsNamesList, freeValsTypesList)
+
     // And remove the old function type
     val oldFunctionType = innerEnv.getNoSubstituteOrFail(typeEnvName)
     innerEnv.remove(typeEnvName)
@@ -244,17 +264,6 @@ class LambdaLiftWalk(val program: TProgram)
         }
       }
     }
-
-    // Now re-uniqueify the names of the arguments:
-    // Create this in a new function rather than doing this elementwise
-    // becaue the ChangeIdentNames function first creatse the new
-    // names, and those (obviously) need to be consistent.
-    // The environment we pass for the 'new' environment doesn't matter
-    // because the walk will replace it with the one in the pattern
-    // as a first step anyways.
-    ChangeIdentNames.newNamesFor(freeValsNamesList zip freeValsTypesList,
-                                 TExpFn(updatedPatterns, newName),
-                                 innerEnv)
 
     // Actually make the new function call:
     val newFunction = TFun(newName, updatedPatterns)
