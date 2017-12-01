@@ -39,8 +39,14 @@ class FreeValsWalk(val functionEnv: TTypeEnv) extends TTypeEnvUnitPass {
       // We check whether the identifier was declared between this
       // environment and the top function environment. 
       if (!env.hasTypeBetweenInclusive(functionEnv, identVar)) {
-        freeValsSet +=
-          ((TExpIdent(identVar), env.getNoSubstituteOrFail(identVar)))
+        // If this is a function type then we should leave the call
+        // untouched as it will be lifted to the top level.
+        env.getOrFail(identVar) match {
+          case TFunctionType(_, _) =>
+          case _ =>
+            freeValsSet +=
+              ((TExpIdent(identVar), env.getNoSubstituteOrFail(identVar)))
+        }
       }
     }
     case TExpMatchRow(pattern, expr, matchRowEnv) =>

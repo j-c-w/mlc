@@ -16,10 +16,9 @@ class LambdaLiftWalk(val program: TProgram)
     case let @ TExpLetIn(decs, exp, letEnv) => {
       // This is the only hard case here.
       //
-      // We search through this for any decs that
-      // are actually function decs and move them back
-      // to the top level.
-      val valdecs = decs.filter {
+      // We search through this for any decs that are actually function decs
+      // and move them back to the top level.
+      var valdecs = decs.filter {
         case TVal(_, _) => true
         case _ => false
       } map (_.asInstanceOf[TVal])
@@ -29,9 +28,8 @@ class LambdaLiftWalk(val program: TProgram)
         case _ => false
       } map (_.asInstanceOf[TFun])
 
-      // Check if any VALs are actually just FnDecs. Do this
-      // by first walking the vals with this (so to extract the
-      // annon function definitions).
+      // Check if any VALs are actually just FnDecs. Do this by first walking
+      // the vals with this (so to extract the annon function definitions).
       //
       // Then check that each val has RHS that is a function
       // identifier.
@@ -42,9 +40,11 @@ class LambdaLiftWalk(val program: TProgram)
       // Finally, walk the exp:
       apply(letEnv, exp)
 
-      // For each function, find the free variables
-      // and create a lambda lifted function that
-      // takes those variables as parameters.
+      // For each function, find the free variables and create a lambda lifted
+      // function that takes those variables as parameters.
+      //
+      // Add that as a valdec to the list of valdecs with the closure
+      // arguments applied to it.
       for (fun <- fundecs) {
         val oldFunctionType = letEnv.getNoSubstituteOrFail(fun.name)
         val oldName = fun.name
@@ -56,33 +56,93 @@ class LambdaLiftWalk(val program: TProgram)
             |ident var""".stripMargin)
         }
 
-        val nameReplacementMap =
-          new HashMap[TNamedIdent, (TNamedIdent, TType)]()
-        nameReplacementMap(fun.name) = (newName, letEnv.getOrFail(fun.name))
-        ChangeIdentNames.newNamesFor(nameReplacementMap, let, letEnv)
-
-        // And we need to update the function itself, which is the only
+        // We need to update the function itself, which is the only
         // other place this could be used.
+        //
+        // The uses of the function will be updated later.
         fun.name = newName
 
         val (freeValsTuple, freeValsType) =
-          insertFunctionFor(fun.name, fun.patterns, letEnv, fun.name)
+          insertFunctionFor(fun.name, fun.patterns, letEnv, oldName)
 
-        // And update any function calls appropriately.
-        val funCallUpdateWalk =
-          new FunCallUpdateWalk(fun.name, freeValsTuple,
-                                freeValsType, oldFunctionType,
-                                letEnv)
+        // create a new valdec name:
+        val valdecName = VariableGenerator.newTVariable()
+
+        // we must add the call type to the top level environment here.
+        val callType = TFunctionType(freeValsType, oldFunctionType)
+        val callTypeIdent = VariableGenerator.newTVariable()
+
+        letEnv.add(callTypeIdent, callType, false)
+        letEnv.add(valdecName, oldFunctionType, false)
+        
+        // There are two sections to the update:
+        //    - First, we do the update of other functions.  These will
+        //      be lifted, so need to refer to the top level fundec.
+        //
+        //    - Second, we do the valdecs and the expression of the let.
+        //      These refer to the new valdec.
+        //
+        //  Fist part:
+        // Before we replace any recursive applications, we need to replace
+        // the names with the new name.
+        val nameUpdaterMap =
+          new HashMap[TNamedIdent, (TNamedIdent, TType)]()
+        nameUpdaterMap(oldName) = (fun.name, callType)
+        // Replace any recursive applications with the curried arguments.
+        val callUpdater =
+          new FunCallUpdateWalk(fun.name, freeValsTuple, freeValsType,
+                                oldFunctionType, env)
+        // We walk the function lists in this manner.
+        //
+        // Note that this is OK to do as the functions are in
+        // order.  So, any function that calls this functions
+        // has yet to be lambda lifted.
+        fundecs.foreach {
+          ChangeIdentNames.newNamesFor(nameUpdaterMap, _, letEnv)
+        }
+        fundecs.foreach(callUpdater((), _))
+
+        // We also have to walk the top level functions as nested
+        // function declarations (that have been recursively lifted)
+        // may have referenced this function.  This is an extremely inefficient
+        // way of doing this, if this is too slow we can pass the previously
+        // lifted functions up the tree for walking.
+        newToplevelFunctions.foreach {
+          ChangeIdentNames.newNamesFor(nameUpdaterMap, _, program.typeEnv)
+        }
+        newToplevelFunctions.foreach(callUpdater((), _))
+
+        // Second part (replace names within the valdecs):
+        val newVal =
+          TVal(valdecName,
+               TExpFunApp(TExpIdent(fun.name), freeValsTuple, callTypeIdent))
+
+        // replace all uses of the function with uses of the new
+        // valdec.
+        val functionReplacementMap =
+          new HashMap[TNamedIdent, (TNamedIdent, TType)]()
+        functionReplacementMap(oldName) =
+          (valdecName, oldFunctionType)
 
         // Update the let structure so that the changes
         // propagate back into it. (Resolving a previous bug
         // with:
         // let val x = 1; fun f () = x
         // in f end)
-        let.decs = valdecs ::: fundecs
+        //
+        // Note that the ordering of addition to the valdecs is extremely
+        // important here.
+        //
+        // Further, it is important that we do not walk the fundecs at this
+        // point.
+        valdecs = valdecs :+ newVal
+        let.decs = valdecs
         let.exp = exp
-        funCallUpdateWalk((), let)
 
+        ChangeIdentNames.newNamesFor(functionReplacementMap, let, letEnv)
+
+        // Now reset the letdecs:
+        let.decs = valdecs ::: fundecs
       }
 
       // Update the vals:
@@ -139,7 +199,8 @@ class LambdaLiftWalk(val program: TProgram)
     //
     // Note that this does not contain any functions
     // as we assume that those will be lambda lifted.
-    val freeValsList = FreeValsWalk(program.typeEnv, patterns)
+    val freeValsList =
+      FreeValsWalk(program.typeEnv, patterns)
 
     // In addition to the above two, we need a plain list of the free
     // val types, a plain list of the freeVal names, and

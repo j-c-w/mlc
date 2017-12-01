@@ -13,23 +13,37 @@ import typecheck.VariableGenerator
  *
  *  So:
  *
- *  fun f x y z = x + y
+ *  val x =
+ *    let
+ *      val y = 1
+ *      fun f x = x + f y
+ *    in
+ *      ()
+ *    end
  *
- *  let val x = 1
- *  in
- *    f 1
- *  end
+ *  Becomes, upon lambda lifting:
  *
- *  becomes
+ *  fun f' y x = x + f' y // This is done by the lambda lifting.
  *
- *  fun f x y z = x + y
- *  let val x = 1
- *  in
- *    f x 1
- *  end
+ *  val x =
+ *    let val y = 1
+ *        val x = f' y
+ *    in
+ *      ()
+ *    end
+ *
+ *  Which becomes, application of this pass to the function:
+ *
+ *  fun f' y x = x + f' y y
+ *
+ *  ...
  *
  * Note that this is done in conjuction with the 'lifing' part of
  * lambda lifting.
+ *
+ * In the changed (Nov. 30, 2017) version of lambda lifting
+ * that is closer to closure application, the process should only
+ * be applied to recursive calls!
  *
  * This pass replaces one on closures, as it allows us to treat a partial
  * closure as a partial function application!
