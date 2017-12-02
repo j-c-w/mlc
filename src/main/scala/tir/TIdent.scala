@@ -2,15 +2,26 @@ package tir
 
 import toplev.GenericPrintable
 import tpass.TPass
+import scala.collection.mutable.HashSet
 
 sealed trait TIdent extends TTree {
   def nodeClone: TIdent
+
+  def getDeclaredIdents: HashSet[TNamedIdent]
 }
 
-sealed trait BuiltinIdent extends TIdent
+sealed trait BuiltinIdent extends TIdent {
+  def getDeclaredIdents = new HashSet[TNamedIdent]()
+}
 
 sealed trait TNamedIdent extends TIdent {
   def nodeClone: TNamedIdent
+
+  def getDeclaredIdents = {
+    val set = new HashSet[TNamedIdent]()
+    set += (this)
+    set
+  }
 }
 
 case class TIdentTuple(var subTypes: List[TIdent]) extends TIdent {
@@ -18,6 +29,11 @@ case class TIdentTuple(var subTypes: List[TIdent]) extends TIdent {
 
   def nodeClone =
     new TIdentTuple(subTypes.map(_.nodeClone))
+
+  def getDeclaredIdents =
+    subTypes.map(_.getDeclaredIdents).foldLeft(new HashSet[TNamedIdent]) {
+      case (buildup, next) => buildup union next
+    }
 }
 
 case class TIdentVar(var name: String) extends TNamedIdent {
@@ -288,6 +304,8 @@ case class TPrint() extends BuiltinIdent {
 /* This class has some special cases for built in exceptions.  */
 trait TIdentThrowable extends TIdent {
   def nodeClone: TIdentThrowable
+
+  def getDeclaredIdents = new HashSet[TNamedIdent]()
 }
 
 case class TIdentMatchError() extends TIdentThrowable {
