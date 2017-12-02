@@ -24,13 +24,18 @@ object FreeValsWalk {
 
 class FreeValsWalk(val program: TProgram,
                    val functionName: Option[TNamedIdent],
-                   val functionEnv: TTypeEnv) extends TTypeEnvUnitPass {
+                   val functionEnv: TTypeEnv,
+                   val visited: Set[TNamedIdent]) extends TTypeEnvUnitPass {
+  def this(program: TProgram, functionName: Option[TNamedIdent],
+           functionEnv: TTypeEnv) =
+             this(program, functionName, functionEnv,
+                  new HashSet[TNamedIdent]())
+
   var freeValsSet: Set[(TExpIdent, TType)] =
     HashSet[(TExpIdent, TType)]()
 
   // Create the visited set with an initial member being this
   // function.
-  val visited: Set[TNamedIdent] = HashSet[TNamedIdent]()
   functionName.map(visited.+=(_))
 
   override def apply(env: TTypeEnv, dec: TDec): Unit = dec match {
@@ -39,28 +44,55 @@ class FreeValsWalk(val program: TProgram,
       // Therefore, we do not want to procees the LHS, and
       // we only consider the RHS.
       apply(env, rhs)
+    case fundec @ TFun(name, rhs) => {
+      // The name will be lambda lifted. Only walk the patterns.
+      rhs.foreach(apply(env, _))
+    }
     case other => super.apply(env, other)
   }
 
   override def apply(env: TTypeEnv, exp: TExp): Unit = exp match {
-    case TExpIdent(identVar: TNamedIdent) => {
+    case TExpIdent(identVar: TIdentVar) => {
       // We check whether the identifier was declared between this
       // environment and the top function environment. 
       if (!env.hasTypeBetweenInclusive(functionEnv, identVar)) {
         env.getOrFail(identVar) match {
           // If this is a function, then we should walk that function
           // to find it's free variables.  Mark the function in the
-          // vvisited function map so that we don't visit it twice.
+          // visited function map so that we don't visit it twice.
           case TFunctionType(_, _) => {
             if (!visited.contains(identVar)) {
-              visited += identVar
               val foundDef =
                 DefFinder(program.typeEnv, program, identVar)
               foundDef match {
-                case Some((otherEnv, identDef)) => apply(otherEnv, identDef)
-                case None => throw new ICE("""Error: Declaration
-                  |of idetifier %s was not found""".stripMargin.format(
-                    identVar.prettyPrint))
+                case Some((otherEnv, identDef : TFun)) => {
+                  val recursiveWalk =
+                    new FreeValsWalk(program, Some(identVar),
+                                     // We want to pass the same
+                                     // environment here. We are interested
+                                     // in the variables that are not in
+                                     // the local environment after all.
+                                     functionEnv, visited)
+
+                  recursiveWalk(otherEnv, identDef)
+                  freeValsSet ++= (recursiveWalk.freeValsSet)
+                }
+                case Some((_, valdec : TVal)) =>
+                  // In this case, add to the variable to the set.
+                  freeValsSet +=
+                    ((TExpIdent(identVar),
+                      env.getNoSubstituteOrFail(identVar)))
+                case None =>
+                  freeValsSet +=
+                    ((TExpIdent(identVar), env.getNoSubstituteOrFail(identVar)))
+                  // Add the variable to the free vals set
+                  // on its own.  We used to throw here,
+                  // but that is incorrect, as a function passed
+                  // as an argument has no declaration.
+                  //
+                  // If there are a lot of silenced errors due to this, a
+                  // check of where the unfound definition was declared
+                  // is a sensible idea.
               }
             }
           }
