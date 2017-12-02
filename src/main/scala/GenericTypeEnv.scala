@@ -47,7 +47,7 @@ abstract class GenericTypeEnv[TypeEnvClass <: GenericTypeEnv[TypeEnvClass,
    * bound.  If the type if found, return true.  Otherwise, return
    * false.  */
   def hasTypeBetweenExclusive(bound: TypeEnvClass, id: From): Boolean =
-    if (bound == this) {
+    if (!envInHierarchy(bound) || bound == this) {
       false
     } else {
       innermostHasType(id) || (parent match {
@@ -58,18 +58,28 @@ abstract class GenericTypeEnv[TypeEnvClass <: GenericTypeEnv[TypeEnvClass,
         })
     }
 
-    def hasTypeBetweenInclusive(bound: TypeEnvClass, id: From):  Boolean =
-      if (bound == this) {
-        innermostHasType(id)
-      } else {
-        innermostHasType(id) || (parent match {
-          case Some(parentEnv) => parentEnv.hasTypeBetweenInclusive(bound, id)
-          case None =>
-            throw new ICE("""Error: Parent type env did not appear in the
-              |hierarchy""".stripMargin)
-        })
-      }
+  def hasTypeBetweenInclusive(bound: TypeEnvClass, id: From):  Boolean =
+    if (!envInHierarchy(bound)) {
+      false
+    } else if (bound == this) {
+      innermostHasType(id)
+    } else {
+      innermostHasType(id) || (parent match {
+        case Some(parentEnv) => parentEnv.hasTypeBetweenInclusive(bound, id)
+        case None =>
+          throw new ICE("""Error: Parent type env did not appear in the
+            |hierarchy""".stripMargin)
+      })
+    }
 
+  /* This returns true if one of the parent environments or this envrionment
+   * is equal to the passed environment.  False otherwise.  */
+  def envInHierarchy(env: TypeEnvClass): Boolean = {
+    (env == this) || (parent match {
+      case None => false
+      case Some(parent) => parent.envInHierarchy(env)
+    })
+  }
   /* This call is always safe by the assertion made in the constructor.  */
   def getSelf: TypeEnvClass = this.asInstanceOf[TypeEnvClass]
 
