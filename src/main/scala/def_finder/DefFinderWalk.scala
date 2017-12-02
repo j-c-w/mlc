@@ -25,12 +25,13 @@ class DefFinderWalk(ident: TNamedIdent)
       } else {
         super.apply(env, dec)
       }
-    case TVal(name, rhs) =>
-      if (name == ident) {
+    case TVal(name, rhs) => {
+      if (name.getDeclaredIdents.contains(ident)) {
         Some((env, dec))
       } else {
         super.apply(env, dec)
       }
+    }
     case TJavaFun(name, rhs, jEnv) =>
       if (name == ident) {
         Some((env, dec))
