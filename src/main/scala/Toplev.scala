@@ -14,6 +14,7 @@ import lambda_lift.LambdaLift
 import lambda_lift.LambdaLiftVerify
 import lower_program.LowerProgram
 import lower_program.LowerProgramVerify
+import lower_variables.LowerVariablesPass
 
 object Toplev extends App {
   val cli = new Arguments(args)
@@ -52,4 +53,6 @@ object Toplev extends App {
   // Optimizations on TIR+Assigns
 
   // Lower TIR+Assigns into byteR
+  val numberedProgram = LowerVariablesPass.execute(lowered_program,
+                                                   cli.dumpNumberedProgram)
 }

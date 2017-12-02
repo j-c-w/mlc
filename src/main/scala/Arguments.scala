@@ -25,6 +25,7 @@ class Arguments(arguments: Seq[String]) {
     val dumpTir = opt[Boolean]()
     val dumpLambdaLift = opt[Boolean]()
     val dumpLowerProgram = opt[Boolean]()
+    val dumpNumberedProgram = opt[Boolean]()
 
     verify()
   }
@@ -54,4 +55,6 @@ class Arguments(arguments: Seq[String]) {
     parser.dumpLambdaLift() || parser.dumpAll()
   val dumpLowerProgram =
     parser.dumpLowerProgram() || parser.dumpAll()
+  val dumpNumberedProgram =
+    parser.dumpNumberedProgram() || parser.dumpAll()
 }
