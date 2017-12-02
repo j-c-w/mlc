@@ -3,7 +3,7 @@ package lambda_lift
 import ast_change_names.FunctionNameGenerator
 import change_names.ChangeIdentNames
 import exceptions.ICE
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.{HashMap,HashSet}
 import tir._
 import tpass.TTypeEnvUpdateParentPass
 import typecheck.VariableGenerator
@@ -148,11 +148,20 @@ class LambdaLiftWalk(val program: TProgram)
         // in f end)
         //
         // Note that the ordering of addition to the valdecs is extremely
-        // important here.
+        // important here.  The idea is that we should insert
+        // the new function at the first  point after all the prerequisites
+        // for the function have been declared.  This can be done
+        // by keeping track of the variables we need and removing them
+        // as we come across the decs.
+        val freeIdentsList = freeValsTuple.elems map {
+          case TExpIdent(ident: TNamedIdent) => ident
+          case _ => throw new ICE("Expected a TNamedIdent")
+        }
+        valdecs = insertIntoList(valdecs, newVal, freeIdentsList)
+
         //
         // Further, it is important that we do not walk the fundecs at this
         // point.
-        valdecs = valdecs :+ newVal
         let.decs = valdecs
         let.exp = exp
 
@@ -276,6 +285,27 @@ class LambdaLiftWalk(val program: TProgram)
     program.funs = newFunction :: program.funs
 
     (freeValsExpTuple, freeValsType)
+  }
+
+  /* This is a backwards walk on the valdecs list.
+   *
+   * Start by walking the list from the back.  When we run into a
+   * variable needed in the environment of newVal, then we stop and
+   * insert the new val there.
+   */
+  def insertIntoList(valdecs: List[TVal], newVal: TVal,
+                     freeVariables: List[TNamedIdent]) = {
+    val freeVariablesSet = new HashSet[TNamedIdent]()
+    freeVariables.foreach(freeVariablesSet.+=(_))
+    var front = List[TVal]()
+    var tail = valdecs.reverse
+
+    val (before, after) = tail.span {
+      _.ident.getDeclaredIdents.forall(!freeVariablesSet.contains(_))
+    }
+
+    // Then rebuild the list:
+    (before ++ List(newVal) ++ after).reverse
   }
 
   override def apply(env: TTypeEnv, p: TProgram): Unit = {
