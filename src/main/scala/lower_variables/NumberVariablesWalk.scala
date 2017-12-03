@@ -27,6 +27,17 @@ class NumberVariablesWalk() extends TParentSetPass[Unit] {
       // Update the valdecs:
       funLet.valdecs = new HashSet[TNamedIdent]()
       funLet.valdecs ++= newIdents
+
+      // Walk the expression for variables.
+      funLet.exp = getNew(exp, apply(u, exp))
+      None
+    }
+    // Override these cases so that we do not attempt to number
+    // the type identifier in the function.
+    case app @ TExpFunApp(fun, appExp, typ) => {
+      app.funname = getNew(fun, apply(u, fun))
+      app.application = getNew(appExp, apply(u, appExp))
+
       None
     }
     case other => super.apply(u, other)

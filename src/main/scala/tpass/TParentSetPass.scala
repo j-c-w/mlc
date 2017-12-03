@@ -148,7 +148,7 @@ class TParentSetPass[T] {
         val newExpression = apply(item, expression)
 
         newIdent.map(ident =>
-            assign.ident = ident.asInstanceOf[TTopLevelIdent])
+            assign.ident = ident.asInstanceOf[TNamedIdent])
         newExpression.map(exp => assign.expression = exp)
       }
       case head @ TExpListHead(list) => {
