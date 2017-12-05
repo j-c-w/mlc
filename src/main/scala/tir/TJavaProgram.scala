@@ -1,5 +1,6 @@
 package tir
 
+import scala.collection.mutable.Set
 import toplev.GenericPrintable
 
 /* This type of program is introduced after after the program_lower
@@ -8,14 +9,19 @@ import toplev.GenericPrintable
  * function used for a main function.  */
 
 case class TJavaProgram(var typeEnv: TTypeEnv, var main: TJavaFun,
+                        var topLevelVariables: Set[TTopLevelIdent],
                         var functions: List[TJavaFun])
     extends TTree {
   def prettyPrint = """
+%s
+
 Main: %s
 
 %s
-  """.format(main.prettyPrint, functions.map(_.prettyPrint).mkString("\n\n"))
+  """.format(topLevelVariables.map(_.prettyPrint).mkString("\n"), 
+             main.prettyPrint, functions.map(_.prettyPrint).mkString("\n\n"))
 
   def nodeClone: TJavaProgram =
-    new TJavaProgram(typeEnv, main.nodeClone, functions.map(_.nodeClone))
+    new TJavaProgram(typeEnv, main.nodeClone, topLevelVariables,
+                     functions.map(_.nodeClone))
 }

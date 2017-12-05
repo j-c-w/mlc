@@ -1,15 +1,27 @@
 package lower_program
 
+import exceptions.ICE
+import scala.collection.mutable.{HashSet,Set}
 import tir._
 import toplev.Pass
 import tpass.TPass
 import typecheck.VariableGenerator
-import scala.collection.mutable.{HashSet,Set}
 
 object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
   def generateMain(vals: List[TVal], parentEnv: TTypeEnv) = {
     val rowEnv = new TTypeEnv(Some(parentEnv))
     val letEnv = new TTypeEnv(Some(rowEnv))
+
+    val valNames = new HashSet[TTopLevelIdent]()
+    vals.foreach {
+      case TVal(ident @ TTopLevelIdent(_), _) => valNames.add(ident)
+      case TVal(ident @ TIdentTuple(_), _) =>
+        ident.getDeclaredIdents.foreach((x: TNamedIdent) =>
+          valNames.add(x.asInstanceOf[TTopLevelIdent]))
+      case TVal(TUnderscoreIdent(), _) =>
+      case other => throw new ICE("""Top level val dec without
+        |a TTopLevelIdent identifier type""".stripMargin)
+    }
 
     val functionIdent = VariableGenerator.newTVariable()
 
@@ -21,7 +33,7 @@ object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
 
     val pattern = TExpMatchRow(List(TPatIdentifier(TUnitIdent())),
                                valsExpression, rowEnv)
-    lowerFun(TFun(functionIdent, List(pattern)), parentEnv)
+    (lowerFun(TFun(functionIdent, List(pattern)), parentEnv), valNames)
   }
 
   def lowerFun(fun: TFun, parent: TTypeEnv) = {
@@ -116,12 +128,12 @@ object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
   }
 
   def run(tree: TProgram) = {
-    val mainFunction = generateMain(tree.vals, tree.typeEnv)
+    val (mainFunction, valDecs) = generateMain(tree.vals, tree.typeEnv)
 
     tree.typeEnv.add(mainFunction.name,
                      TFunctionType(TUnitType(), TUnitType()), false)
 
-    new TJavaProgram(tree.typeEnv, mainFunction,
+    new TJavaProgram(tree.typeEnv, mainFunction, valDecs,
                      tree.funs.map(lowerFun(_, tree.typeEnv)))
   }
 }
