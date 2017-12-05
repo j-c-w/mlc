@@ -17,7 +17,7 @@ object ASTChangeNames
       val newExpression = changeNames(map, expression)
       val newIdentifiers = changeNamesInsert(map, ident)
 
-      ASTValBind(newIdentifiers.asInstanceOf[ASTIdentTuple], newExpression)
+      ASTValBind(newIdentifiers.asInstanceOf[ASTIdent], newExpression)
     }
     case ASTFunBind(cases) => {
       // The identifier should be inserted in the parent.

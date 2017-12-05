@@ -20,6 +20,15 @@ case class ASTLongIdent(val id: List[ASTIdent]) extends ASTIdent {
 
 case class ASTIdentTuple(val ids: List[ASTIdent]) extends ASTIdent {
   def prettyPrint = (ids map (_.prettyPrint)) mkString(", ")
+
+  def flatten: ASTIdent =
+    if (ids.length == 1)
+      ids(0) match {
+        case tuple: ASTIdentTuple => tuple.flatten
+        case other => other
+      }
+    else
+      this
 }
 
 case class ASTUnderscoreIdent() extends ASTIdent {

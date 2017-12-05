@@ -11,4 +11,4 @@ val x =
 
 (* We check that the function has two arguments, one of which
 * has been generated. *)
-(* t-scan-times-1: fun TopLevel_@[a-z]+#y\s*\(%[a-z]+\)\s*@[a-z]+#x : lambda_lift *)
+(* t-scan-times-1: fun TopLevel_@[a-z]+#y\s*%[a-z]+\s*@[a-z]+#x : lambda_lift *)

@@ -5,4 +5,4 @@ fun f x =
   in y + x end
 
 (* t-scan-not: let : lower_program *)
-(* t-scan-times-4: Assign: lower_program *)
+(* t-scan-times-3: Assign: lower_program *)

@@ -9,7 +9,7 @@ sealed trait ASTDeclaration extends GenericPrintable {
   def getIdent: ASTIdent
 }
 
-case class ASTValBind(val ident: ASTIdentTuple, val expression: ASTExp)
+case class ASTValBind(val ident: ASTIdent, val expression: ASTExp)
     extends ASTDeclaration {
   def prettyPrint = """
 

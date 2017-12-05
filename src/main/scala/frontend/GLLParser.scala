@@ -606,7 +606,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
       // Restricted as special characters may not appear
       // Refactor:
     valIDs ~ "=" ~ exp  ^^ {
-        case (id ~ _ ~ exp) => ASTValBind(id, exp) }
+        case (id ~ _ ~ exp) => ASTValBind(id.flatten, exp) }
       // Omitted pat = exp and valbind
       // Omitted rec valbind
   )
@@ -619,7 +619,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   lazy val restrictedIDList: Parser[ASTIdentTuple] = (
       "(" ~ restrictedIDList ~ ")" ~ "," ~ restrictedIDList ^^ {
             case (_ ~ innerTuple ~ _ ~ _ ~ ASTIdentTuple(rest)) =>
-              ASTIdentTuple(innerTuple :: rest)
+              ASTIdentTuple(innerTuple.flatten :: rest)
       }
       | "(" ~> restrictedIDList <~ ")"             ^^ { case (innerTuple) =>
               ASTIdentTuple(List(innerTuple))
