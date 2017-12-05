@@ -115,12 +115,12 @@ case class TExpAssign(var ident: TNamedIdent, var expression: TExp)
     new TExpAssign(ident.nodeClone, expression.nodeClone)
 }
 
-case class TExpListHead(var list: TExp) extends TExp {
+case class TExpListHead(var list: TExp, var tyVar: TIdentVar) extends TExp {
   def prettyPrint =
     "Head(%s)".format(list.prettyPrint)
 
   def nodeClone =
-    new TExpListHead(list.nodeClone)
+    new TExpListHead(list.nodeClone, tyVar.nodeClone)
 }
 
 case class TExpListTail(var list: TExp) extends TExp {
@@ -131,20 +131,23 @@ case class TExpListTail(var list: TExp) extends TExp {
     new TExpListTail(list.nodeClone)
 }
 
-case class TExpTupleExtract(var tuple: TExp, var index: Int) extends TExp {
+case class TExpTupleExtract(var tuple: TExp, var tupleSize: Int,
+                            var index: Int, var tyVar: TIdentVar)
+    extends TExp {
   def prettyPrint =
     "(%s)._%s".format(tuple.prettyPrint, index)
 
   def nodeClone =
-    new TExpTupleExtract(tuple.nodeClone, index)
+    new TExpTupleExtract(tuple.nodeClone, index, tupleSize, tyVar.nodeClone)
 }
 
-case class TExpListExtract(var list: TExp, var index: Int) extends TExp {
+case class TExpListExtract(var list: TExp, var index: Int,
+                           var tyVar: TIdentVar) extends TExp {
   def prettyPrint =
     "(%s)[%s]".format(list.prettyPrint, index)
 
   def nodeClone =
-    new TExpListExtract(list.nodeClone, index)
+    new TExpListExtract(list.nodeClone, index, tyVar.nodeClone)
 }
 
 case class TExpListLength(var list: TExp) extends TExp {

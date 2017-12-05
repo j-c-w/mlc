@@ -46,10 +46,17 @@ object AssignmentGeneration {
                       TExpConst(TConstTrue()))),
          localIdents)
       }
-      case TIdentTuple(subIdents) => {
+      // If the tuple is of length 1, then get rid of it here.
+      case TIdentTuple(subIdents) => if (subIdents.length == 1) {
+        convertToAssignNodeIdent(parentIdent, subIdents(0), typeEnv)
+      } else {
         unpackList(subIdents, (index => {
-                      (TExpTupleExtract(TExpIdent(parentIdent), index),
-                       typeEnv.compoundTypeOf(subIdents(index)))
+                      val itemType = typeEnv.compoundTypeOf(subIdents(index))
+                      val id = VariableGenerator.newTVariable()
+                      typeEnv.add(id, itemType, false)
+                      (TExpTupleExtract(TExpIdent(parentIdent), index,
+                                        subIdents.length, id),
+                       itemType)
                    }),
                    convertToAssignNodeIdent, typeEnv)
       }
@@ -112,8 +119,12 @@ object AssignmentGeneration {
         // checking, we do not have to insert any  checks here.
         unpackList(elems,
                    (index => {
-                     (TExpTupleExtract(TExpIdent(parentIdent), index),
-                      elemsTypesList(index))
+                     val itemType = elemsTypesList(index)
+                     val id = VariableGenerator.newTVariable()
+                     typeEnv.add(id, itemType, false)
+                     (TExpTupleExtract(TExpIdent(parentIdent), index,
+                                       elems.length, id),
+                      itemType)
                    }),
                    convertToAssignNodePat, typeEnv)
       }
@@ -129,7 +140,9 @@ object AssignmentGeneration {
         val (assignExprs, idents) =
           unpackList(listElems,
                      (index => {
-                       (TExpListExtract(TExpIdent(parentIdent), index),
+                       val id = VariableGenerator.newTVariable()
+                       typeEnv.add(id, rawType, false)
+                       (TExpListExtract(TExpIdent(parentIdent), index, id),
                         rawType)
                      }),
                      convertToAssignNodePat, typeEnv)
@@ -171,6 +184,7 @@ object AssignmentGeneration {
         // Do the same thing for the head and the tail:
         val headIdent = VariableGenerator.newTVariable()
         val tailIdent = VariableGenerator.newTVariable()
+        val listTyIdent = VariableGenerator.newTVariable()
 
         // Insert these types into the environment:
         val rawType = typeEnv.getOrFail(parentIdent) match {
@@ -182,9 +196,11 @@ object AssignmentGeneration {
 
         typeEnv.add(headIdent, rawType, false)
         typeEnv.add(tailIdent, TListType(rawType), false)
+        typeEnv.add(listTyIdent, rawType, false)
 
         val headExpression =
-          TExpAssign(headIdent, TExpListHead(TExpIdent(parentIdent)))
+          TExpAssign(headIdent,
+                     TExpListHead(TExpIdent(parentIdent), listTyIdent))
         val tailExpression =
           TExpAssign(tailIdent, TExpListTail(TExpIdent(parentIdent)))
 

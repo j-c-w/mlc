@@ -32,19 +32,17 @@ class NumberVariablesWalk() extends TParentSetPass[Unit] {
       funLet.exp = getNew(exp, apply(u, exp))
       None
     }
-    // Override these cases so that we do not attempt to number
-    // the type identifier in the function.
-    case app @ TExpFunApp(fun, appExp, typ) => {
-      app.funname = getNew(fun, apply(u, fun))
-      app.application = getNew(appExp, apply(u, appExp))
-
-      None
-    }
     case other => super.apply(u, other)
   }
 
   override def apply(u: Unit, ident: TIdent) = ident match {
-    case ident @ TIdentVar(name) => Some(variableMap(ident))
+    case ident @ TIdentVar(name) => {
+      if (variableMap.contains(ident)) {
+        Some(variableMap(ident))
+      } else {
+        None
+      }
+    }
     case other => super.apply(u, other)
   }
 

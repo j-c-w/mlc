@@ -80,14 +80,14 @@ trait TPass[T, U] {
               apply(item, typ))
     case TExpAssign(ident, expression) =>
       combine(apply(item, ident), apply(item, expression))
-    case TExpListHead(list) =>
-      apply(item, list)
+    case TExpListHead(list, typ) =>
+      combine(apply(item, list), apply(item, typ))
     case TExpListTail(list) =>
       apply(item, list)
-    case TExpTupleExtract(tuple, index) =>
-      apply(item, tuple)
-    case TExpListExtract(list, index) =>
-      apply(item, list)
+    case TExpTupleExtract(tuple, index, size, typ) =>
+      combine(apply(item, tuple), apply(item, typ))
+    case TExpListExtract(list, index, typ) =>
+      combine(apply(item, list), apply(item, typ))
     case TExpListLength(list) =>
       apply(item, list)
     case TExpFunLet(idents, expression) =>

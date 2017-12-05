@@ -151,25 +151,31 @@ class TParentSetPass[T] {
             assign.ident = ident.asInstanceOf[TNamedIdent])
         newExpression.map(exp => assign.expression = exp)
       }
-      case head @ TExpListHead(list) => {
+      case head @ TExpListHead(list, typ) => {
         val newList = apply(item, list)
+        val newTyp = apply(item, typ)
 
         head.list = getNew(list, newList)
+        head.tyVar = getNew(typ, newTyp.map(_.asInstanceOf[TIdentVar]))
       }
       case tail @ TExpListTail(list) => {
         val newList = apply(item, list)
 
         tail.list = getNew(list, newList)
       }
-      case tupleExtract @ TExpTupleExtract(tuple, index) => {
+      case tupleExtract @ TExpTupleExtract(tuple, index, size, typ) => {
         val newTuple = apply(item, tuple)
+        val newTyp = apply(item, typ)
 
         tupleExtract.tuple = getNew(tuple, newTuple)
+        tupleExtract.tyVar = getNew(typ, newTyp.map(_.asInstanceOf[TIdentVar]))
       }
-      case listExtract @ TExpListExtract(list, index) => {
+      case listExtract @ TExpListExtract(list, index, typ) => {
         val newList = apply(item, list)
+        val newTyp = apply(item, typ)
 
         listExtract.list = getNew(list, newList)
+        listExtract.tyVar = getNew(typ, newTyp.map(_.asInstanceOf[TIdentVar]))
       }
       case listLength @ TExpListLength(list) => {
         val newList = apply(item, list)
