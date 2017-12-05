@@ -43,6 +43,14 @@ case class TIdentVar(var name: String) extends TNamedIdent {
     new TIdentVar(new String(name))
 }
 
+// This is a class for representing type tags on nodes.
+case class TInternalIdentVar(var name: String) extends TNamedIdent {
+  def prettyPrint = "Internal_" + name
+
+  def nodeClone =
+    new TInternalIdentVar(new String(name))
+}
+
 case class TIdentLongVar(var name: List[String]) extends TNamedIdent {
   def prettyPrint = name.mkString(".")
 

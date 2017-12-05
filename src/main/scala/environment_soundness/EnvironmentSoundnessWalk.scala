@@ -11,6 +11,7 @@ object EnvironmentSoundnessWalk extends TTypeEnvUnitPass {
       case  TTopLevelIdent(_)
           | TIdentVar(_)
           | TNumberedIdentVar(_, _)
+          | TInternalIdentVar(_)
           | TArgumentNode(_, _) =>
         if (!env.hasType(variable)) {
           throw new ICE("""Error: Variable %s is not typed by the envrionment""".

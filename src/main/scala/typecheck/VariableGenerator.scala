@@ -1,7 +1,7 @@
 package typecheck
 
-import frontend.ASTIdentVar
-import tir.{TIdentVar,TTopLevelIdent}
+import frontend.{ASTIdentVar,ASTInternalIdent}
+import tir.{TIdentVar,TTopLevelIdent,TInternalIdentVar}
 
 object VariableGenerator {
   private var number: Int = 0
@@ -12,10 +12,22 @@ object VariableGenerator {
     ASTIdentVar(getStringFor(number))
   }
 
+  def newInternalVariable(): ASTInternalIdent = {
+    number += 1
+
+    ASTInternalIdent(getStringFor(number))
+  }
+
   def newTVariable(): TIdentVar = {
     number += 1
 
     TIdentVar(getStringFor(number))
+  }
+
+  def newTInternalVariable(): TInternalIdentVar = {
+    number += 1
+
+    TInternalIdentVar(getStringFor(number))
   }
 
   def newTTopLevelVariable(): TTopLevelIdent = {

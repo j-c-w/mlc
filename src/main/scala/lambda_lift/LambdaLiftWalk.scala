@@ -83,7 +83,7 @@ class LambdaLiftWalk(val program: TProgram)
 
             // we must add the call type to the top level environment here.
             val callType = TFunctionType(freeValsType, oldFunctionType)
-            val callTypeIdent = VariableGenerator.newTVariable()
+            val callTypeIdent = VariableGenerator.newTInternalVariable()
 
             letEnv.add(callTypeIdent, callType, false)
             letEnv.add(valdecName, oldFunctionType, false)
@@ -190,7 +190,7 @@ class LambdaLiftWalk(val program: TProgram)
 
       // Create a new type variable reference for the introduced function
       // application.
-      val applicationIdent = VariableGenerator.newTVariable()
+      val applicationIdent = VariableGenerator.newTInternalVariable()
 
       env.add(applicationIdent,
               TFunctionType(freeValsType, oldFunctionType), false)

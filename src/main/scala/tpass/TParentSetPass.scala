@@ -73,20 +73,11 @@ class TParentSetPass[T] {
 
         val callTypeRes = apply(item, callType)
 
-        funRes match {
-          case None =>
-          case Some(newFunRes) => app.funname = newFunRes
-        }
-
-        applicationRes match {
-          case None =>
-          case Some(newApplication) => app.application = newApplication
-        }
-
-        callTypeRes match {
-          case None =>
-          case Some(newCallType) => app.callType = newCallType
-        }
+        app.funname = getNew(app.funname, funRes)
+        app.application = getNew(app.application, applicationRes)
+        app.callType =
+          getNew(app.callType,
+                 callTypeRes.map(_.asInstanceOf[TInternalIdentVar]))
       }
       case expTuple @ TExpTuple(tuple) => {
         val newTuples = tuple.map(apply(item, _))
@@ -123,7 +114,8 @@ class TParentSetPass[T] {
                                 (x: TExp) => x.asInstanceOf[TExpMatchRow])
 
 
-        typIdentResults.map(typ => caseExpr.applicationType = typ)
+        typIdentResults.map(typ =>
+            caseExpr.applicationType = typ.asInstanceOf[TInternalIdentVar])
         expResult.map(expResult => caseExpr.exp = expResult)
       }
       case matchRow @ TExpMatchRow(pats, exp, env) => {
@@ -138,7 +130,7 @@ class TParentSetPass[T] {
         val newPatterns = patterns.map(apply(item, _))
         val newTyp = apply(item, typ)
 
-        newTyp.map(typ => fnDec.funType = typ)
+        newTyp.map(typ => fnDec.funType = typ.asInstanceOf[TInternalIdentVar])
 
         fnDec.patterns = getNew(patterns, newPatterns,
                                 (x: TExp) => x.asInstanceOf[TExpMatchRow])
@@ -156,7 +148,8 @@ class TParentSetPass[T] {
         val newTyp = apply(item, typ)
 
         head.list = getNew(list, newList)
-        head.tyVar = getNew(typ, newTyp.map(_.asInstanceOf[TIdentVar]))
+        head.tyVar =
+          getNew(typ, newTyp.map(_.asInstanceOf[TInternalIdentVar]))
       }
       case tail @ TExpListTail(list) => {
         val newList = apply(item, list)
@@ -168,14 +161,16 @@ class TParentSetPass[T] {
         val newTyp = apply(item, typ)
 
         tupleExtract.tuple = getNew(tuple, newTuple)
-        tupleExtract.tyVar = getNew(typ, newTyp.map(_.asInstanceOf[TIdentVar]))
+        tupleExtract.tyVar =
+          getNew(typ, newTyp.map(_.asInstanceOf[TInternalIdentVar]))
       }
       case listExtract @ TExpListExtract(list, index, typ) => {
         val newList = apply(item, list)
         val newTyp = apply(item, typ)
 
         listExtract.list = getNew(list, newList)
-        listExtract.tyVar = getNew(typ, newTyp.map(_.asInstanceOf[TIdentVar]))
+        listExtract.tyVar =
+          getNew(typ, newTyp.map(_.asInstanceOf[TInternalIdentVar]))
       }
       case listLength @ TExpListLength(list) => {
         val newList = apply(item, list)

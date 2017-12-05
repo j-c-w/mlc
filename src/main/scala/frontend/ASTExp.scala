@@ -42,7 +42,7 @@ case class ASTExpFunApp(val fun: ASTExp, val app: ASTExp) extends ASTExp {
   // It is a pointer in the local environment.
   // For example, if this is +(1,  2), then the type becomes
   // (int * int) -> int.
-  var callType: Option[ASTIdent] = None
+  var callType: Option[ASTInternalIdent] = None
 }
 
 object ASTExpInfixApp {
@@ -70,14 +70,14 @@ case class ASTExpInfixApp(val operator: ASTInfixIdent, val operand1: ASTExp,
   def prettyPrint = operand1.prettyPrint + " " + operator.prettyPrint + " " + 
       operand2.prettyPrint
 
-  var callType: Option[ASTIdent] = None
+  var callType: Option[ASTInternalIdent] = None
 }
 
 case class ASTExpUnOpApply(val operator: ASTUnOp, val operand: ASTExp)
     extends ASTExp {
   def prettyPrint = operator.prettyPrint + " (" + operand.prettyPrint + ")"
 
-  var callType: Option[ASTIdent] = None
+  var callType: Option[ASTInternalIdent] = None
 }
 
 
@@ -115,7 +115,7 @@ case class ASTExpTyped(val exp: ASTExp, val typ: ASTType) extends ASTExp {
 
 case class ASTExpIfThenElse(val cond: ASTExp, val taken: ASTExp,
                             val notTaken: ASTExp) extends ASTExp {
-  var branchType: Option[ASTIdentVar] = None
+  var branchType: Option[ASTInternalIdent] = None
 
   def prettyPrint = """
   ( if %s then
@@ -129,7 +129,7 @@ case class ASTExpCase(val exp: ASTExp, val caseList: List[ASTExpMatchRow])
     extends ASTExp {
   // This stores the type of the case expression as if it were a function.
   // (i.e. (typeof(exp)) -> (typeof(caseList)))
-  var applicationType: Option[ASTIdent] = None
+  var applicationType: Option[ASTInternalIdent] = None
 
   def prettyPrint = """ ( match %s with %s ) """.format(exp.prettyPrint,
         (caseList map (_.prettyPrint)).mkString("\n| "))
@@ -145,7 +145,7 @@ case class ASTExpMatchRow(val pat: List[ASTPat], val exp: ASTExp)
 }
 
 case class ASTExpFn(val body: List[ASTExpMatchRow]) extends ASTExp {
-  var funType: Option[ASTIdent] = None
+  var funType: Option[ASTInternalIdent] = None
 
   def prettyPrint = """(fn %s)""".format((body map (_.prettyPrint)).
       mkString("\n| "))

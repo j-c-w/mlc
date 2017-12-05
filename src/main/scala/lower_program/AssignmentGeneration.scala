@@ -52,7 +52,7 @@ object AssignmentGeneration {
       } else {
         unpackList(subIdents, (index => {
                       val itemType = typeEnv.compoundTypeOf(subIdents(index))
-                      val id = VariableGenerator.newTVariable()
+                      val id = VariableGenerator.newTInternalVariable()
                       typeEnv.add(id, itemType, false)
                       (TExpTupleExtract(TExpIdent(parentIdent),
                                         subIdents.length, index, id),
@@ -120,7 +120,7 @@ object AssignmentGeneration {
         unpackList(elems,
                    (index => {
                      val itemType = elemsTypesList(index)
-                     val id = VariableGenerator.newTVariable()
+                     val id = VariableGenerator.newTInternalVariable()
                      typeEnv.add(id, itemType, false)
                      (TExpTupleExtract(TExpIdent(parentIdent), elems.length,
                                        index, id),
@@ -140,14 +140,14 @@ object AssignmentGeneration {
         val (assignExprs, idents) =
           unpackList(listElems,
                      (index => {
-                       val id = VariableGenerator.newTVariable()
+                       val id = VariableGenerator.newTInternalVariable()
                        typeEnv.add(id, rawType, false)
                        (TExpListExtract(TExpIdent(parentIdent), index, id),
                         rawType)
                      }),
                      convertToAssignNodePat, typeEnv)
 
-        val comparisonType = VariableGenerator.newTVariable()
+        val comparisonType = VariableGenerator.newTInternalVariable()
 
         // Insert the comparison type into the type environment
         typeEnv.add(comparisonType,
@@ -184,7 +184,7 @@ object AssignmentGeneration {
         // Do the same thing for the head and the tail:
         val headIdent = VariableGenerator.newTVariable()
         val tailIdent = VariableGenerator.newTVariable()
-        val listTyIdent = VariableGenerator.newTVariable()
+        val listTyIdent = VariableGenerator.newTInternalVariable()
 
         // Insert these types into the environment:
         val rawType = typeEnv.getOrFail(parentIdent) match {
@@ -211,7 +211,7 @@ object AssignmentGeneration {
           convertToAssignNodePat(tailIdent, tail, typeEnv)
 
         // Add the type of the function call to the environment.
-        val intCompareTypeID = VariableGenerator.newTVariable()
+        val intCompareTypeID = VariableGenerator.newTInternalVariable()
         val intCompareType =
           TFunctionType(TTupleType(List(TIntType(), TIntType())),
                         TBoolType())
@@ -283,7 +283,7 @@ object AssignmentGeneration {
       TBoolType())
     expr.foldRight(TExpConst(TConstTrue()): TExp) {
       case (nextExp, currentExp) => {
-        val boolFunctionTypeID = VariableGenerator.newTVariable()
+        val boolFunctionTypeID = VariableGenerator.newTInternalVariable()
         val boolFunctionType =
           TFunctionType(TTupleType(List(TBoolType(), TBoolType())),
                         TBoolType())

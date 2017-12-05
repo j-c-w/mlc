@@ -141,7 +141,7 @@ class FunCallUpdateWalk(val funID: TNamedIdent, val newParams: TExp,
       case ident : TNamedIdent => if (ident == funID) {
         // We must add the call type to the top level environment here.
         val callType = TFunctionType(newParamsType, oldFunctionType)
-        val callTypeIdent = VariableGenerator.newTVariable()
+        val callTypeIdent = VariableGenerator.newTInternalVariable()
 
         env.addTopLevel(callTypeIdent, callType, false)
 

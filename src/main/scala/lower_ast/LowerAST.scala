@@ -65,6 +65,10 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
     (funDecs.reverse, valDecs.reverse)
   }
 
+  def lowerASTInternal(ident: ASTInternalIdent,
+                       env: ASTTypeEnv): TInternalIdentVar =
+    new TInternalIdentVar(ident.id)
+
   def lowerAST(ident: ASTIdent, env: ASTTypeEnv): TIdent =
     lowerAST(ident, env, None)
   /* Some, but not all of the identifiers require function type
@@ -75,7 +79,7 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
   def lowerAST(ident: ASTIdent, env: ASTTypeEnv,
                typ: Option[ASTIdent]): TIdent =
     ident match {
-      case ident @ ASTIdentVar(id) => 
+      case ident @ ASTIdentVar(id) =>
         // If the variable is a top level identifer, then
         // we need to mark it as being one here.  Otherwise,
         // we may return a normal TIdentVar
@@ -84,10 +88,11 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
         } else {
           TIdentVar(id)
         }
-      case ASTLongIdent(ids) => TIdentLongVar(ids.map{
+      case ASTInternalIdent(id) => TInternalIdentVar(id)
+      case ASTLongIdent(ids) => TIdentLongVar(ids.map {
         case ASTIdentVar(name) => name
         case id @ _ => throw new ICE("""ASTLongIdent contains non-ASTIdentVar
-          type %s""".format(id.prettyPrint))
+          |type %s""".stripMargin.format(id.prettyPrint))
       })
       case ASTIdentTuple(subIdents) =>
         TIdentTuple(subIdents.map(lowerAST(_, env)))
@@ -266,7 +271,7 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
       }
 
       val appIdent = lowerAST(app, env)
-      val newType = lowerAST(funApp.callType.get, env)
+      val newType = lowerASTInternal(funApp.callType.get, env)
 
       TExpFunApp(funIdent, appIdent, newType)
     }
@@ -275,7 +280,7 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
       val newOperand1 = lowerAST(operand1, env)
       val newOperand2 = lowerAST(operand2, env)
 
-      val newIdent = lowerAST(app.callType.get, env)
+      val newIdent = lowerASTInternal(app.callType.get, env)
 
       TExpFunApp(TExpIdent(newFunIdent),
                  TExpTuple(List(newOperand1, newOperand2)), newIdent)
@@ -284,7 +289,7 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
       val newFunIdent =
         TExpIdent(lowerAST(operator, env, Some(app.callType.get)))
       val newOperand = lowerAST(operand, env)
-      val newIdent = lowerAST(app.callType.get, env)
+      val newIdent = lowerASTInternal(app.callType.get, env)
 
       TExpFunApp(newFunIdent, newOperand, newIdent)
     }
@@ -324,7 +329,7 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
 
       // Since this is an if, we know that the expression has type
       // boolean.
-      val boolTypeRef = VariableGenerator.newTVariable()
+      val boolTypeRef = VariableGenerator.newTInternalVariable()
       loweredEnv.add(boolTypeRef,
                      lowerAST(ASTFunctionType(ASTBoolType(),
                                               env.getOrFail(
@@ -337,13 +342,13 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
     }
     case stmt @ ASTExpCase(exp, cases) =>
       TExpCase(lowerAST(exp, env), cases.map(lowerMatchRowAST(_, env)),
-               lowerAST(stmt.applicationType.get, env))
+               lowerASTInternal(stmt.applicationType.get, env))
     case row @ ASTExpMatchRow(pattern, expr) =>
       TExpMatchRow(pattern.map(lowerAST(_, env)), lowerAST(expr, env),
                    lowerEnv(row.env.get))
     case expFn @ ASTExpFn(body) =>
       TExpFn(body.map(lowerMatchRowAST(_, env)),
-             lowerAST(expFn.funType.get, env))
+             lowerASTInternal(expFn.funType.get, env))
   }
 
   /* This is a separate function because match rows are not really

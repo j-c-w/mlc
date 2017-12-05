@@ -219,7 +219,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         //
         // This is a safe case as the unification of a fun type with
         // something must be a fun type
-        val callTypeVariable = VariableGenerator.newVariable()
+        val callTypeVariable = VariableGenerator.newInternalVariable()
         application.callType = Some(callTypeVariable)
 
         // Then, so that the type of the call can actually be accessed,
@@ -379,7 +379,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
             but failed to""".format(trueType, falseType))
 
         // We need to add the type of the result to the environment.
-        val branchTypeID = VariableGenerator.newVariable()
+        val branchTypeID = VariableGenerator.newInternalVariable()
         env.add(branchTypeID, mgu(trueType), false)
         ifThenElse.branchType = Some(branchTypeID)
 
@@ -422,7 +422,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         }
 
         // Add that type to the environment under a new name.
-        val funTypeIdentifier = VariableGenerator.newVariable()
+        val funTypeIdentifier = VariableGenerator.newInternalVariable()
 
         env.add(funTypeIdentifier,
                 // For safety, we assert here that this is indeed

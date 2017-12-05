@@ -26,7 +26,7 @@ case class TExpIdent(var ident: TIdent) extends TExp {
 }
 
 case class TExpFunApp(var funname: TExp, var application: TExp,
-                      var callType: TIdent) extends TExp {
+                      var callType: TInternalIdentVar) extends TExp {
   def prettyPrint =
     "(" + funname.prettyPrint + ") (" + application.prettyPrint + ")"
 
@@ -75,7 +75,7 @@ case class TExpLetIn(var decs: List[TDec], var exp: TExp, var env: TTypeEnv)
 // Note that application type is a function type here, with
 // type from exp -> cases.
 case class TExpCase(var exp: TExp, var cases: List[TExpMatchRow],
-                    var applicationType: TIdent)
+                    var applicationType: TInternalIdentVar)
     extends TExp {
   def prettyPrint = """
   |match %s with
@@ -97,7 +97,8 @@ case class TExpMatchRow(var pat: List[TPat], var exp: TExp, var env: TTypeEnv)
 }
 
 /* This is removed from the tree during the lambda lifting pass.  */
-case class TExpFn(var patterns: List[TExpMatchRow], var funType: TIdent)
+case class TExpFn(var patterns: List[TExpMatchRow],
+                  var funType: TInternalIdentVar)
     extends TExp {
   def prettyPrint = "(fn " + patterns.map(_.prettyPrint).mkString("\n|") + ")"
 
@@ -115,7 +116,8 @@ case class TExpAssign(var ident: TNamedIdent, var expression: TExp)
     new TExpAssign(ident.nodeClone, expression.nodeClone)
 }
 
-case class TExpListHead(var list: TExp, var tyVar: TIdentVar) extends TExp {
+case class TExpListHead(var list: TExp, var tyVar: TInternalIdentVar)
+    extends TExp {
   def prettyPrint =
     "Head(%s)".format(list.prettyPrint)
 
@@ -132,7 +134,7 @@ case class TExpListTail(var list: TExp) extends TExp {
 }
 
 case class TExpTupleExtract(var tuple: TExp, var tupleSize: Int,
-                            var index: Int, var tyVar: TIdentVar)
+                            var index: Int, var tyVar: TInternalIdentVar)
     extends TExp {
   def prettyPrint =
     "(%s)._%s".format(tuple.prettyPrint, index)
@@ -142,7 +144,7 @@ case class TExpTupleExtract(var tuple: TExp, var tupleSize: Int,
 }
 
 case class TExpListExtract(var list: TExp, var index: Int,
-                           var tyVar: TIdentVar) extends TExp {
+                           var tyVar: TInternalIdentVar) extends TExp {
   def prettyPrint =
     "(%s)[%s]".format(list.prettyPrint, index)
 

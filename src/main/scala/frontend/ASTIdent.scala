@@ -14,6 +14,10 @@ case class ASTIdentVar(val id: String) extends ASTIdent {
   def prettyPrint = id
 }
 
+case class ASTInternalIdent(val id: String) extends ASTIdent {
+  def prettyPrint = "Internal_" + id
+}
+
 case class ASTLongIdent(val id: List[ASTIdent]) extends ASTIdent {
   def prettyPrint = (id map (_.prettyPrint)) mkString(".")
 }
