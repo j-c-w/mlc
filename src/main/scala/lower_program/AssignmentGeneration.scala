@@ -54,8 +54,8 @@ object AssignmentGeneration {
                       val itemType = typeEnv.compoundTypeOf(subIdents(index))
                       val id = VariableGenerator.newTVariable()
                       typeEnv.add(id, itemType, false)
-                      (TExpTupleExtract(TExpIdent(parentIdent), index,
-                                        subIdents.length, id),
+                      (TExpTupleExtract(TExpIdent(parentIdent),
+                                        subIdents.length, index, id),
                        itemType)
                    }),
                    convertToAssignNodeIdent, typeEnv)
@@ -122,8 +122,8 @@ object AssignmentGeneration {
                      val itemType = elemsTypesList(index)
                      val id = VariableGenerator.newTVariable()
                      typeEnv.add(id, itemType, false)
-                     (TExpTupleExtract(TExpIdent(parentIdent), index,
-                                       elems.length, id),
+                     (TExpTupleExtract(TExpIdent(parentIdent), elems.length,
+                                       index, id),
                       itemType)
                    }),
                    convertToAssignNodePat, typeEnv)

@@ -5,5 +5,5 @@ val x = case (4, 5) of
  | (_, y) => 3
 
 (* Also scan for a tuple extraction *)
-(* t-scan: \._0 : lower_program *)
-(* t-scan: \._1 : lower_program *)
+(* t-scan-times-2: \._0 : lower_program *)
+(* t-scan-times-2: \._1 : lower_program *)
