@@ -10,7 +10,7 @@ import typecheck.VariableGenerator
 
 class LambdaLiftWalk(val program: TProgram)
     extends TTypeEnvUpdateParentPass {
-  var newToplevelFunctions = List[TFun]()
+  var newTopLevelFunctions = List[TFun]()
 
   // This is to keep the list of variables that should be uniqueified once
   // this pass is finished.
@@ -74,100 +74,121 @@ class LambdaLiftWalk(val program: TProgram)
                 |ident var""".stripMargin)
             }
 
-            val (freeValsTuple, freeValsType) =
-              insertFunctionFor(newName, Some(oldName), fun.patterns,
-                                letEnv, oldName)
+            insertFunctionFor(newName, Some(oldName), fun.patterns,
+                              letEnv, oldName) match {
+              case Some((freeValsTuple, freeValsType)) => {
+                // create a new valdec name:
+                val valdecName = VariableGenerator.newTVariable()
 
-            // create a new valdec name:
-            val valdecName = VariableGenerator.newTVariable()
+                // we must add the call type to the top level environment here.
+                val callType = TFunctionType(freeValsType, oldFunctionType)
+                val callTypeIdent = VariableGenerator.newTInternalVariable()
 
-            // we must add the call type to the top level environment here.
-            val callType = TFunctionType(freeValsType, oldFunctionType)
-            val callTypeIdent = VariableGenerator.newTInternalVariable()
+                letEnv.add(callTypeIdent, callType, false)
+                letEnv.add(valdecName, oldFunctionType, false)
 
-            letEnv.add(callTypeIdent, callType, false)
-            letEnv.add(valdecName, oldFunctionType, false)
+                // We need to update the function itself, which is the only
+                // other place this could be used.
+                //
+                // The uses of the function are updated below.
+                fun.name = newName
 
-            // We need to update the function itself, which is the only
-            // other place this could be used.
-            //
-            // The uses of the function are updated below.
-            fun.name = newName
+                // There are two sections to the update:
+                //    - First, we do the update of other functions.  These will
+                //      be lifted, so need to refer to the top level fundec.
+                //
+                //    - Second, we do the valdecs and the expression of the
+                //      let.  These refer to the new valdec.
+                //
+                //  Fist part:
+                // Before we replace any recursive applications, we need to
+                // replace the names with the new name.
+                val nameUpdaterMap =
+                  new HashMap[TNamedIdent, (TNamedIdent, TType)]()
+                nameUpdaterMap(oldName) = (fun.name, callType)
+                // Replace any recursive applications with the curried
+                // arguments.
+                val callUpdater =
+                  new FunCallUpdateWalk(fun.name, freeValsTuple, freeValsType,
+                                        oldFunctionType, env)
+                // We walk the function lists in this manner.
+                //
+                // Note that this is OK to do as the functions are in
+                // order.  So, any function that calls this functions
+                // has yet to be lambda lifted.
+                fundecs.foreach {
+                  ChangeIdentNames.newNamesFor(nameUpdaterMap, _, letEnv)
+                }
+                fundecs.foreach(callUpdater((), _))
 
-            // There are two sections to the update:
-            //    - First, we do the update of other functions.  These will
-            //      be lifted, so need to refer to the top level fundec.
-            //
-            //    - Second, we do the valdecs and the expression of the let.
-            //      These refer to the new valdec.
-            //
-            //  Fist part:
-            // Before we replace any recursive applications, we need to replace
-            // the names with the new name.
-            val nameUpdaterMap =
-              new HashMap[TNamedIdent, (TNamedIdent, TType)]()
-            nameUpdaterMap(oldName) = (fun.name, callType)
-            // Replace any recursive applications with the curried arguments.
-            val callUpdater =
-              new FunCallUpdateWalk(fun.name, freeValsTuple, freeValsType,
-                                    oldFunctionType, env)
-            // We walk the function lists in this manner.
-            //
-            // Note that this is OK to do as the functions are in
-            // order.  So, any function that calls this functions
-            // has yet to be lambda lifted.
-            fundecs.foreach {
-              ChangeIdentNames.newNamesFor(nameUpdaterMap, _, letEnv)
+                // We also have to walk the top level functions as nested
+                // function declarations (that have been recursively lifted)
+                // may have referenced this function.  This is an extremely
+                // inefficient way of doing this, if this is too slow we can
+                // pass the previously lifted functions up the tree for
+                // walking.
+                newTopLevelFunctions.foreach {
+                  ChangeIdentNames.newNamesFor(nameUpdaterMap, _,
+                                               program.typeEnv)
+                }
+                newTopLevelFunctions.foreach(callUpdater((), _))
+
+                // Second part (replace names within the valdecs):
+                val newVal =
+                  TVal(valdecName,
+                       TExpFunApp(TExpIdent(fun.name),
+                                  freeValsTuple.nodeClone, callTypeIdent))
+
+                // replace all uses of the function with uses of the new
+                // valdec.
+                val functionReplacementMap =
+                  new HashMap[TNamedIdent, (TNamedIdent, TType)]()
+                functionReplacementMap(oldName) =
+                  (valdecName, oldFunctionType)
+
+                // Update the let structure so that the changes
+                // propagate back into it. (Resolving a previous bug
+                // with:
+                // let val x = 1; fun f () = x
+                // in f end)
+                //
+                // Note that the ordering of addition to the valdecs is
+                // extremely important here.  The idea is that we should insert
+                // the new function at the first  point after all the
+                // prerequisites for the function have been declared.  This can
+                // be done by keeping track of the variables we need and
+                // removing them as we come across the decs.
+                val freeIdentsList = freeValsTuple match {
+                  case TExpTuple(elems) => elems map {
+                    case TExpIdent(ident: TNamedIdent) => ident
+                    case _ => throw new ICE("Expected a TNamedIdent")
+                  }
+                  case TExpIdent(ident: TNamedIdent) => List(ident)
+                  case other => throw new ICE("""Expected a TNamedIdent,
+                    |instead found %s""".stripMargin.format(other.prettyPrint))
+                }
+                valdecs = insertIntoList(valdecs, newVal, freeIdentsList)
+
+                //
+                // Further, it is important that we do not walk the fundecs at
+                // this point.
+                val tempLet = TExpLetIn(valdecs, let.exp, letEnv)
+
+                ChangeIdentNames.newNamesFor(functionReplacementMap, let,
+                                             letEnv)
+              }
+              case None => {
+                // In this case, there were no free variables to introduce,
+                // so we can just change the names of the references
+                // to the function.
+                val functionReplacementMap =
+                  new HashMap[TNamedIdent, (TNamedIdent, TType)]()
+                functionReplacementMap(oldName) = (newName, oldFunctionType)
+
+                ChangeIdentNames.newNamesFor(functionReplacementMap, let,
+                                             letEnv)
+              }
             }
-            fundecs.foreach(callUpdater((), _))
-
-            // We also have to walk the top level functions as nested
-            // function declarations (that have been recursively lifted)
-            // may have referenced this function.  This is an extremely
-            // inefficient way of doing this, if this is too slow we can
-            // pass the previously lifted functions up the tree for walking.
-            newToplevelFunctions.foreach {
-              ChangeIdentNames.newNamesFor(nameUpdaterMap, _, program.typeEnv)
-            }
-            newToplevelFunctions.foreach(callUpdater((), _))
-
-            // Second part (replace names within the valdecs):
-            val newVal =
-              TVal(valdecName,
-                   TExpFunApp(TExpIdent(fun.name),
-                              freeValsTuple.nodeClone, callTypeIdent))
-
-            // replace all uses of the function with uses of the new
-            // valdec.
-            val functionReplacementMap =
-              new HashMap[TNamedIdent, (TNamedIdent, TType)]()
-            functionReplacementMap(oldName) =
-              (valdecName, oldFunctionType)
-
-            // Update the let structure so that the changes
-            // propagate back into it. (Resolving a previous bug
-            // with:
-            // let val x = 1; fun f () = x
-            // in f end)
-            //
-            // Note that the ordering of addition to the valdecs is extremely
-            // important here.  The idea is that we should insert
-            // the new function at the first  point after all the prerequisites
-            // for the function have been declared.  This can be done
-            // by keeping track of the variables we need and removing them
-            // as we come across the decs.
-            val freeIdentsList = freeValsTuple.elems map {
-              case TExpIdent(ident: TNamedIdent) => ident
-              case _ => throw new ICE("Expected a TNamedIdent")
-            }
-            valdecs = insertIntoList(valdecs, newVal, freeIdentsList)
-
-            //
-            // Further, it is important that we do not walk the fundecs at this
-            // point.
-            val tempLet = TExpLetIn(valdecs, let.exp, letEnv)
-
-            ChangeIdentNames.newNamesFor(functionReplacementMap, let, letEnv)
           }
           case TVal(_, _) => // Do nothing
         }
@@ -185,19 +206,25 @@ class LambdaLiftWalk(val program: TProgram)
       // for this.
       val newName = TTopLevelIdent(FunctionNameGenerator.newAnonymousName())
 
-      val (freeValsTuple, freeValsType) =
-        insertFunctionFor(newName, None, patterns, env, typIdent)
+      insertFunctionFor(newName, None, patterns, env, typIdent) match {
+        case Some((freeValsTuple, freeValsType)) => {
+          // Create a new type variable reference for the introduced function
+          // application.
+          val applicationIdent = VariableGenerator.newTInternalVariable()
 
-      // Create a new type variable reference for the introduced function
-      // application.
-      val applicationIdent = VariableGenerator.newTInternalVariable()
+          env.add(applicationIdent,
+                  TFunctionType(freeValsType, oldFunctionType), false)
 
-      env.add(applicationIdent,
-              TFunctionType(freeValsType, oldFunctionType), false)
-
-      // The only use of this funciton is where it is declared.
-      // Update that use.
-      Some(TExpFunApp(TExpIdent(newName), freeValsTuple, applicationIdent))
+          // The only use of this funciton is where it is declared.
+          // Update that use.
+          Some(TExpFunApp(TExpIdent(newName), freeValsTuple, applicationIdent))
+        }
+        case None => {
+          // There were no free variables so the function call does not
+          // have to be added. Simply return a reference to the new name.
+          Some(TExpIdent(newName))
+        }
+      }
     }
     case _ => super.apply(env, exp)
   }
@@ -232,61 +259,77 @@ class LambdaLiftWalk(val program: TProgram)
     val freeValsList =
       FreeValsWalk(program, oldName, program.typeEnv, patterns)
 
-    // In addition to the above two, we need a plain list of the free
-    // val types, a plain list of the freeVal names, and
-    // the freeVals tuple as a single expression.
-    val freeValsNamesList = freeValsList.map {
-      case (TExpIdent(TIdentVar(name)), _) => TIdentVar(name)
-      case _ => throw new ICE("""Error: Found a non-tident var in the list of
-        free variables""")
-    }
-    val freeValsTypesList = freeValsList.map {
-      case (_, typ) => typ
-    }
-    val freeValsPatList = freeValsNamesList.map(new TPatVariable(_))
-    val freeValsType = new TTupleType(freeValsTypesList)
-    val freeValsPatTuple = new TPatSeq(freeValsPatList)
-    val freeValsExpTuple =
-      new TExpTuple(freeValsNamesList.map(new TExpIdent(_)))
-
-    // Add these new variables and types (that will need to be uniqueified)
-    // to the map for uniqueification:
-    introducedVariables(newName) = (freeValsNamesList, freeValsTypesList)
-
-    // And remove the old function type
+    // Remove the old function type
     val oldFunctionType = innerEnv.getNoSubstituteOrFail(typeEnvName)
     innerEnv.remove(typeEnvName)
 
-    // Add to the top level environment.
-    val newFunctionType = new TFunctionType(freeValsType, oldFunctionType)
-    program.typeEnv.add(newName, newFunctionType, true)
+    if (freeValsList.length > 0) {
+      // In addition to the above two, we need a plain list of the free
+      // val types, a plain list of the freeVal names, and
+      // the freeVals tuple as a single expression.
+      val freeValsNamesList = freeValsList.map {
+        case (TExpIdent(TIdentVar(name)), _) => TIdentVar(name)
+        case _ => throw new ICE("""Error: Found a non-tident var in the list of
+          free variables""")
+      }
+      val freeValsTypesList = freeValsList.map {
+        case (_, typ) => typ
+      }
+      val freeValsPatList = freeValsNamesList.map(new TPatVariable(_))
+      val freeValsType = new TTupleType(freeValsTypesList).flatten
+      val freeValsPatTuple = new TPatSeq(freeValsPatList).flatten
+      val freeValsExpTuple =
+        new TExpTuple(freeValsNamesList.map(new TExpIdent(_))).flatten
 
-    // Adjust the patterns to take the new arguments:
-    updatedPatterns.foreach {
-      case matchRow @ TExpMatchRow(pattern, exp, env) => {
-        // Update the patterns appropriately here:
-        matchRow.pat = freeValsPatTuple :: matchRow.pat
+      // Add these new variables and types (that will need to be uniqueified)
+      // to the map for uniqueification:
+      introducedVariables(newName) = (freeValsNamesList, freeValsTypesList)
 
-        // And also update the matchRow environment:
-        freeValsList.map {
-          case (TExpIdent(freeVal), typ: TType) => {
-            env.add(freeVal, typ, false)
+      // Add to the top level environment.
+      val newFunctionType = new TFunctionType(freeValsType, oldFunctionType)
+      program.typeEnv.add(newName, newFunctionType, true)
+
+      // Adjust the patterns to take the new arguments:
+      updatedPatterns.foreach {
+        case matchRow @ TExpMatchRow(pattern, exp, env) => {
+          // Update the patterns appropriately here:
+          matchRow.pat = freeValsPatTuple :: matchRow.pat
+
+          // And also update the matchRow environment:
+          freeValsList.map {
+            case (TExpIdent(freeVal), typ: TType) => {
+              env.add(freeVal, typ, false)
+            }
           }
         }
       }
+      // Actually make the new function call:
+      val newFunction = TFun(newName, updatedPatterns)
+
+      // Add this function to the top level. This is for certain parts of this
+      // function that work only on the new functions.
+      newTopLevelFunctions = newFunction :: newTopLevelFunctions
+      // While this is to build up the new program.  It is also accumulated
+      // here for the sake of the dec finder.
+      program.funs = newFunction :: program.funs
+
+      Some(freeValsExpTuple, freeValsType)
+    } else {
+      // Add to the top level environment.
+      program.typeEnv.add(newName, oldFunctionType, true)
+
+      // Insert some empty lists into the introduced variables
+      // set since there were no variables introduced.
+      introducedVariables(newName) = (List(), List())
+
+      // There are no free variables in the function, so we can just
+      // add it straight to the top level.
+      val newFunction = TFun(newName, patterns)
+      newTopLevelFunctions = newFunction :: newTopLevelFunctions
+      program.funs = newFunction :: program.funs
+
+      None
     }
-
-    // Actually make the new function call:
-    val newFunction = TFun(newName, updatedPatterns)
-
-    // Add this function to the top level. This is for certain parts of this
-    // function that work only on the new functions.
-    newToplevelFunctions = newFunction :: newToplevelFunctions
-    // While this is to build up the new program.  It is also accumulated
-    // here for the sake of the dec finder.
-    program.funs = newFunction :: program.funs
-
-    (freeValsExpTuple, freeValsType)
   }
 
   /* This is a backwards walk on the valdecs list.

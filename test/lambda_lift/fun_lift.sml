@@ -6,10 +6,6 @@ val x =
     y
   end
 
-(* We expect the function to leave the 'let' and a new 'val'
-* right next to each other *)
-(* t-scan-times-1: let\s*val : lambda_lift *)
-
 (* We check that there has been a new top level identifier introduced
 * by the lambda lift pass. *)
 

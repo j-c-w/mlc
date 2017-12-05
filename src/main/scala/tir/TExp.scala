@@ -34,11 +34,21 @@ case class TExpFunApp(var funname: TExp, var application: TExp,
     new TExpFunApp(funname.nodeClone, application.nodeClone, callType.nodeClone)
 }
 
-case class TExpTuple(var elems: List[TExp]) extends TExp {
+case class TExpTuple(var elems: List[TExp])
+    extends TExp with TFlattenable[TExp] {
   def prettyPrint = "(" + elems.map(_.prettyPrint).mkString(", ") + ")"
 
   def nodeClone =
     new TExpTuple(elems.map(_.nodeClone))
+
+  def flatten =
+    if (elems.length == 1)
+      elems(0) match {
+        case flattenable: TFlattenable[TExp] => flattenable.flatten
+        case other => other
+      }
+    else
+      this
 }
 
 case class TExpList(var elems: List[TExp]) extends TExp {
@@ -48,11 +58,19 @@ case class TExpList(var elems: List[TExp]) extends TExp {
     new TExpList(elems.map(_.nodeClone))
 }
 
-case class TExpSeq(var seq: List[TExp]) extends TExp {
+case class TExpSeq(var seq: List[TExp]) extends TExp with TFlattenable[TExp] {
   def prettyPrint = "(" + seq.map(_.prettyPrint).mkString(";\n") + ")"
 
   def nodeClone =
     new TExpSeq(seq.map(_.nodeClone))
+
+  def flatten = if (seq.length == 1)
+      seq(0) match {
+        case flattenable: TFlattenable[TExp] => flattenable.flatten
+        case other => other
+      }
+    else
+      this
 }
 
 case class TExpLetIn(var decs: List[TDec], var exp: TExp, var env: TTypeEnv)

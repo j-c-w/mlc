@@ -39,7 +39,8 @@ case class TFunctionType(var argType: TType, var resType: TType)
     "(%s -> %s)".format(argType.prettyPrint, resType.prettyPrint)
 }
 
-case class TTupleType(var subTypes: List[TType]) extends TType {
+case class TTupleType(var subTypes: List[TType])
+    extends TType with TFlattenable[TType] {
   def getTypeVars() = {
     val emptySet: GenericTypeSet[TType] = new TTypeSet()
 
@@ -54,6 +55,14 @@ case class TTupleType(var subTypes: List[TType]) extends TType {
   def atomicClone = throw new ICE("Error: TTupleType is not atmoic")
 
   def prettyPrint = "(" + subTypes.map(_.prettyPrint).mkString(", ") + ")"
+
+  def flatten = if (subTypes.length == 1)
+    subTypes(0) match {
+      case flattenable: TFlattenable[TType] => flattenable.flatten
+      case other => other
+    }
+  else
+    this
 }
 
 case class TEqualityTypeVar(var name: String) extends TType {

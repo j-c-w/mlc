@@ -25,10 +25,18 @@ case class TPatIdentifier(var identifier: TIdent) extends TPat {
   def nodeClone = new TPatIdentifier(identifier.nodeClone)
 }
 
-case class TPatSeq(var seq: List[TPat]) extends TPat {
+case class TPatSeq(var seq: List[TPat]) extends TPat with TFlattenable[TPat] {
   def prettyPrint = "(" + seq.map(_.prettyPrint).mkString(", ") + ")"
 
   def nodeClone = new TPatSeq(seq.map(_.nodeClone))
+
+  def flatten = if (seq.length == 1)
+    seq(0) match {
+      case flattenable: TFlattenable[TPat] => flattenable.flatten
+      case other => other
+    }
+  else
+    this
 }
 
 case class TListPat(var listElems: List[TPat]) extends TPat {

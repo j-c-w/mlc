@@ -5,7 +5,7 @@ import environment_soundness.EnvironmentSoundnessWalk
 import scala.collection.mutable.{HashSet,Set}
 import tir._
 import toplev.OptionalPass
-import tpass.{TPass,TUnitPass}
+import tpass._
 
 /* This is a pass that can be used in testing to ensure
  * that the lower_program has done what it said it would.
@@ -24,7 +24,7 @@ object LowerProgramVerify
     NoLetsWalk.apply((), tree)
 
     // Now check that every variable is in a FunLet.
-    (new FunLetsIntegrityWalk()).apply((), tree)
+    (new FunLetsIntegrityWalk()).apply(tree.typeEnv, tree)
 
     // Finally, check that every variable is assigned to before
     // it is used.
@@ -38,54 +38,92 @@ object LowerProgramVerify
 object NoLetsWalk extends TUnitPass {
   override def apply(u: Unit, expr: TExp) = expr match {
     case TExpLetIn(_, _, _) => throw new ICE("""NoLetsWalk failed. Expected
-      |all lets to be removed after the LowerProgram pass, but this 
+      |all lets to be removed after the LowerProgram pass, but this
       |has not happened. Let was:
       |%s""".stripMargin.format(expr.prettyPrint))
     case _ => super.apply(u, expr)
   }
 }
 
-class FunLetsIntegrityWalk extends TUnitPass {
+class FunLetsIntegrityWalk extends TTypeEnvUnitPass {
   val variablesInLets: Set[TNamedIdent] = new HashSet[TNamedIdent]()
 
-
-  override def apply(u: Unit, program: TJavaProgram) = {
+  override def apply(env: TTypeEnv, program: TJavaProgram) = {
     // Add all the functions first.
     (program.main :: program.functions).foreach {
       case TJavaFun(ident, exprs, env) => variablesInLets += ident
     }
 
-    apply(u, program.main)
-    program.functions.foreach(apply(u, _))
+    apply(program.typeEnv, program.main)
+    program.functions.foreach(apply(program.typeEnv, _))
   }
 
-  override def apply(u: Unit, ident: TIdent) = ident match {
-    case identVar @ TIdentVar(name) =>
-      if (!variablesInLets.contains(identVar)) {
-        throw new ICE("""Error, variable %s was not declared
-          |in any let binding""".stripMargin.format(identVar))
+  override def apply(typeEnv: TTypeEnv, ident: TIdent) = ident match {
+    case namedIdent: TNamedIdent => {
+      namedIdent match {
+        case identVar @ TIdentVar(name) => {
+          if (!variablesInLets.contains(identVar)) {
+            throw new ICE("""Error, variable %s was not declared
+              |in any let binding""".stripMargin.format(identVar))
+          }
+        }
+        case _ =>
       }
-    case other => super.apply(u, other)
+
+      // Also check that the type of the identifier within the environment
+      // is OK.  We may avoid checking whether the type is in the environment
+      // since that is the task of the environment_soundness walk.
+      //
+      // LongIdentifiers might not be in the typeEnvironment at this
+      // point.
+      if (typeEnv.hasType(namedIdent))
+        typeEnv.getOrFail(namedIdent) match {
+          case TTupleType(subTypes) =>
+            if (subTypes.length == 0 || subTypes.length == 1) {
+              throw new ICE("""Found a variable with tuple type of size
+              |%s.  This should not have happened.
+              |""".stripMargin.format(subTypes.length))
+            }
+          case other =>
+        }
+    }
+    case TIdentTuple(subIdents) =>
+      throw new ICE("""Error: Expected all ident tuples to be removed by
+        |the lower_program pass""".stripMargin)
+    case other => super.apply(typeEnv, other)
   }
-  
-  override def apply(u: Unit, exp: TExp) = exp match {
+
+  override def apply(typeEnv: TTypeEnv, exp: TExp) = exp match {
     case TExpFunLet(decs, exp) => {
       variablesInLets ++= decs
 
-      apply(u, exp)
+      apply(typeEnv, exp)
+    }
+    case TExpTuple(elems) => {
+      if (elems.size <= 1) {
+        throw new ICE("""Error: Expected Lower Program to have removed
+          |all the nearly empty tuples.  Instead, found a tuple of length
+          |%s""".stripMargin.format(elems.size.toString))
+      }
     }
     case TExpFunApp(exp, app, typ) => {
       // We do not walk the typ here.
-      apply(u, exp)
-      apply(u, app)
+      apply(typeEnv, exp)
+      apply(typeEnv, app)
     }
-    case other => super.apply(u, other)
+    case TExpListHead(exp, typ) =>
+      apply(typeEnv, exp)
+    case TExpTupleExtract(exp, index, size, typ) =>
+      apply(typeEnv, exp)
+    case TExpListExtract(exp, index, typ) =>
+      apply(typeEnv, exp)
+    case other => super.apply(typeEnv, other)
   }
 
-  override def apply(u: Unit, dec: TDec) = dec match {
+  override def apply(typeEnv: TTypeEnv, dec: TDec) = dec match {
     case TJavaFun(name, rhs, env) =>
-      apply(u, rhs)
-    case _ => super.apply(u, dec)
+      apply(env, rhs)
+    case _ => super.apply(typeEnv, dec)
   }
 }
 
