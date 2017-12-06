@@ -172,6 +172,7 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
                 case ASTTupleType(List(ASTRealType(), _)) => TRealEqualsIdent()
                 case ASTTupleType(List(ASTStringType(), _)) =>
                   TStringEqualsIdent()
+                case ASTTupleType(List(ASTBoolType(), _)) => TBoolEqualsIdent()
                 case _ => TGenericEqualsIdent()
               }
             case ASTUnOpNegate() =>

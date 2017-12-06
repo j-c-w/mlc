@@ -169,7 +169,7 @@ case class TIntModIdent() extends BuiltinIdent {
 
 case class TStringCatIdent() extends BuiltinIdent {
   def prettyPrint = " ^s "
-  
+
   def nodeClone = new TStringCatIdent()
 }
 
@@ -250,7 +250,7 @@ case class TStringGTIdent() extends BuiltinIdent {
  */
 case class TGenericEqualsIdent() extends BuiltinIdent {
   def prettyPrint = " =gen "
-  
+
   def nodeClone = new TGenericEqualsIdent()
 }
 
@@ -272,6 +272,11 @@ case class TStringEqualsIdent() extends BuiltinIdent {
   def nodeClone = new TStringEqualsIdent()
 }
 
+case class TBoolEqualsIdent() extends BuiltinIdent {
+  def prettyPrint = " =b "
+
+  def nodeClone = new TBoolEqualsIdent()
+}
 
 case class TAnd() extends BuiltinIdent {
   def prettyPrint = " andalso "
