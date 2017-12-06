@@ -36,6 +36,10 @@ case class TExpFunApp(var funname: TExp, var application: TExp,
 
 case class TExpTuple(var elems: List[TExp])
     extends TExp with TFlattenable[TExp] {
+  // There are lots of other checks for singleton tuples.  If single tuples are needed
+  // temporarily, it would not be a huge loss to delete this.
+  assert(elems.length > 1)
+
   def prettyPrint = "(" + elems.map(_.prettyPrint).mkString(", ") + ")"
 
   def nodeClone =
@@ -48,7 +52,10 @@ case class TExpTuple(var elems: List[TExp])
         case other => other
       }
     else
-      this
+      TExpTuple(elems.map {
+        case flattenable: TFlattenable[TExp] => flattenable.flatten
+        case other => other
+      })
 }
 
 case class TExpList(var elems: List[TExp]) extends TExp {
@@ -59,6 +66,7 @@ case class TExpList(var elems: List[TExp]) extends TExp {
 }
 
 case class TExpSeq(var seq: List[TExp]) extends TExp with TFlattenable[TExp] {
+  assert(seq.length > 1)
   def prettyPrint = "(" + seq.map(_.prettyPrint).mkString(";\n") + ")"
 
   def nodeClone =
@@ -70,7 +78,13 @@ case class TExpSeq(var seq: List[TExp]) extends TExp with TFlattenable[TExp] {
         case other => other
       }
     else
-      this
+      TExpSeq((seq.map(recursiveFlatten(_))).flatten)
+
+  private def recursiveFlatten(exp: TExp): List[TExp] = exp match {
+      case TExpSeq(subElems) => subElems.map(recursiveFlatten(_)).flatten
+      case flattenable: TFlattenable[TExp] => List(flattenable.flatten)
+      case other => List(other)
+    }
 }
 
 case class TExpLetIn(var decs: List[TDec], var exp: TExp, var env: TTypeEnv)
@@ -124,7 +138,7 @@ case class TExpFn(var patterns: List[TExpMatchRow],
     new TExpFn(patterns.map(_.nodeClone), funType.nodeClone)
 }
 
-/* These are only used after the flatten_let pass.  */
+/* These are only used after the lower_program pass.  */
 case class TExpAssign(var ident: TNamedIdent, var expression: TExp)
     extends TExp {
   def prettyPrint =
