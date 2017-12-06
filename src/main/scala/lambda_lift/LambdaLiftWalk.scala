@@ -275,11 +275,18 @@ class LambdaLiftWalk(val program: TProgram)
       val freeValsTypesList = freeValsList.map {
         case (_, typ) => typ
       }
+      val freeCount = freeValsList.length
+
       val freeValsPatList = freeValsNamesList.map(new TPatVariable(_))
-      val freeValsType = new TTupleType(freeValsTypesList).flatten
-      val freeValsPatTuple = new TPatSeq(freeValsPatList).flatten
+      val freeValsType = if (freeCount > 1) new TTupleType(freeValsTypesList)
+                         else freeValsTypesList(0)
+      val freeValsPatTuple = if (freeCount > 1) new TPatSeq(freeValsPatList)
+                             else freeValsPatList(0)
       val freeValsExpTuple =
-        new TExpTuple(freeValsNamesList.map(new TExpIdent(_))).flatten
+        if (freeCount > 1)
+          new TExpTuple(freeValsNamesList.map(new TExpIdent(_)))
+        else
+          new TExpIdent(freeValsNamesList(0))
 
       // Add these new variables and types (that will need to be uniqueified)
       // to the map for uniqueification:

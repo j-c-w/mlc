@@ -196,7 +196,7 @@ object AssignmentGeneration {
           funIdent), List())
       }
       case TPatWildcard() =>
-        (TExpSeq(List(TExpConst(TConstTrue()))).flatten, List())
+        (TExpConst(TConstTrue()), List())
       case TPatCons(head, tail) => {
         // The idea is that this is transformed into the if statement:
         //
