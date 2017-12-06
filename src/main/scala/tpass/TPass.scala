@@ -152,8 +152,9 @@ trait TPass[T, U] {
   def apply(item: T, p: TJavaProgram): U = {
     val mainRes = apply(item, p.main)
     val funsRes = p.functions.map(apply(item, _))
+    val identsRes = p.topLevelVariables.toList.map(apply(item, _))
 
-    combine(combineList(funsRes), mainRes)
+    combine(combine(combineList(funsRes), mainRes), combineList(identsRes))
   }
 
   def combineList(list: List[U]): U = 

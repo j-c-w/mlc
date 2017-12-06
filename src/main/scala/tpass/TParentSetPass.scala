@@ -178,11 +178,7 @@ class TParentSetPass[T] {
         listLength.list = getNew(listLength.list, newList)
       }
       case funLet @ TExpFunLet(valdecs, exp) => {
-        // Put the val decs into a list rather than a set to get
-        // consistent ordering throughout the function.
-        val valdecsList = valdecs.toList
-
-        val newVals = valdecsList.map((x: TNamedIdent) => (x, apply(item, x)))
+        val newVals = valdecs.map((x: TNamedIdent) => (x, apply(item, x)))
         val newExp = apply(item, exp)
 
         newVals.foreach {
@@ -343,9 +339,17 @@ class TParentSetPass[T] {
   def apply(item: T, p: TJavaProgram): Unit = {
     val mainRes = apply(item, p.main)
     val funRes = p.functions.map(apply(item, _))
+    val identsResults = p.topLevelVariables.map(x => (x, apply(item, x)))
 
     mainRes.map(main => p.main = main.asInstanceOf[TJavaFun])
     p.functions = getNew(p.functions, funRes,
                          (x: TDec) => x.asInstanceOf[TJavaFun])
+    identsResults.foreach {
+      case (old, None) => // Do nothing
+      case (old, Some(newIdent)) => {
+        p.topLevelVariables.remove(old)
+        p.topLevelVariables += newIdent.asInstanceOf[TTopLevelIdent]
+      }
+    }
   }
 }
