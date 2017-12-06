@@ -41,6 +41,21 @@ object NoLetsWalk extends TUnitPass {
       |all lets to be removed after the LowerProgram pass, but this
       |has not happened. Let was:
       |%s""".stripMargin.format(expr.prettyPrint))
+    // Also check that there are no nested sequences:
+    case seq @ TExpSeq(elems) => {
+      if (elems.length == 1) {
+        throw new ICE("ExpSeq with only one element is not allowed")
+      }
+
+      elems.foreach {
+        case TExpSeq(_) =>
+          throw new ICE("Nested ExpSeq found which is not valid")
+        case _ =>
+      }
+
+      // Then walk the seq normally.
+      super.apply(u, seq)
+    }
     case _ => super.apply(u, expr)
   }
 }

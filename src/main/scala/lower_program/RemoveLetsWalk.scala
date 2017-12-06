@@ -44,9 +44,12 @@ class RemoveLetsWalk(val replacementEnv: TTypeEnv)
 
       newExp match {
         case TExpSeq(subSeq) =>
-          Some(TExpSeq(assignmentExpressions ::: subSeq))
+          Some(TExpSeq(assignmentExpressions ::: subSeq).flatten)
         case _ =>
-          Some(new TExpSeq(assignmentExpressions :+ newExp))
+          if (assignmentExpressions.length > 0)
+            Some(new TExpSeq(assignmentExpressions :+ newExp).flatten)
+          else
+            Some(newExp)
       }
     }
     case caseExp @ TExpCase(exp, patterns, typeID) => {
