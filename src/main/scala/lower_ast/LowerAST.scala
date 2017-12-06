@@ -134,8 +134,8 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
               }
             case ASTTimesIdent() =>
               to match {
-                case ASTIntType() => TIntMinusIdent()
-                case ASTRealType() => TRealMinusIdent()
+                case ASTIntType() => TIntTimesIdent()
+                case ASTRealType() => TRealTimesIdent()
                 case _ => unreachable
               }
             case ASTLEQIdent() =>
