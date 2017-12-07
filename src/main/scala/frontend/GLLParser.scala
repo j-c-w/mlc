@@ -499,9 +499,9 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     // Restructured: (pat) replaced with (patList)
     // Resturctured: Single element patterns are treated on their own
     // since they result in an exponential blowup if they are not.
-    | "(" ~ pat ~ ")" ~ patTail         ^^ {
-          case (_ ~ pat ~ _ ~ patTail) =>
-                   patTail._1(ASTPatSeq(List(pat), patTail._2)) }
+    | "(" ~ pat ~ ")"                   ^^ {
+          case (_ ~ pat ~ _) => pat
+    }
     | "(" ~ patList ~ ")" ~ patTail     ^^ {
           case (_ ~ ASTPatSeq(patList, _) ~ _ ~ patTail) =>
                    patTail._1(ASTPatSeq(patList, patTail._2)) }

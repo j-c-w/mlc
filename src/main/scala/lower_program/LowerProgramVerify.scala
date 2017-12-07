@@ -43,7 +43,7 @@ object NoLetsWalk extends TUnitPass {
       |%s""".stripMargin.format(expr.prettyPrint))
     // Also check that there are no nested sequences:
     case seq @ TExpSeq(elems) => {
-      if (elems.length == 1) {
+      if (elems.length <= 1) {
         throw new ICE("ExpSeq with only one element is not allowed")
       }
 
