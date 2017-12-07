@@ -35,6 +35,14 @@ object LambdaLiftVerify extends OptionalPass[TProgram]("verify")
     case _ => super.apply(u, exp)
   }
 
+  override def apply(u: Unit, dec: TDec) = dec match {
+    case fun @ TFun(name, _) => {
+      assert(name.isInstanceOf[TTopLevelIdent])
+      super.apply(u, fun)
+    }
+    case other => super.apply(u, dec)
+  }
+
   def run(tree: TProgram) = {
     apply((), tree)
     // Also check the soundness of the environment
