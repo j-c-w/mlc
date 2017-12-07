@@ -174,7 +174,7 @@ case class TStringCatIdent() extends BuiltinIdent {
 }
 
 case class TIntLEQIdent() extends BuiltinIdent {
-  def prettyPrint = " =i "
+  def prettyPrint = " <=i "
 
   def nodeClone = new TIntLEQIdent()
 }
