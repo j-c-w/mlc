@@ -20,7 +20,7 @@ case class TFun(var name: TNamedIdent, var patterns: List[TExpMatchRow])
 }
 
 /* This is inserted by the let lowering pass. */
-case class TJavaFun(var name: TNamedIdent,
+case class TJavaFun(var name: TTopLevelIdent,
                     var curriedArgs: List[TInternalIdentVar],
                     var exp: TExpFunLet, env: TTypeEnv)
     extends TDec {

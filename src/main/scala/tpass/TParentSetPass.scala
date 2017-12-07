@@ -322,7 +322,7 @@ class TParentSetPass[T] {
         val curriedArgsResults = curriedArgs.map(apply(item, _))
 
         fundec.name =
-          getNew(ident, newIdent.map(_.asInstanceOf[TNamedIdent]))
+          getNew(ident, newIdent.map(_.asInstanceOf[TTopLevelIdent]))
         fundec.exp = getNew(exp, newExp.map(_.asInstanceOf[TExpFunLet]))
         fundec.curriedArgs =
           getNew(curriedArgs,

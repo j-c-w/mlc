@@ -23,7 +23,7 @@ object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
         |a TTopLevelIdent identifier type""".stripMargin)
     }
 
-    val functionIdent = VariableGenerator.newTVariable()
+    val functionIdent = VariableGenerator.newTTopLevelVariable()
 
     // Also need to add this new function to the type environment.
     val functionType = TFunctionType(TUnitType(), TUnitType())
@@ -59,14 +59,15 @@ object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
 
     val curriedApps =
       getTypeFrom(fun.patterns(0).pat.length, parent.getOrFail(fun.name))
+    val topLevelName = fun.name.asInstanceOf[TTopLevelIdent]
 
     val (representativeExp, newEnv) =
-      lowerPatterns(fun.name, fun.patterns, parent)
-    TJavaFun(fun.name, curriedApps,
+      lowerPatterns(topLevelName, fun.patterns, parent)
+    TJavaFun(topLevelName, curriedApps,
              representativeExp, newEnv)
   }
 
-  def lowerPatterns(name: TNamedIdent, patterns: List[TExpMatchRow],
+  def lowerPatterns(name: TTopLevelIdent, patterns: List[TExpMatchRow],
                     parentEnv: TTypeEnv) = {
     // The first pattern is just to throw. This is inserted
     // as the last 'else' case.

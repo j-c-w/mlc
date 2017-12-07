@@ -60,7 +60,7 @@ case class TIdentLongVar(var name: List[String]) extends TNamedIdent {
 
 /* This class is introduced in the LowerProgram pass.
  * The first argument is to make the node unique.  */
-case class TArgumentNode(var funname: TNamedIdent,
+case class TArgumentNode(var funname: TTopLevelIdent,
                          var argNumber: Int) extends TNamedIdent {
   def prettyPrint = "Argument_" + argNumber
 

@@ -40,7 +40,7 @@ class TTypeEnvUpdateParentPass extends TParentSetPass[TTypeEnv] {
       val curriedArgsResults = curriedArgs.map(apply(env, _))
 
       fundec.name =
-        getNew(name, nameResult.map(_.asInstanceOf[TNamedIdent]))
+        getNew(name, nameResult.map(_.asInstanceOf[TTopLevelIdent]))
       fundec.exp = getNew(exp, expResult.map(_.asInstanceOf[TExpFunLet]))
       fundec.curriedArgs =
         getNew(curriedArgs,
