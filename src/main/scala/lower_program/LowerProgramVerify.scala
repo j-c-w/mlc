@@ -66,7 +66,8 @@ class FunLetsIntegrityWalk extends TTypeEnvUnitPass {
   override def apply(env: TTypeEnv, program: TJavaProgram) = {
     // Add all the functions first.
     (program.main :: program.functions).foreach {
-      case TJavaFun(ident, exprs, env) => variablesInLets += ident
+      case TJavaFun(ident, curriedArgs, exprs, env) =>
+        variablesInLets += ident
     }
 
     apply(program.typeEnv, program.main)
@@ -134,12 +135,6 @@ class FunLetsIntegrityWalk extends TTypeEnvUnitPass {
       apply(typeEnv, exp)
     case other => super.apply(typeEnv, other)
   }
-
-  override def apply(typeEnv: TTypeEnv, dec: TDec) = dec match {
-    case TJavaFun(name, rhs, env) =>
-      apply(env, rhs)
-    case _ => super.apply(typeEnv, dec)
-  }
 }
 
 class AssignIntegrityWalk extends TUnitPass {
@@ -148,7 +143,8 @@ class AssignIntegrityWalk extends TUnitPass {
   override def apply(u: Unit, program: TJavaProgram) = {
     // Add all the functions first.
     (program.main :: program.functions).foreach {
-      case TJavaFun(ident, exprs, env) => assignedVariables += ident
+      case TJavaFun(ident, curriedArgs, exprs, env) =>
+        assignedVariables += ident
     }
 
     apply(u, program.main)
@@ -188,7 +184,7 @@ class AssignIntegrityWalk extends TUnitPass {
   }
 
   override def apply(u: Unit, dec: TDec) = dec match {
-    case TJavaFun(name, rhs, env) => {
+    case TJavaFun(name, curriedArgs, rhs, env) => {
       assignedVariables.add(name)
       apply(u, rhs)
     }

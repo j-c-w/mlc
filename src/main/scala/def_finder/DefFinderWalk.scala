@@ -32,7 +32,7 @@ class DefFinderWalk(ident: TNamedIdent)
         super.apply(env, dec)
       }
     }
-    case TJavaFun(name, rhs, jEnv) =>
+    case TJavaFun(name, curriedArgs, rhs, jEnv) =>
       if (name == ident) {
         Some((env, dec))
       } else {

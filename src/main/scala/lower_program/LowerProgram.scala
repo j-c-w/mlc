@@ -37,9 +37,33 @@ object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
   }
 
   def lowerFun(fun: TFun, parent: TTypeEnv) = {
+    // Get the pattern out of the function to get the type of it out:
+    // This has to be done here, before we throw away the structural
+    // information to avoid running into issues assuming that
+    // f: 'a -> 'b -> 'c
+    // is in fact of the form fun f x y = z (could be
+    // fun f x = fn y => z).
+    def getTypeFrom(patternLength: Int, typ: TType): List[TInternalIdentVar] =
+      (patternLength, typ) match {
+        case (0, other) => List()
+        case (n, TFunctionType(arg, res)) => {
+          val variable = VariableGenerator.newTInternalVariable()
+          parent.add(variable, arg, false)
+
+          variable :: getTypeFrom(patternLength - 1, res)
+        }
+        case other => throw new ICE("""Curried function with %s
+          |more function types in the argument, but no more function types in
+          |the type!""".stripMargin.format(patternLength))
+      }
+
+    val curriedApps =
+      getTypeFrom(fun.patterns(0).pat.length, parent.getOrFail(fun.name))
+
     val (representativeExp, newEnv) =
       lowerPatterns(fun.name, fun.patterns, parent)
-    TJavaFun(fun.name, representativeExp, newEnv)
+    TJavaFun(fun.name, curriedApps,
+             representativeExp, newEnv)
   }
 
   def lowerPatterns(name: TNamedIdent, patterns: List[TExpMatchRow],

@@ -47,7 +47,7 @@ class NumberVariablesWalk() extends TParentSetPass[Unit] {
   }
 
   override def apply(u: Unit, fun: TDec) = fun match {
-    case TJavaFun(name, rhs, env) =>
+    case TJavaFun(name, curriedArgs, rhs, env) =>
       // We do not want to apply this to the function name.
       apply(u, rhs)
       None

@@ -134,11 +134,12 @@ trait TPass[T, U] {
 
       combine(combineList(casesRes), identRes)
     }
-    case TJavaFun(ident, exp, env) => {
+    case TJavaFun(ident, curriedArgs, exp, env) => {
       val identRes = apply(item, ident)
       val casesRes = apply(item, exp)
+      val curriedArgsRes = curriedArgs.map(apply(item, _))
 
-      combine(casesRes, identRes)
+      combine(combine(casesRes, identRes), combineList(curriedArgsRes))
     }
   }
 

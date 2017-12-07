@@ -20,7 +20,9 @@ case class TFun(var name: TNamedIdent, var patterns: List[TExpMatchRow])
 }
 
 /* This is inserted by the let lowering pass. */
-case class TJavaFun(var name: TNamedIdent, var exp: TExpFunLet, env: TTypeEnv)
+case class TJavaFun(var name: TNamedIdent,
+                    var curriedArgs: List[TInternalIdentVar],
+                    var exp: TExpFunLet, env: TTypeEnv)
     extends TDec {
   def prettyPrint = """
   |fun %s =
@@ -29,7 +31,8 @@ case class TJavaFun(var name: TNamedIdent, var exp: TExpFunLet, env: TTypeEnv)
                          exp.prettyPrint)
 
   def nodeClone =
-    new TJavaFun(name.nodeClone, exp.nodeClone, env)
+    new TJavaFun(name.nodeClone, curriedArgs.map(_.nodeClone),
+                 exp.nodeClone, env)
 }
 
 case class TVal(var ident: TIdent, var exp: TExp) extends TDec {

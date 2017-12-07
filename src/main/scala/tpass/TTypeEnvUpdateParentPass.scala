@@ -32,14 +32,20 @@ class TTypeEnvUpdateParentPass extends TParentSetPass[TTypeEnv] {
   }
 
   override def apply(passedEnv: TTypeEnv, dec: TDec) = dec match {
-    case fundec @ TJavaFun(name, exp, env) => {
+    case fundec @ TJavaFun(name, curriedArgs, exp, env) => {
       onTouchEnv(env)
 
       val nameResult = apply(env, name)
       val expResult = apply(env, exp)
+      val curriedArgsResults = curriedArgs.map(apply(env, _))
 
-      fundec.name = getNew(name, nameResult.map(_.asInstanceOf[TIdentVar]))
+      fundec.name =
+        getNew(name, nameResult.map(_.asInstanceOf[TNamedIdent]))
       fundec.exp = getNew(exp, expResult.map(_.asInstanceOf[TExpFunLet]))
+      fundec.curriedArgs =
+        getNew(curriedArgs,
+               curriedArgsResults,
+               (x: TIdent) => (x.asInstanceOf[TInternalIdentVar]))
 
       None
     }

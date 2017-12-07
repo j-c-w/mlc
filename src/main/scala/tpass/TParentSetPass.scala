@@ -316,12 +316,18 @@ class TParentSetPass[T] {
         fundec.patterns = getNew(patterns, newPatterns,
                                  (x: TExp) => x.asInstanceOf[TExpMatchRow])
       }
-      case fundec @ TJavaFun(ident, exp, env) => {
+      case fundec @ TJavaFun(ident, curriedArgs, exp, env) => {
         val newIdent = apply(item, ident)
         val newExp = apply(item, exp)
+        val curriedArgsResults = curriedArgs.map(apply(item, _))
 
-        newIdent.map(ident => fundec.name = ident.asInstanceOf[TNamedIdent])
-        newExp.map(exp => fundec.exp = exp.asInstanceOf[TExpFunLet])
+        fundec.name =
+          getNew(ident, newIdent.map(_.asInstanceOf[TNamedIdent]))
+        fundec.exp = getNew(exp, newExp.map(_.asInstanceOf[TExpFunLet]))
+        fundec.curriedArgs =
+          getNew(curriedArgs,
+                 curriedArgsResults,
+                 (x: TIdent) => (x.asInstanceOf[TInternalIdentVar]))
       }
     }
     None

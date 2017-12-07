@@ -24,9 +24,11 @@ trait TTypeEnvPass[T] extends TPass[TTypeEnv, T] {
   }
 
   override def apply(passedEnv: TTypeEnv, dec: TDec): T = dec match {
-    case TJavaFun(name, exp, env) => {
+    case TJavaFun(name, curriedArgs, exp, env) => {
       onTouchEnv(env)
-      combine(apply(env, name), apply(env, exp))
+      combine(combine(combineList(curriedArgs.map(apply(env, _))),
+                      apply(env, name)),
+              apply(env, exp))
     }
     case other => super.apply(passedEnv, dec)
   }
