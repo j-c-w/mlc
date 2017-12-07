@@ -12,7 +12,7 @@ case class TConstInt(val int: Int) extends TConst {
 
   def nodeClone = new TConstInt(int)
 }
-case class TConstFloat(val float: Double) extends TConst {
+case class TConstFloat(val float: Float) extends TConst {
   def prettyPrint = String.valueOf(float)
 
   def nodeClone = new TConstFloat(float)

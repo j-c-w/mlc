@@ -236,7 +236,7 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
     }
     case ASTConstFloat(bigDecimal) =>
       // We convert floats out of range into infinities.
-      TConstFloat(bigDecimal.doubleValue())
+      TConstFloat(bigDecimal.floatValue())
     case ASTConstString(string) => TConstString(string)
     case ASTConstChar(char) => TConstChar(char)
     case ASTConstTrue() => TConstTrue()
