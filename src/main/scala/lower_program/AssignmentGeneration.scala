@@ -190,8 +190,15 @@ object AssignmentGeneration {
                                   TBoolType()),
                     false)
 
+        val equalsIdent = typeEnv.getOrFail(parentIdent) match {
+          case TBoolType() => TBoolEqualsIdent()
+          case TRealType() => TRealEqualsIdent()
+          case TIntType() => TIntEqualsIdent()
+          case other => TGenericEqualsIdent()
+        }
+
         (TExpFunApp(
-          TExpIdent(TBoolEqualsIdent()),
+          TExpIdent(equalsIdent),
           TExpTuple(List(TExpConst(const), TExpIdent(parentIdent))),
           funIdent), List())
       }
