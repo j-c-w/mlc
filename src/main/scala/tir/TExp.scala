@@ -168,6 +168,9 @@ case class TExpListTail(var list: TExp) extends TExp {
 case class TExpTupleExtract(var tuple: TExp, var tupleSize: Int,
                             var index: Int, var tyVar: TInternalIdentVar)
     extends TExp {
+  assert(tupleSize > 1)
+  assert(index < tupleSize)
+
   def prettyPrint =
     "(%s)._%s".format(tuple.prettyPrint, index)
 
