@@ -39,7 +39,15 @@ echo $(pwd)
 # jarfile being printed.
 sbt clean
 # Note that -f starts counting from 1
-jarfile=$(sbt one-jar | grep "Packaging" | grep "one-jar" | cut -d' ' -f 3)
+sbt_output=$(sbt one-jar)
+
+if [ $(grep "^[error]" <<< "$sbt_output" | wc -l) -ne 0 ]; then
+	# There was a compile error
+	echo "Compiler error"
+	exit 255
+fi
+
+jarfile=$(grep "Packaging" <<< "$sbt_output" | grep "one-jar" | cut -d' ' -f 3)
 
 cd test
 
