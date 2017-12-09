@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Assembler location
-KRAKATAU_DIRECTORY=/usr/local/lib/krakatau
 KRAKATAU_LINK="https://github.com/Storyyeller/Krakatau"
 
 set -e
@@ -29,6 +28,9 @@ if [[ ! "$response" =~ ^(yes|y)$ ]]; then
 	exit 1
 fi
 
+KRAKATAU_DIRECTORY=$LIBRARY_TARGET/krakatau
+KRAKATAU_EXECUTABLE=$KRAKATAU_DIRECTORY/assemble.py
+
 echo "OK! Installing!"
 
 help() {
@@ -53,6 +55,39 @@ Run within the directory it is in.  It will build the compiler.
 install_libraries() {
 	echo "Making the installation directory..."
 	mkdir -p $LIBRARY_TARGET/lib
+
+	echo "Installing krakatau from $KRAKATAU_LINK..."
+
+	krakatau_directory=$LIBRARY_TARGET/krakatau
+	krakatau_executable=$krakatau_directory/assemble.py
+
+	if [ -d $krakatau_directory ]; then
+		echo "Krakatau installation already found. "
+		echo "Cleaning..."
+		rm -rf $krakatau_directory
+		echo "Reinstalling..."
+	fi
+
+	mkdir -p $krakatau_directory
+
+	echo "Cloning..."
+	git clone --depth=1 $KRAKATAU_LINK $krakatau_directory > /dev/null
+	echo "Clone finished..."
+	echo "Checking that executable exists..."
+
+	if [ ! -f "$krakatau_executable" ]; then
+		# Hi! If you found this and are interested in debugging, take a look
+		# at the krakatau project.  There should be an executbale in there
+		# somewhere, that may have moved...  This part of the install script
+		# needs to point to that executable.
+		echo "Error: Expected an executable at "
+		echo "$krakatau_executable"
+		echo "This is a bug, please report it."
+		exit 1
+	fi
+
+	echo "Setting permissions on assembler..."
+	chmod +x $krakatau_executable
 
 	echo "Building libraries from source..."
 	if [ ! -d "./stdlib" ]; then
@@ -118,6 +153,8 @@ install_compiler() {
 	sed -i "s!AUTOMATICALLY_REPLACED_LIBRARY_LOCATION!$LIBRARY_TARGET/lib!g" $compiler_folder/cmlc
 	echo "Initializing paths to the compiler jar in shell script..."
 	sed -i "s!AUTOMATICALLY_REPLACED_JAR_LOCATION!$LIBRARY_TARGET/compiler!g" $compiler_folder/cmlc
+	echo "Initializing paths to the assembler in shell script..."
+	sed -i "s!AUTOMATICALLY_REPLACED_ASSEMBLER_LOCATION!$KRAKATAU_EXECUTABLE!g" $compiler_folder/cmlc
 
 	echo "Creating symlink to $COMPILER_TARGET..."
 	ln -sf $compiler_folder/cmlc $COMPILER_TARGET
@@ -147,29 +184,28 @@ if ! type "javac" > /dev/null; then
 	exit 1
 fi
 
+echo "Checking for java..."
+
+if ! type "java" > /dev/null; then
+	echo "java not installed.  Please install Java before continuing."
+	exit 1
+fi
+
+echo "Found."
+
+echo "Checking for python..."
+
+if ! type "python" > /dev/null; then
+	echo "Python not found.  Please instally python before continuing. "
+	exit 1
+fi
+
+echo "Found."
+
 echo "Found."
 
 
 # Make the library directory:
-echo "Checking for krakatau installation...."
-if ! type "krakatau" > /dev/null; then
-	echo "krakatau not found. Installing from: $KRAKATAU_LINK"
-
-	if [ -d $KRAKATAU_DIRECTORY ]; then
-		echo "Krakatau installation not found, but installation target "
-		echo "$KRAKATAU_DIRECTORY exists.  Perhaps chose a new installation"
-		echo "directory?"
-		exit 1
-	fi
-
-	echo "Cloning..."
-	git clone --depth=1 $KRAKATAU_LINK $KRAKATAU_DIRECTORY > /dev/null
-	echo "Clone finished."
-	echo "Creating symlinks..."
-
-	ln -sf /usr/local/bin/krakatau "$KRAKATAU_DIRECTORY"/krakatau
-fi
-
 echo "Checking for existing library installation...."
 
 if [ -d $LIBRARY_TARGET ]; then

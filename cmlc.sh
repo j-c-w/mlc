@@ -24,7 +24,7 @@ java -jar "$JAR"/cmlc.jar "$@"
 # with millions of classes.
 $ASSEMBLER "$filename.j" -out "$TEMP_DIR" > /dev/null || (echo "Assemble failed.  Please report this as a bug. "; exit 1)
 # First create the jar file with the local classes
-jar cfe "$filename.jar" Main -c "$TEMP_DIR" .
+jar cfe "$filename.jar" Main -C "$TEMP_DIR" .
 # Then we package this with the standard libraries:
 jar uf "$filename.jar" -C "$LIB" cmlc
 
