@@ -10,6 +10,7 @@ jarfile="$(pwd)/target/scala-2.11/cmlc_2.11-0.0.1-one-jar.jar"
 compiler_folder=$TARGET/compiler
 KRAKATAU_DIRECTORY=$TARGET/krakatau
 KRAKATAU_EXECUTABLE=$KRAKATAU_DIRECTORY/assemble.py
+KRAKATAU_LINK="https://github.com/Storyyeller/Krakatau"
 
 mkdir -p $TARGET/lib
 # Build and copy the libraries (build takes little time if it's done, so
@@ -34,7 +35,7 @@ chmod +x $TARGET/compiler/cmlc
 
 echo "Installing krakatau from $KRAKATAU_LINK..."
 
-if [ -d $KRAKATAU_DIRECTORY ]; then
+if [ -f $KRAKATAU_EXECUTABLE ]; then
 	echo "Krakatau installation already found. "
 else
 	mkdir -p $KRAKATAU_DIRECTORY
