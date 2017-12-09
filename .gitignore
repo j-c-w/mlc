@@ -1,5 +1,7 @@
 project/*
 target
 test.sml*
+debug_install/*
+cmlc
 
 !project/plugins.sbt
