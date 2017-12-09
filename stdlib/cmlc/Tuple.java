@@ -1,6 +1,6 @@
 package cmlc;
 
-class Tuple {
+public class Tuple {
 	Object[] elements;
 
 	public Tuple(int size) {
