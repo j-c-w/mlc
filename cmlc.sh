@@ -13,12 +13,17 @@ TEMP_DIR=$(mktemp -d)
 set -e
 set -u
 
+if [ ! -f ${@:$#} ]; then
+	echo "Expecting to compile a file, found: ${@:$#}"
+	exit 1
+fi
+
 base=$(basename ${@:$#})
 # Name of the file without the extension.
 filename="${base%.*}"
 
 # Build program into a .j file:
-java -jar "$JAR"/cmlc.jar "$@"
+java -jar "$JAR" "$@"
 # Then pass on to the assembler: (Note that the last argument is the file
 # name).  Output of Krakatau thrown away becase we don't want the screen filled
 # with millions of classes.
