@@ -19,6 +19,7 @@ class Test(object):
         self.scans = []
         self.options = []
         self.compile_should_fail = False
+        self.should_run = False
 
     def add_scan(self, regex, dumpfile, times):
         self.scans.append((regex, dumpfile, times))
@@ -28,6 +29,26 @@ class Test(object):
 
     def set_compile_should_fail(self, fail):
         self.compile_should_fail = fail
+
+    def file_for_affix(self, filename, affix):
+        filename_only = os.path.basename(os.path.normpath(filename))
+        dumpfiles = glob.glob(filename_only + "*." + affix)
+
+        if len(dumpfiles) != 1:
+            raise Exception("Dumpfiles specified by affix " + affix + " are " +
+                            " not unique. ")
+
+        return dumpfiles[0]
+
+    def set_should_run(self, should_run, run_scan_regex):
+        self.should_run = should_run
+        self.run_scan_regex = run_scan_regex
+
+    def run_executable(self, name):
+        # We have to remove the normal extension from this file:
+        name = re.sub('\\.[^.]*$', '', name)
+        jar_file = self.file_for_affix(name, 'jar')
+        return ['java', '-jar', jar_file]
 
     def execute(self, executable, file, full_filepath, additional_options):
         """ Returns true if there was an error or the test failed
@@ -40,7 +61,7 @@ class Test(object):
         # only present each argument once
         deduplicated_options = self.options
         for option in additional_options:
-            if not option in deduplicated_options:
+            if option not in deduplicated_options:
                 deduplicated_options.append(option)
 
         print 'with options', deduplicated_options
@@ -48,18 +69,39 @@ class Test(object):
             subprocess.call(executable.split(' ') + deduplicated_options +
                             [file])
 
+        other_messages = []
+
         if return_value != 0:
             build_failed = True
             test_failed = not self.compile_should_fail
         else:
+            # Now run:
+            if self.should_run:
+                try:
+                    run_output = \
+                        subprocess.check_output(self.run_executable(file))
+                    if re.match(self.run_scan_regex, run_output):
+                        # Then the match suceeded.
+                        other_messages += ['PASS: Match of output in ' +
+                                           full_filepath + ' passed']
+                    else:
+                        other_messages += ['FAIL: Match of output in ' +
+                                           full_filepath + ' failed. ' +
+                                           ' Looked for "' +
+                                           self.run_scan_regex + '"']
+                except subprocess.CalledProcessError as error:
+                    # There was a runtime error
+                    other_messages += ['FAIL: Runtime error in ' +
+                                       full_filepath + 'error was ' + error]
             build_failed = False
             test_failed = self.compile_should_fail
 
         if test_failed:
             return (test_failed, ['FAIL: Build of ' + full_filepath +
-                                  ' failed.'])
+                                  ' failed.'] + other_messages)
         else:
-            return (test_failed, ['PASS: Build of ' + full_filepath])
+            return (test_failed, ['PASS: Build of ' + full_filepath] +
+                    other_messages)
 
     def run_scans(self, directory, filename):
         """ Filename points  to the original location of the
@@ -70,16 +112,7 @@ class Test(object):
         results = []
 
         for regex, dumpfile_affix, times in self.scans:
-            filename_only = os.path.basename(os.path.normpath(filename))
-            dumpfiles = glob.glob(filename_only + "*" + dumpfile_affix)
-
-            if len(dumpfiles) != 1:
-                results += ['FAIL: Dumpfiles specified by ' + dumpfile_affix +
-                            ' not unique. Files were : ' + str(dumpfiles) +
-                            '. In test: ' + filename]
-                continue
-
-            dumpfile = dumpfiles[0]
+            dumpfile = self.file_for_affix(filename, dumpfile_affix)
 
             if not os.path.exists(dumpfile):
                 results += ["FAIL: No dumpfile " + dumpfile +
@@ -179,6 +212,8 @@ def extract_information(filename):
                     if option:
                         test_data.add_option(option.strip(' '))
 
+            elif line.startswith('t-run:'):
+                test_data.set_should_run(True, parts[1].strip(' '))
             elif line.startswith('t-fail'):
                 test_data.set_compile_should_fail(True)
             elif line.startswith('t-scan:'):
