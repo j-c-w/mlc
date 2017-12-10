@@ -4,6 +4,7 @@ package stdlib
  * by a compile time map.
  */
 
+import byteR._
 import exceptions.ICE
 import frontend.ASTType
 
@@ -28,6 +29,15 @@ object StandardLibraries {
       throw new ICE("""The standard library identifier %s is ambiguous"""
         .format(names.mkString(".")))
     }
+  }
+
+  def loadExpressionFor(names: List[String]) = {
+    val classFor = JVMClassRef.classRefFor("cmlc/lib/" + names.mkString("/"))
+    List(
+      new JVMNew(classFor),
+      new JVMDup(),
+      new JVMInvokeSpecialMethod(
+        new JVMMethodRef(classFor, "<init>", List(), JVMVoidPrimitiveType())))
   }
 
   private def prefixMatch(names: List[String], pack: LibraryPackage):

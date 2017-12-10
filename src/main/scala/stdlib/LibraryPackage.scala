@@ -1,5 +1,6 @@
 package stdlib
 
+import byteR.JVMInstruction
 import frontend._
 
 abstract class LibraryPackage {
