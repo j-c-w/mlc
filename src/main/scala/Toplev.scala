@@ -15,6 +15,7 @@ import lambda_lift.LambdaLiftVerify
 import lower_program.LowerProgram
 import lower_program.LowerProgramVerify
 import lower_variables.LowerVariablesPass
+import lower_tir.LowerTIR
 
 object Toplev extends App {
   val startTime = System.currentTimeMillis()
@@ -56,6 +57,14 @@ object Toplev extends App {
   // Lower TIR+Assigns into byteR
   val numberedProgram = LowerVariablesPass.execute(lowered_program,
                                                    cli.dumpNumberedProgram)
+
+  val byteR = LowerTIR.execute(numberedProgram, cli.dumpLowerTir)
+
+  // Optimizations on byteR
+  
+  // Output byteR
+  val outputFileName = Shared.filename.replaceAll("\\.[^.]*$", "") + ".j"
+  FileUtils.writeStringToFile(outputFileName, byteR.prettyPrint)
 
   if (cli.compileStats) {
     val endTime = System.currentTimeMillis()
