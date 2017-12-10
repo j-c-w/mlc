@@ -24,9 +24,8 @@ fi
 echo "Library target is $LIBRARY_TARGET"
 echo "Compiler target is $COMPILER_TARGET"
 
-read -r -p "OK? [y/N] " response
-response=${response,,}    # tolower
-if [[ ! "$response" =~ ^(yes|y)$ ]]; then
+read -r "response?OK? [y/N] "
+if [[ ! "$response" =~ ^(y)$ ]]; then
 	echo "Aborted"
 	exit 1
 fi
@@ -212,9 +211,8 @@ echo "Found."
 echo "Checking for existing library installation...."
 
 if [ -d $LIBRARY_TARGET ]; then
-	read -r -p "$LIBRARY_TARGET seems to exist. Continue? [y/N] " response
-	response=${response,,}    # tolower
-	if [[ "$response" =~ ^(yes|y)$ ]]; then
+	read -r "response?$LIBRARY_TARGET seems to exist. Continue? [y/N] "
+	if [[ "$response" =~ ^(y)$ ]]; then
 		install_libraries
 	else
 		echo "Aborted"
@@ -228,9 +226,8 @@ if [ -f $COMPILER_TARGET ]; then
 	echo "$COMPILER_TARGET seems to exist. "
 	echo "You can either replace it, or re-run this script setting a different"
 	echo "executable name."
-	read -r -p "Replace? [y/N] " response
-	response=${response,,}    # tolower
-	if [[ "$response" =~ ^(yes|y)$ ]]; then
+	read -r "response?Replace? [y/N] "
+	if [[ "$response" =~ ^(y)$ ]]; then
 		install_compiler
 	else
 		echo "Aborted"
