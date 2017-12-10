@@ -5,6 +5,9 @@
 # then executes the test suite using the python testbench
 # file and some default settings.
 
+set -e
+set -u
+
 usage() {
 	cat <<EOF
 This is a script for running the testsuite. It executes each of the
@@ -30,29 +33,20 @@ done
 # Arguments handled. We assume that we are running from
 # within the test directory.
 
+installation_location="$(pwd)/cmlc_installation"
+executable="$(pwd)/cmlc"
+
 echo $(pwd)
 cd ..
 echo $(pwd)
-# Clean is run so that the one-jar is actually rebuilt.
-# Without clean being run, an unchanged project from the 
-# last one-jar build would result in no path to the 
-# jarfile being printed.
-sbt clean
-# Note that -f starts counting from 1
-sbt_output=$(sbt one-jar)
 
-if [ $(grep "^[error]" <<< "$sbt_output" | wc -l) -ne 0 ]; then
-	# There was a compile error
-	echo "Compiler error"
-	exit 255
-fi
-
-jarfile=$(grep "Packaging" <<< "$sbt_output" | grep "one-jar" | cut -d' ' -f 3)
+# Run the install script:
+./install.sh "$installation_location" "$executable"
 
 cd test
 
 # Execute the testsuite
-./run_test.py --executable="java -jar $jarfile"
+./run_test.py --executable="$executable"
 
 # Check for all passes:
 no_failures=$(grep -o 'FAIL' test.res | wc -l)
