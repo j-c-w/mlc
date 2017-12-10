@@ -183,6 +183,9 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
               }
             case _ => unreachable
           }
+        case other =>
+          throw new ICE("""Error: Identifier %s should not have been
+            |lowered already""".stripMargin.format(other.prettyPrint))
         case None => throw new ICE("""
             | Identifier %s should have been stripped out long before
             | this point. To lower into TIR, contextual awareness

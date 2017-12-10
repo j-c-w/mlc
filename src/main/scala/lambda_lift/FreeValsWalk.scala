@@ -89,6 +89,9 @@ class FreeValsWalk(val program: TProgram,
                   freeValsSet +=
                     ((TExpIdent(identVar),
                       env.getNoSubstituteOrFail(identVar)))
+                case Some((_, other)) =>
+                  throw new ICE("Unexpected declaration type %s".format(
+                    other.prettyPrint))
                 case None =>
                   freeValsSet +=
                     ((TExpIdent(identVar),
