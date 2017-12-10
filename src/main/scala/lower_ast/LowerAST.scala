@@ -183,7 +183,7 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
               }
             case _ => unreachable
           }
-        case other =>
+        case Some(other) =>
           throw new ICE("""Error: Identifier %s should not have been
             |lowered already""".stripMargin.format(other.prettyPrint))
         case None => throw new ICE("""
