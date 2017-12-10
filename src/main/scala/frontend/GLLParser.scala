@@ -499,9 +499,9 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     // Restructured: (pat) replaced with (patList)
     // Resturctured: Single element patterns are treated on their own
     // since they result in an exponential blowup if they are not.
-    | "(" ~ pat ~ ")"                   ^^ {
-          case (_ ~ pat ~ _) => pat
-    }
+    | "(" ~ pat ~ ")" ~ patTail         ^^ {
+          case (_ ~ pat ~ _ ~ patTail) =>
+                   patTail._1((pat.appendTypes(patTail._2))) }
     | "(" ~ patList ~ ")" ~ patTail     ^^ {
           case (_ ~ ASTPatSeq(patList, _) ~ _ ~ patTail) =>
                    patTail._1(ASTPatSeq(patList, patTail._2)) }
@@ -522,7 +522,9 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
 
   lazy val patTail: Parser[((ASTPat => ASTPat), List[ASTType])] = (
       "::" ~ pat                        ^^ { case (_ ~ pat) =>
-        ((prePat: ASTPat) => ASTPatCons(prePat, pat), List[ASTType]()) }
+        ((prePat: ASTPat) =>
+          ASTPatCons(prePat, pat, List[ASTType]()), List[ASTType]())
+    }
     | ":" ~ typ ~ typList               ^^ { case (_ ~ typ ~ typList) =>
         (((x: ASTPat) => x), (typ :: typList)) }
     | ""                                ^^ { _ =>

@@ -693,7 +693,11 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
             }
           }
         }
-        case ASTPatCons(head, tail) => {
+        case ASTPatCons(head, tail, typ) => {
+          val genericTyp = TypeVariableGenerator.getVar()
+          val typeListUnifier = unifyTypeList(genericTyp :: typ)
+          val specifiedType = typeListUnifier(genericTyp)
+
           val (headTyps, headUnifiers) = setupPatEnv(env, List(head))
           val (tailTyps, tailUnifiers) = setupPatEnv(env, List(tail))
 
@@ -706,10 +710,16 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
 
           mgu mguUnify headUnifiers(0)
           mgu mguUnify tailUnifiers(0)
+          mgu mguUnify typeListUnifier
 
           val headTailUnifier = ASTListType(headTyps(0)) unify tailTyps(0)
+          val specifiedTypeUnifier = tailTyps(0) unify specifiedType
+          val headSpecifiedUnifier =
+            ASTListType(headTyps(0)) unify specifiedType
 
           mgu mguUnify headTailUnifier
+          mgu mguUnify specifiedTypeUnifier
+          mgu mguUnify headSpecifiedUnifier
 
           mgu(env)
 

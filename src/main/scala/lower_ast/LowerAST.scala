@@ -252,7 +252,7 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
     case ASTPatSeq(subseq, typ) => TPatSeq(subseq.map(lowerAST(_, env)))
     case ASTListPat(listpat, typ) => TListPat(listpat.map(lowerAST(_, env)))
     case ASTPatConst(const, typ) => TPatConst(lowerAST(const, env))
-    case ASTPatCons(head, tail) =>
+    case ASTPatCons(head, tail, typ) =>
       TPatCons(lowerAST(head, env), lowerAST(tail, env))
   }
 
