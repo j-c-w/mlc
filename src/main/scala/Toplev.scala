@@ -17,6 +17,7 @@ import lower_program.LowerProgramVerify
 import lower_variables.LowerVariablesPass
 
 object Toplev extends App {
+  val startTime = System.currentTimeMillis()
   val cli = new Arguments(args)
   val file = new File(cli.file)
 
@@ -55,4 +56,10 @@ object Toplev extends App {
   // Lower TIR+Assigns into byteR
   val numberedProgram = LowerVariablesPass.execute(lowered_program,
                                                    cli.dumpNumberedProgram)
+
+  if (cli.compileStats) {
+    val endTime = System.currentTimeMillis()
+
+    println("Compile time: " + (endTime - startTime) + "ms")
+  }
 }

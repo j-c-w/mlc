@@ -17,6 +17,10 @@ class Arguments(arguments: Seq[String]) {
     // state internally. (in theory, it should be safe).
     val runVerifyUnifiers = opt[Boolean]()
 
+    // A marker to state whether the compiler should dump stats about
+    // the compilation.
+    val compileStats = opt[Boolean]()
+
     // Dump options:
     val dumpAll = opt[Boolean]()
     val dumpAst = opt[Boolean]()
@@ -41,6 +45,10 @@ class Arguments(arguments: Seq[String]) {
     parser.runLowerProgramVerify() || parser.verifyAll()
   val runVerifyUnifiers =
     parser.runVerifyUnifiers() || parser.verifyAll()
+
+  // Stats
+  val compileStats =
+    parser.compileStats()
 
   // Dump options:
   val dumpAst =
