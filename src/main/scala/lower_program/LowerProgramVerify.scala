@@ -77,7 +77,7 @@ class FunLetsIntegrityWalk extends TTypeEnvUnitPass {
   override def apply(typeEnv: TTypeEnv, ident: TIdent) = ident match {
     case namedIdent: TNamedIdent => {
       namedIdent match {
-        case identVar @ TIdentVar(name) => {
+        case identVar @ TIdentVar(name, identClass) => {
           if (!variablesInLets.contains(identVar)) {
             throw new ICE("""Error, variable %s was not declared
               |in any let binding""".stripMargin.format(identVar))
@@ -160,7 +160,7 @@ class AssignIntegrityWalk extends TUnitPass {
       // identifiers definitely should not be used in their assignments!
       assignedVariables += ident
     }
-    case TExpIdent(ident @ TIdentVar(name)) => {
+    case TExpIdent(ident @ TIdentVar(name, identClass)) => {
       if (!assignedVariables.contains(ident)) {
         throw new ICE("""Error: Lower program seems to have allowed
           |variable %s to be used before

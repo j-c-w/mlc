@@ -2,24 +2,34 @@ package frontend
 
 import toplev.GenericPrintable
 
-object ASTIdent
-
-sealed trait ASTIdent extends GenericPrintable
+sealed trait ASTIdent extends GenericPrintable {
+  def getIdentVars: List[ASTIdentVar]
+}
 
 sealed trait ASTInfixIdent extends ASTIdent {
   val precedence: Int
+
+  def getIdentVars = List()
 }
 
 case class ASTIdentVar(val id: String) extends ASTIdent {
+  var identClass: Option[ASTIdentClass] = None
+
   def prettyPrint = id
+
+  def getIdentVars = List(this)
 }
 
 case class ASTInternalIdent(val id: String) extends ASTIdent {
   def prettyPrint = "Internal_" + id
+
+  def getIdentVars = List()
 }
 
 case class ASTLongIdent(val id: List[ASTIdent]) extends ASTIdent {
   def prettyPrint = (id map (_.prettyPrint)) mkString(".")
+
+  def getIdentVars = List()
 }
 
 case class ASTIdentTuple(val ids: List[ASTIdent]) extends ASTIdent {
@@ -33,10 +43,15 @@ case class ASTIdentTuple(val ids: List[ASTIdent]) extends ASTIdent {
       }
     else
       this
+
+  def getIdentVars =
+    ids.flatMap(_.getIdentVars)
 }
 
 case class ASTUnderscoreIdent() extends ASTIdent {
   def prettyPrint = "_"
+
+  def getIdentVars = List()
 }
 
 case class ASTConsIdent() extends ASTInfixIdent {
@@ -53,10 +68,14 @@ case class ASTAppendIdent() extends ASTInfixIdent {
 
 case class ASTEmptyListIdent() extends ASTIdent {
   def prettyPrint = "[]"
+
+  def getIdentVars = List()
 }
 
 case class ASTUnitIdent() extends ASTIdent {
   def prettyPrint = "()"
+
+  def getIdentVars = List()
 }
 
 case class ASTPlusIdent() extends ASTInfixIdent {
@@ -143,7 +162,9 @@ case class ASTOrIdent() extends ASTInfixIdent {
   val precedence = 0
 }
 
-sealed trait ASTUnOp extends ASTIdent
+sealed trait ASTUnOp extends ASTIdent {
+  def getIdentVars = List()
+}
 
 case class ASTUnOpNegate() extends ASTUnOp {
   def prettyPrint = "~"

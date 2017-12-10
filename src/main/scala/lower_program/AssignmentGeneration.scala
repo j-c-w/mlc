@@ -14,7 +14,7 @@ object AssignmentGeneration {
       case TVal(ident, exp) => {
         // The idea in this case is to assign the whole expression
         // to some variable, then extract it peice by peice.
-        val tempIdent = VariableGenerator.newTVariable()
+        val tempIdent = VariableGenerator.newTVariable(TValClass())
 
         typeEnv.add(tempIdent, typeEnv.compoundTypeOf(ident), false)
 
@@ -54,8 +54,8 @@ object AssignmentGeneration {
         // Top level ident, in which case it should not be added
         // to the list of identifiers
         val localIdents = decIdent match {
-          case ident @ TIdentVar(name) => List(ident)
-          case TTopLevelIdent(name) => List[TIdentVar]()
+          case ident @ TIdentVar(name, identClass) => List(ident)
+          case TTopLevelIdent(name, identClass) => List[TIdentVar]()
           case other => throw new ICE("""Error: Unexpected identifier
             |%s""".stripMargin.format(other.prettyPrint))
         }
@@ -93,8 +93,8 @@ object AssignmentGeneration {
         (TExpSeq(List(TExpAssign(identVar, TExpIdent(parentIdent)),
                       TExpConst(TConstTrue()))).flatten,
          List(identVar))
-      case TPatIdentifier(TIdentVar(_)) => throw new ICE("""Error: A TIdentVar
-        |in a TPatIdentifier should not occur""".stripMargin)
+      case TPatIdentifier(TIdentVar(_, _)) => throw new ICE("""Error: A
+        |TIdentVar in a TPatIdentifier should not occur""".stripMargin)
       case TPatIdentifier(id) => id match {
         // It is safe to simply return true when matching unit
         // as there is no other value that can pass typechecking
@@ -215,8 +215,8 @@ object AssignmentGeneration {
         //      false
 
         // Do the same thing for the head and the tail:
-        val headIdent = VariableGenerator.newTVariable()
-        val tailIdent = VariableGenerator.newTVariable()
+        val headIdent = VariableGenerator.newTVariable(TValClass())
+        val tailIdent = VariableGenerator.newTVariable(TValClass())
         val listTyIdent = VariableGenerator.newTInternalVariable()
 
         // Insert these types into the environment:
@@ -282,7 +282,7 @@ object AssignmentGeneration {
                     typeEnv: TTypeEnv) = {
     // Create a set of variables that can be used for each element.
     val intermediateIdents =
-      elems.map(elem => VariableGenerator.newTVariable())
+      elems.map(elem => VariableGenerator.newTVariable(TValClass()))
 
     var subElemsIdents = List[TIdentVar]()
     // Now create a list of generation expressions that assign

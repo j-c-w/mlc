@@ -54,7 +54,7 @@ class RemoveLetsWalk(val replacementEnv: TTypeEnv)
     }
     case caseExp @ TExpCase(exp, patterns, typeID) => {
       val newExp = apply(u, exp)
-      val expressionIdentifier = VariableGenerator.newTVariable()
+      val expressionIdentifier = VariableGenerator.newTVariable(TValClass())
 
       accumulatedIdents += expressionIdentifier
 

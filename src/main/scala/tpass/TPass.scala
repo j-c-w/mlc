@@ -24,6 +24,7 @@ trait TPass[T, U] {
     case t: TConst => apply(item, t)
     case e: TExp => apply(item, e)
     case i: TIdent => apply(item, i)
+    case i: TIdentClass => apply(item, i)
     case p: TPat => apply(item, p)
     case t: TType => apply(item, t)
     case d: TDec => apply(item, d)
@@ -101,8 +102,13 @@ trait TPass[T, U] {
       apply(item, throwable)
   }
 
+  def apply(item: T, p: TIdentClass) = default
+
   def apply(item: T, p: TIdent): U = p match {
     case TIdentTuple(subTypes) => combineList(subTypes.map(apply(item, _)))
+    case TIdentVar(_, identClass) => apply(item, identClass)
+    case TIdentLongVar(_, identClass) => apply(item, identClass)
+    case TTopLevelIdent(_, identClass) => apply(item, identClass)
     // All other cases are base casses
     case other => default
   }

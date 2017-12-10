@@ -40,7 +40,7 @@ class GatherLetIdentifiersWalk(parentEnv: TTypeEnv)
   def getDecsFrom(ident: TIdent): Set[TIdentVar] = ident match {
     case TIdentTuple(subIdents) =>
       combineList(subIdents.map(getDecsFrom(_)))
-    case identVar @ TIdentVar(variable) => {
+    case identVar @ TIdentVar(variable, identClass) => {
       val set = new HashSet[TIdentVar]()
       set += identVar
       set

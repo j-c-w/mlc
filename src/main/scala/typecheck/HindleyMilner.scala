@@ -1,10 +1,10 @@
 package typecheck
 
+import exceptions._
 import frontend._
+import scala.collection.mutable.HashMap
 import toplev.Pass
 import toplev.Shared
-
-import exceptions._
 
 /*
  * This pass explicitly annotates the tree with all the correct
@@ -31,6 +31,14 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
    * has to be able to unify set based types.
    */
   var innerEnvs = List[ASTTypeEnv]()
+
+  /* This is used to keep track of what identifier class each encountered
+   * identifier is.
+   *
+   * This needs to be set so that later parts of the compiler know whether
+   * an identifier refers to a val or a function.
+   */
+  val identifierClassMap = new HashMap[ASTIdentVar, ASTIdentClass]
 
   /* The top level is a special case, because some unification
    * (e.g. the conversion of ASTNumberType's to ASTIntType
@@ -103,6 +111,14 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         val adjustedTyp = genAdjustedTyp(lhs, typ)
         unifier mguUnify (typ unify adjustedTyp)
 
+        // Add all these idents as val idents here:
+        lhs.getIdentVars.foreach {
+          case ident => {
+            ident.identClass = Some(ASTValClass())
+            identifierClassMap(ident) = ASTValClass()
+          }
+        }
+
         // We update the environment with the new types
         // as appropriate.
         insertTypes(env, lhs, adjustedTyp)
@@ -156,6 +172,10 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         // Since functions may be recursive, insert a template for this
         // function (NOT qualified so it may be resolved by a unifier)
         env.add(idents(0), ASTFunctionType(from, to), false)
+        // Also add that function name to the type map:
+        idents(0).asInstanceOf[ASTIdentVar].identClass = Some(ASTFunClass())
+        identifierClassMap(idents(0).asInstanceOf[ASTIdentVar]) = ASTFunClass()
+
 
         // The pattern matching function does not return a unifier.
         // That is done internally. Each pattern row gets an associated
@@ -200,6 +220,18 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
           case None => throw new UndeclaredIdentException("""
             Error: Identifier %s is not defined. """.format(ident.prettyPrint))
           case Some(typ) => typ
+        }
+
+        // Set the type of the ident here:
+        ident match {
+          case identVar @ ASTIdentVar(_) =>
+            if (identifierClassMap.contains(identVar)) {
+              identVar.identClass = Some(identifierClassMap(identVar))
+            } else {
+              throw new ICE("""Identifier %s seems to not have a class yet.""".
+                format(identVar.prettyPrint))
+            }
+          case _ => // Nothing to be done in this case.
         }
 
         (ASTUnifier(), foundIdent)
@@ -561,7 +593,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
           astUnifiers = unifier :: astUnifiers
         }
         case ASTPatVariable(variable, typs) => variable match {
-          case ASTIdentVar(name) => {
+          case ident @ ASTIdentVar(name) => {
             val defaultGenericType = TypeVariableGenerator.getVar()
             val resUnifier = unifyTypeList(defaultGenericType :: typs)
 
@@ -571,8 +603,10 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
             if (env.innermostHasType(variable))
               throw new BadPatternException("""Error, there are duplicate
                 varaibles in the pattern: %s""".format(patItem.prettyPrint))
-            else
-              env.add(variable, resUnifier(defaultGenericType), false)
+
+            env.add(ident, resUnifier(defaultGenericType), false)
+            ident.identClass = Some(ASTValClass())
+            identifierClassMap(ident) = ASTValClass()
           }
           case ASTEmptyListIdent() => {
             val emptyListType = ASTListType(TypeVariableGenerator.getVar())
@@ -777,8 +811,10 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
     case (ASTIdentTuple(Nil), _) => unreachable
     // Note that '_' is a special identifier.
     // We do not add that.
-    case (ASTIdentTuple(ident :: Nil), typ) => {
+    case (ASTIdentTuple((ident @ ASTIdentVar(name)) :: Nil), typ) => {
       env.add(ident, typ, true)
+      ident.identClass = Some(ASTValClass())
+      identifierClassMap(ident) = ASTValClass()
     }
     case (ASTIdentTuple(idents), ASTTupleType(typList)) =>
       // We note that each one of these names could be an ASTIdentTuple,
@@ -789,17 +825,34 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
       else
         (typList zip idents).foreach({
           case (typ, ASTIdentTuple(name)) =>
-                  insertTypes(env, ASTIdentTuple(name), typ)
-          case (typ, name) =>
-                  env.add(name, typ, true)
+            insertTypes(env, ASTIdentTuple(name), typ)
+          case (typ, ident @ ASTIdentVar(name)) => {
+            env.add(ident, typ, true)
+            ident.identClass = Some(ASTValClass())
+            identifierClassMap(ident) = ASTValClass()
+          }
+          case (_, ASTUnderscoreIdent()) => // Do not add an
+            // ASTIdentUnderscore to the environment.
+          case (typ, other) => throw new ICE("""Found an ASTIdentTuple
+            | with non ASTIdentVar elements""".stripMargin)
         })
     case (ASTIdentTuple(idents), typ) =>
       // This case is reached in the case that the identifier is a tuple,
       // but the RHS was given some non-tuple type.
       throw new InferenceException("""Could not unify l-values %s
         with type %s""".format(names.prettyPrint, typ.prettyPrint))
-    case (name, typ) =>
-      env.add(name, typ, true)
+    case (ident @ ASTIdentVar(name), typ) => {
+      env.add(ident, typ, true)
+      ident.identClass = Some(ASTValClass())
+      identifierClassMap(ident) = ASTValClass()
+    }
+    case (ASTUnderscoreIdent(), _) => // Do not add the
+      // _ ident to the type environment.  That would be meaningless
+      // and confusing.
+    case (other, typ) =>
+      throw new ICE("""Trying to insert type for an unrecognized identifier
+        |%s of type %s""".stripMargin.format(other.prettyPrint,
+                                             typ.prettyPrint))
   }
 
   def run(tree: ASTProgram) = {

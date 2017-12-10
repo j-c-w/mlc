@@ -18,9 +18,9 @@ object LowerStoreIdent {
    */
   def apply(exp: TIdent, env: TTypeEnv): List[JVMInstruction] = exp match {
     case ident: TNamedIdent => ident match {
-      case TIdentVar(_) => throw new ICE("""Unexpected TIdent var during
+      case TIdentVar(_, _) => throw new ICE("""Unexpected TIdent var during
         |lower_tir: %s""".stripMargin.format(ident))
-      case TIdentLongVar(names) => throw new ICE("""Unexpected store to a long
+      case TIdentLongVar(names, _) => throw new ICE("""Unexpected store to a long
         |ident""".stripMargin)
       case TInternalIdentVar(_) =>
         throw new ICE("Can't store to an internal ident")
@@ -33,9 +33,13 @@ object LowerStoreIdent {
           |with careful assesment on the performance impact of accessing
           |heap variables repeatedly.  See the implmentation in LowerLoadIdent
           |to implement this""".stripMargin)
-      case TTopLevelIdent(name) =>
+      case TTopLevelIdent(name, identClass) => {
+        // Since we are storing to the indentifier, ensure that it is something
+        // that we can put directly into a variable
+        assert(identClass.isRegisterClass)
         List(JVMPutStaticField(JVMMainClassRef(), LowerName(name),
                                LowerType(env.getOrFail(ident))))
+      }
     }
     case other =>
       throw new ICE("Cannot store to identifier " + other.prettyPrint)

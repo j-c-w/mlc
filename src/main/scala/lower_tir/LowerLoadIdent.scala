@@ -16,11 +16,11 @@ object LowerLoadIdent {
    */
   def apply(exp: TIdent, env: TTypeEnv): List[JVMInstruction] = exp match {
     case ident: TNamedIdent => ident match {
-      case TIdentVar(_) => throw new ICE("""Unexpected TIdent var during
+      case TIdentVar(_, _) => throw new ICE("""Unexpected TIdent var during
         |lower_tir: %s""".stripMargin.format(ident.prettyPrint))
       case TInternalIdentVar(_) =>
         throw new ICE("Cannot lower internal ident var")
-      case TIdentLongVar(names) =>
+      case TIdentLongVar(names, identClass) =>
         StandardLibraries.loadExpressionFor(names)
       case ident @ TArgumentNode(funName, number) => List(
           JVMSelfLoad(),
@@ -31,8 +31,8 @@ object LowerLoadIdent {
         )
       // Add 1 since 0 is reserved for the self reference.
       case TNumberedIdentVar(_, number) => List(JVMLocalALoad(number + 1))
-      case ident @ TTopLevelIdent(name) => env.getOrFail(ident) match {
-        case TFunctionType(_, _) => // This is a function, so it should be
+      case ident @ TTopLevelIdent(name, identClass) => identClass match {
+        case TFunClass() => // This is a function, so it should be
           // loaded by creating a new class reference.
           // We may assume that this is Fun0.  All other functions
           // will not make direct accesses to the variables.
@@ -44,7 +44,7 @@ object LowerLoadIdent {
                  new JVMMethodRef(
                    JVMClassRef.classRefFor(LowerName("Fun0" + name)),
                    "<init>", List(), JVMVoidPrimitiveType())))
-        case other =>
+        case TValClass() =>
           List(JVMGetStaticField(JVMMainClassRef(), LowerName(name),
                                  LowerType(env.getOrFail(ident))))
       }

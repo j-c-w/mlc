@@ -14,7 +14,11 @@ class NumberVariablesWalk() extends TParentSetPass[Unit] {
       val numbers = (0 until funLet.valdecs.size) zip funLet.valdecs
 
       val newIdents = numbers.map {
-        case (i, dec @ TIdentVar(name)) => {
+        case (i, dec @ TIdentVar(name, identClass)) => {
+          // Putting this in a TNumberedIdentVar implies that it is something
+          // that can be stored in a register.  We should check that.
+          assert(identClass.isRegisterClass)
+
           val newIdent = TNumberedIdentVar(name, i)
           variableMap(dec) = newIdent
           newIdent
@@ -36,7 +40,7 @@ class NumberVariablesWalk() extends TParentSetPass[Unit] {
   }
 
   override def apply(u: Unit, ident: TIdent) = ident match {
-    case ident @ TIdentVar(name) => {
+    case ident @ TIdentVar(name, identClass) => {
       if (variableMap.contains(ident)) {
         Some(variableMap(ident))
       } else {

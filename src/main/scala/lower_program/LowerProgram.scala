@@ -14,7 +14,7 @@ object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
 
     val valNames = new HashSet[TTopLevelIdent]()
     vals.foreach {
-      case TVal(ident @ TTopLevelIdent(_), _) => valNames.add(ident)
+      case TVal(ident @ TTopLevelIdent(_, _), _) => valNames.add(ident)
       case TVal(ident @ TIdentTuple(_), _) =>
         ident.getDeclaredIdents.foreach((x: TNamedIdent) =>
           valNames.add(x.asInstanceOf[TTopLevelIdent]))
@@ -23,7 +23,7 @@ object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
         |a TTopLevelIdent identifier type""".stripMargin)
     }
 
-    val functionIdent = VariableGenerator.newTTopLevelVariable()
+    val functionIdent = VariableGenerator.newTTopLevelVariable(TFunClass())
 
     // Also need to add this new function to the type environment.
     val functionType = TFunctionType(TUnitType(), TUnitType())

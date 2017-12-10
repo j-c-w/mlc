@@ -69,7 +69,10 @@ class LambdaLiftWalk(val program: TProgram)
             // Then set the function to have a new top level name
             // and update the uses of that function:
             val newName = fun.name match {
-              case TIdentVar(name) => TTopLevelIdent(name)
+              case TIdentVar(name, identClass) => {
+                assert(identClass.isInstanceOf[TFunClass])
+                TTopLevelIdent(name, identClass)
+              }
               case other => throw new ICE("""Error: Cannot lift a non
                 |ident var""".stripMargin)
             }
@@ -78,7 +81,7 @@ class LambdaLiftWalk(val program: TProgram)
                               letEnv, oldName) match {
               case Some((freeValsTuple, freeValsType)) => {
                 // create a new valdec name:
-                val valdecName = VariableGenerator.newTVariable()
+                val valdecName = VariableGenerator.newTVariable(TValClass())
 
                 // we must add the call type to the top level environment here.
                 val callType = TFunctionType(freeValsType, oldFunctionType)
@@ -207,7 +210,8 @@ class LambdaLiftWalk(val program: TProgram)
 
       // Create a new function name and a new function at the top level
       // for this.
-      val newName = TTopLevelIdent(FunctionNameGenerator.newAnonymousName())
+      val newName =
+        TTopLevelIdent(FunctionNameGenerator.newAnonymousName(), TFunClass())
 
       insertFunctionFor(newName, None, patterns, env, typIdent) match {
         case Some((freeValsTuple, freeValsType)) => {
@@ -271,7 +275,8 @@ class LambdaLiftWalk(val program: TProgram)
       // val types, a plain list of the freeVal names, and
       // the freeVals tuple as a single expression.
       val freeValsNamesList = freeValsList.map {
-        case (TExpIdent(TIdentVar(name)), _) => TIdentVar(name)
+        case (TExpIdent(TIdentVar(name, identClass)), _) =>
+          TIdentVar(name, identClass)
         case _ => throw new ICE("""Error: Found a non-tident var in the list of
           free variables""")
       }

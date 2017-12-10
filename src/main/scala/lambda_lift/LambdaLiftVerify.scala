@@ -35,6 +35,15 @@ object LambdaLiftVerify extends OptionalPass[TProgram]("verify")
     case _ => super.apply(u, exp)
   }
 
+  override def apply(u: Unit, ident: TIdent) = ident match {
+    case TIdentVar(_, identClass) =>
+      // All top level things should be wrapped in TTopLevelIdents,
+      // so if something is not top level assert that it is not
+      // a fun class.
+      assert(!identClass.isInstanceOf[TFunClass])
+    case other => super.apply(u, other)
+  }
+
   override def apply(u: Unit, dec: TDec) = dec match {
     case fun @ TFun(name, _) => {
       assert(name.isInstanceOf[TTopLevelIdent])

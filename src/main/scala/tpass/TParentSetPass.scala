@@ -211,6 +211,8 @@ class TParentSetPass[T] {
     None
   }
 
+  def apply(item: T, p: TIdentClass): Option[TIdentClass] = None
+
   def apply(item: T, p: TIdent): Option[TIdent] = p match {
     case tuple @ TIdentTuple(subIdents) => {
       val newTypes = subIdents.map(apply(item, _))
@@ -218,7 +220,24 @@ class TParentSetPass[T] {
       tuple.subTypes = getNew(subIdents, newTypes)
       None
     }
-    case ident @ TIdentVar(name) => None
+    case ident @ TIdentVar(_, identClass) => {
+      val newClass = apply(item, identClass)
+
+      ident.identClass = getNew(identClass, newClass)
+      None
+    }
+    case ident @ TIdentLongVar(_, identClass) => {
+      val newClass = apply(item, identClass)
+
+      ident.identClass = getNew(identClass, newClass)
+      None
+    }
+    case ident @ TTopLevelIdent(_, identClass) => {
+      val newClass = apply(item, identClass)
+
+      ident.identClass = getNew(identClass, newClass)
+      None
+    }
     // All other cases are base casses
     case other => None
   }

@@ -28,12 +28,15 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
       dec match {
         case funbind @ ASTFunBind(cases) => {
           val tIdent =  cases(0)._1 match {
-            case ident @ ASTIdentVar(name) =>
+            case ident @ ASTIdentVar(name) => {
+              assert(ident.identClass.get.isInstanceOf[ASTFunClass])
+
               if (env.topLevelHasType(ident)) {
-                TTopLevelIdent(name)
+                TTopLevelIdent(name, TFunClass())
               } else {
-                TIdentVar(name)
+                TIdentVar(name, TFunClass())
               }
+            }
             case _ => unreachable
           }
 
@@ -84,16 +87,18 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
         // we need to mark it as being one here.  Otherwise,
         // we may return a normal TIdentVar
         if (env.topLevelHasType(ident)) {
-          TTopLevelIdent(id)
+          TTopLevelIdent(id, lowerAST(ident.identClass.get))
         } else {
-          TIdentVar(id)
+          TIdentVar(id, lowerAST(ident.identClass.get))
         }
       case ASTInternalIdent(id) => TInternalIdentVar(id)
       case ASTLongIdent(ids) => TIdentLongVar(ids.map {
         case ASTIdentVar(name) => name
         case id @ _ => throw new ICE("""ASTLongIdent contains non-ASTIdentVar
           |type %s""".stripMargin.format(id.prettyPrint))
-      })
+        // Assume that these are all functions.  (or at least that they
+        // will all be accessed as functions)
+      }, TFunClass())
       case ASTIdentTuple(subIdents) =>
         TIdentTuple(subIdents.map(lowerAST(_, env)))
       case ASTUnderscoreIdent() => TUnderscoreIdent()
@@ -194,6 +199,11 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
       }
     }
 
+  def lowerAST(identClass: ASTIdentClass): TIdentClass = identClass match {
+    case ASTFunClass() => TFunClass()
+    case ASTValClass() => TValClass()
+  }
+
   def lowerAST(typ: ASTType, env: ASTTypeEnv): TType = typ match {
     case ASTFunctionType(from, to) =>
       TFunctionType(lowerAST(from, env), lowerAST(to, env))
@@ -249,7 +259,10 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
   def lowerAST(pattern: ASTPat, env: ASTTypeEnv): TPat = pattern match {
     case ASTPatWildcard(typ) => TPatWildcard()
     case ASTPatVariable(name, typ) => name match {
-      case ASTIdentVar(name) => TPatVariable(TIdentVar(name))
+      case ident @ ASTIdentVar(name) => {
+        assert(ident.identClass.get.isInstanceOf[ASTValClass])
+        TPatVariable(TIdentVar(name, TValClass()))
+      }
       case other => TPatIdentifier(lowerAST(other, env))
     }
     case ASTPatSeq(subseq, typ) => TPatSeq(subseq.map(lowerAST(_, env)))

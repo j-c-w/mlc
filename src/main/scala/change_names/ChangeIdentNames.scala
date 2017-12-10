@@ -36,13 +36,13 @@ object ChangeIdentNames extends TTypeEnvUnitPass {
    * 'expressionEnv's scope is kept as small as possible.
    */
   def newNamesFor[T <: TTree]
-                    (toReplace: List[(TNamedIdent, TType)],
+                    (toReplace: List[(TNamedIdent, TIdentClass, TType)],
                      expression: T, expressionEnv: TTypeEnv): Unit = {
     val map: Map[TNamedIdent, (TNamedIdent, TType)] =
       new HashMap[TNamedIdent, (TNamedIdent, TType)]()
 
-    for ((name, typ) <- toReplace) {
-      map(name) = (VariableGenerator.newTVariable(), typ)
+    for ((name, identClass, typ) <- toReplace) {
+      map(name) = (VariableGenerator.newTVariable(identClass), typ)
     }
 
     newNamesFor(map, expression, expressionEnv)

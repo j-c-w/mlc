@@ -33,7 +33,11 @@ object LowerTIR extends Pass[TJavaProgram, JVMProgram]("lower_tir") {
   }
 
   private def staticFieldsFor(env: TTypeEnv, vals: Set[TTopLevelIdent]) = {
-    vals.map { case ident @ TTopLevelIdent(name) => {
+    vals.map { case ident @ TTopLevelIdent(name, identClass) => {
+        // Given that we are making this a field, we expect this to be
+        // a value type that can go into a field.
+        assert(identClass.isRegisterClass)
+
         JVMField(LowerName(name), LowerType(env.getOrFail(ident)), true)
       }
     }.toList

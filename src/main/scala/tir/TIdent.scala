@@ -34,11 +34,12 @@ case class TIdentTuple(var subTypes: List[TIdent]) extends TIdent {
     }
 }
 
-case class TIdentVar(var name: String) extends TNamedIdent {
+case class TIdentVar(var name: String, var identClass: TIdentClass)
+    extends TNamedIdent {
   def prettyPrint = name
 
   def nodeClone =
-    new TIdentVar(new String(name))
+    new TIdentVar(new String(name), identClass.nodeClone)
 }
 
 // This is a class for representing type tags on nodes.
@@ -49,32 +50,36 @@ case class TInternalIdentVar(var name: String) extends TNamedIdent {
     new TInternalIdentVar(new String(name))
 }
 
-case class TIdentLongVar(var name: List[String]) extends TNamedIdent {
+case class TIdentLongVar(var name: List[String], var identClass: TIdentClass)
+    extends TNamedIdent {
   def prettyPrint = name.mkString(".")
 
   def nodeClone =
-    new TIdentLongVar(name.map(new String(_)))
+    new TIdentLongVar(name.map(new String(_)), identClass.nodeClone)
 }
 
 /* This class is introduced in the LowerProgram pass.
  * The first argument is to make the node unique.  */
 case class TArgumentNode(var funname: TTopLevelIdent,
                          var argNumber: Int) extends TNamedIdent {
+  // Argument nodes may be assumed to be of TValClass
   def prettyPrint = "Argument_" + argNumber
 
   def nodeClone =
     new TArgumentNode(funname.nodeClone, argNumber)
 }
 
-case class TTopLevelIdent(var name: String) extends TNamedIdent {
+case class TTopLevelIdent(var name: String, var identClass: TIdentClass)
+    extends TNamedIdent {
   def prettyPrint = "TopLevel_" + name
 
   def nodeClone =
-    new TTopLevelIdent(new String(name))
+    new TTopLevelIdent(new String(name), identClass.nodeClone)
 }
 
 case class TNumberedIdentVar(var name: String, var number: Int)
     extends TNamedIdent {
+  // Numbered Ident Vars may assumed to be of TValClass
   def prettyPrint = name + "_" + number.toString
 
   def nodeClone =
