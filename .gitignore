@@ -2,6 +2,6 @@ project/*
 target
 test.sml*
 debug_install/*
-cmlc
+./cmlc
 
 !project/plugins.sbt
