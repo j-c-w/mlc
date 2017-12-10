@@ -28,6 +28,8 @@ java -jar "$JAR" "$@"
 # name).  Output of Krakatau thrown away becase we don't want the screen filled
 # with millions of classes.
 $ASSEMBLER "$filename.j" -out "$TEMP_DIR" > /dev/null || (echo "Assemble failed.  Please report this as a bug. "; exit 1)
+# Delete the assembly file:
+rm "$filename.j"
 # First create the jar file with the local classes
 jar cfe "$filename.jar" Main -C "$TEMP_DIR" .
 # Then we package this with the standard libraries:
