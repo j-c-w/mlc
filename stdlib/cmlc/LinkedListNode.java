@@ -75,6 +75,12 @@ public class LinkedListNode extends LinkedList {
 
 		LinkedListNode otherCast = (LinkedListNode) other;
 
+		// A speed optimization is to check that the lists are
+		// of equal length
+		if (otherCast.length != this.length) {
+			return false;
+		}
+
 		return otherCast.head.equals(this.head)
 			&& otherCast.tail.equals(this.tail);
 	}
