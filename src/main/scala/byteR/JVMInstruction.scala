@@ -178,7 +178,19 @@ case class JVMIPush(var value: Int) extends JVMPushInstruction {
 }
 
 case class JVMFPush(var float: Float) extends JVMPushInstruction {
-  def prettyPrint = "ldc " + float.toString + "f"
+  def prettyPrint = "ldc " + assemblerRepresentation
+
+  private lazy val assemblerRepresentation =
+    if (float.isPosInfinity) {
+      "+Infinityf"
+    } else if (float.isNegInfinity) {
+      "-Infinityf"
+    } else if (float.isNaN) {
+      // Load all NaNs as positive.
+      "+NaNf"
+    } else {
+      float.toString + "f"
+    }
 }
 
 case class JVMLDCString(var string: String) extends JVMPushInstruction {
