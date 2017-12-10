@@ -41,7 +41,7 @@ cd ..
 echo $(pwd)
 
 # Run the install script:
-zsh ./install.sh "$installation_location" "$executable"
+yes "y" | zsh ./install.sh "$installation_location" "$executable"
 
 cd test
 
