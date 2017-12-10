@@ -48,12 +48,12 @@ case class TExpTuple(var elems: List[TExp])
   def flatten =
     if (elems.length == 1)
       elems(0) match {
-        case flattenable: TFlattenable[TExp] => flattenable.flatten
+        case flattenable: TFlattenable[TExp] @unchecked => flattenable.flatten
         case other => other
       }
     else
       TExpTuple(elems.map {
-        case flattenable: TFlattenable[TExp] => flattenable.flatten
+        case flattenable: TFlattenable[TExp] @unchecked => flattenable.flatten
         case other => other
       })
 }
@@ -74,7 +74,7 @@ case class TExpSeq(var seq: List[TExp]) extends TExp with TFlattenable[TExp] {
 
   def flatten = if (seq.length == 1)
       seq(0) match {
-        case flattenable: TFlattenable[TExp] => flattenable.flatten
+        case flattenable: TFlattenable[TExp] @unchecked => flattenable.flatten
         case other => other
       }
     else
@@ -82,7 +82,8 @@ case class TExpSeq(var seq: List[TExp]) extends TExp with TFlattenable[TExp] {
 
   private def recursiveFlatten(exp: TExp): List[TExp] = exp match {
       case TExpSeq(subElems) => subElems.map(recursiveFlatten(_)).flatten
-      case flattenable: TFlattenable[TExp] => List(flattenable.flatten)
+      case flattenable: TFlattenable[TExp] @unchecked =>
+        List(flattenable.flatten)
       case other => List(other)
     }
 }

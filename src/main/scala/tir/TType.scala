@@ -58,7 +58,7 @@ case class TTupleType(var subTypes: List[TType])
 
   def flatten = if (subTypes.length == 1)
     subTypes(0) match {
-      case flattenable: TFlattenable[TType] => flattenable.flatten
+      case flattenable: TFlattenable[TType] @unchecked => flattenable.flatten
       case other => other
     }
   else

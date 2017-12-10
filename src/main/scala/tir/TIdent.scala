@@ -1,7 +1,5 @@
 package tir
 
-import toplev.GenericPrintable
-import tpass.TPass
 import scala.collection.mutable.HashSet
 
 sealed trait TIdent extends TTree {

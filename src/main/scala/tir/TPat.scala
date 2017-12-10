@@ -32,7 +32,7 @@ case class TPatSeq(var seq: List[TPat]) extends TPat with TFlattenable[TPat] {
 
   def flatten = if (seq.length == 1)
     seq(0) match {
-      case flattenable: TFlattenable[TPat] => flattenable.flatten
+      case flattenable: TFlattenable[TPat] @unchecked => flattenable.flatten
       case other => other
     }
   else
