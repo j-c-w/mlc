@@ -152,8 +152,9 @@ object ASTChangeNames
         ASTPatSeq(pats.map(changeNamesInsert(map, _)), typs)
       case ASTListPat(list, typs) =>
         ASTListPat(list.map(changeNamesInsert(map, _)), typs)
-      case ASTPatCons(head, tail) =>
-        ASTPatCons(changeNamesInsert(map, head), changeNamesInsert(map, tail))
+      case ASTPatCons(head, tail, typs) =>
+        ASTPatCons(changeNamesInsert(map, head),
+                   changeNamesInsert(map, tail), typs)
       case other => other
     }
 
