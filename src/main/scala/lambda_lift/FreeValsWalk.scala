@@ -28,8 +28,7 @@ class FreeValsWalk(val program: TProgram,
                    val visited: Set[TNamedIdent]) extends TTypeEnvUnitPass {
   def this(program: TProgram, functionName: Option[TNamedIdent],
            functionEnv: TTypeEnv) =
-             this(program, functionName, functionEnv,
-                  new HashSet[TNamedIdent]())
+     this(program, functionName, functionEnv, new HashSet[TNamedIdent]())
 
   var freeValsSet: Set[(TExpIdent, TType)] =
     HashSet[(TExpIdent, TType)]()
@@ -75,7 +74,15 @@ class FreeValsWalk(val program: TProgram,
                                      functionEnv, visited)
 
                   recursiveWalk(otherEnv, identDef)
-                  freeValsSet ++= (recursiveWalk.freeValsSet)
+                  
+                  recursiveWalk.freeValsSet.foreach {
+                    // Only add the ident to the free vals set if it would be
+                    // free in this function.
+                    case ((TExpIdent(ident), typ)) =>
+                      if (!env.hasTypeBetweenInclusive(functionEnv, ident)) {
+                        freeValsSet += ((TExpIdent(ident), typ))
+                      }
+                  }
                 }
                 case Some((_, valdec : TVal)) =>
                   // In this case, add to the variable to the set.
@@ -84,7 +91,8 @@ class FreeValsWalk(val program: TProgram,
                       env.getNoSubstituteOrFail(identVar)))
                 case None =>
                   freeValsSet +=
-                    ((TExpIdent(identVar), env.getNoSubstituteOrFail(identVar)))
+                    ((TExpIdent(identVar),
+                      env.getNoSubstituteOrFail(identVar)))
                   // Add the variable to the free vals set
                   // on its own.  We used to throw here,
                   // but that is incorrect, as a function passed
