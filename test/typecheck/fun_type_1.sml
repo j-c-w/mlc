@@ -3,4 +3,6 @@
 fun f x = x
 fun g x = (f x) + 1
 
-(* t-scan-times-1 : int -> int : typecheck *)
+(* Expect to find this once in the type of g, and another time
+* in the type of the application of f to x.  *)
+(* t-scan-times-2 : int -> int : typecheck *)
