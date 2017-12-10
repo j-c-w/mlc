@@ -1,9 +1,12 @@
-#!/bin/bash
+#!/bin/zsh
 
 # This script installs the compiler executable and standard libraries
 # WITHOUT REBUILD!
 # It is intended for development use so that we do not have to clean
 # everything up every time.
+
+set -e
+set -u
 
 TARGET=$(pwd)/debug_install
 jarfile="$(pwd)/target/scala-2.11/cmlc_2.11-0.0.1-one-jar.jar"
@@ -62,7 +65,7 @@ fi
 echo "Initializing paths to standard libraries in shell script..."
 sed -i "s!AUTOMATICALLY_REPLACED_LIBRARY_LOCATION!$TARGET/lib!g" $compiler_folder/cmlc
 echo "Initializing paths to the compiler jar in shell script..."
-sed -i "s!AUTOMATICALLY_REPLACED_JAR_LOCATION!$TARGET/compiler!g" $compiler_folder/cmlc
+sed -i "s!AUTOMATICALLY_REPLACED_JAR_LOCATION!$jarfile!g" $compiler_folder/cmlc
 echo "Initializing paths to the assembler in shell script..."
 sed -i "s!AUTOMATICALLY_REPLACED_ASSEMBLER_LOCATION!$KRAKATAU_EXECUTABLE!g" $compiler_folder/cmlc
 

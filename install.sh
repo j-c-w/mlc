@@ -1,4 +1,7 @@
-#!/bin/bash
+#!/bin/zsh
+
+# Need Zsh for the glob expansion when installing the standard libraries.
+# Other shells may work but have not been tested. (Bash 4.4 not working)
 
 # Assembler location
 KRAKATAU_LINK="https://github.com/Storyyeller/Krakatau"
@@ -152,7 +155,7 @@ install_compiler() {
 	echo "Initializing paths to standard libraries in shell script..."
 	sed -i "s!AUTOMATICALLY_REPLACED_LIBRARY_LOCATION!$LIBRARY_TARGET/lib!g" $compiler_folder/cmlc
 	echo "Initializing paths to the compiler jar in shell script..."
-	sed -i "s!AUTOMATICALLY_REPLACED_JAR_LOCATION!$LIBRARY_TARGET/compiler!g" $compiler_folder/cmlc
+	sed -i "s!AUTOMATICALLY_REPLACED_JAR_LOCATION!$LIBRARY_TARGET/compiler/cmlc.jar!g" $compiler_folder/cmlc
 	echo "Initializing paths to the assembler in shell script..."
 	sed -i "s!AUTOMATICALLY_REPLACED_ASSEMBLER_LOCATION!$KRAKATAU_EXECUTABLE!g" $compiler_folder/cmlc
 
