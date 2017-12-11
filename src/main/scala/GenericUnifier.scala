@@ -146,7 +146,7 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
       }
     }
 
-    map(from) = newType
+    specializeNV(from, newType)
   }
 
   private def isNew(variable: TypeVariable) =
@@ -275,13 +275,39 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
   // If this would introduce a cycle in the unifier, then we deal
   // with that issue by flipping from and to.
   def specializeNV(from: TypeVariable, to: TypeVariable) = {
-    if (map.contains(to) && map(to) == from) {
-      // In this case we do nothing intentionally to avoid
-      // introducing a loop in the unifier.
+    // Check if this would introduce a loop.  If so, then don't insert it.
+    if (completesLoop(from, to)) {
+      // Don't want to create loops.  This is sound provided that the
+      // type pass is correctly handling the unification direction.
     } else {
       map(from) = to
       newMap(from) = true
     }
+  }
+
+  private def completesLoop(from: TypeVariable, to: TypeVariable): Boolean = {
+    var maxIters = 10000
+
+    if (from == to) {
+      return true
+    }
+
+    var tail = to
+    while (map.contains(tail)) {
+      if (from == map(tail)) {
+        return true
+      }
+
+      maxIters -= 1
+
+      if (maxIters < 0) {
+        throw new ICE("Found a loop of more that 10000 type variables long")
+      }
+
+      tail = map(tail)
+    }
+
+    return false
   }
 
   private def hasType(typ: TypeVariable) =
