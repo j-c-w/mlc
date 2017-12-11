@@ -48,7 +48,10 @@ class Test(object):
         # We have to remove the normal extension from this file:
         name = re.sub('\\.[^.]*$', '', name)
         jar_file = self.file_for_affix(name, 'jar')
-        return ['java', '-jar', jar_file]
+        # -Xfuture ensures strictest possible checks on the integrity of the
+        # jar files.  It can flag up potential errors with future JVM
+        # implementations that are not yet user visible.
+        return ['java', '-Xfuture', '-jar', jar_file]
 
     def execute(self, executable, file, full_filepath, additional_options):
         """ Returns true if there was an error or the test failed
@@ -92,7 +95,8 @@ class Test(object):
                 except subprocess.CalledProcessError as error:
                     # There was a runtime error
                     other_messages += ['FAIL: Runtime error in ' +
-                                       full_filepath + 'error was ' + error]
+                                       full_filepath + 'error was ' +
+                                       str(error)]
             build_failed = False
             test_failed = self.compile_should_fail
 
