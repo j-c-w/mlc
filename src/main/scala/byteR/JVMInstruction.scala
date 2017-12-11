@@ -214,6 +214,12 @@ case class JVMLocalAStore(n: Int) extends JVMStoreInstruction {
   }
 }
 
+/* This is only for use in static methods.  In instance methods,
+ * it will overwrie the pointer.  */
+case class JVMSelfStore() extends JVMStoreInstruction {
+  def prettyPrint = "astore_0"
+}
+
 case class JVMLocalALoad(n: Int) extends JVMPushInstruction {
   // N = 0 is the 'this' pointer.  Use JVMSelfLoad() for that.
   assert(n > 0)

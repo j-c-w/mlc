@@ -17,7 +17,8 @@ object LowerBody {
     //
     // Store all except the number of arguments, which are untouchable.
     val localInitialization = ((directArgumentCount until localsCount) map {
-      case (n: Int) => List(JVMNullPush(), JVMLocalAStore(n + 1))
+      case 0 => List(JVMNullPush(), JVMSelfStore())
+      case (n: Int) => List(JVMNullPush(), JVMLocalAStore(n))
     }).toList.flatten
 
     val otherInstrs = LowerExp(exp, env)
