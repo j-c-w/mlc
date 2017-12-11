@@ -7,7 +7,7 @@ fun randomlist(0, seed) = []
   let
     val (seed', rand) = random(seed)
   in
-    (Real.fromInt(rand)) :: (randomlist(len - 1, seed'))
+    (Real.fromInt(rand mod 1000)) :: (randomlist(len - 1, seed'))
   end
 
 fun zip [x] [y] = [(x, y)]
@@ -62,7 +62,7 @@ fun fft x fourierLength 0 = []
 
 fun fft_wrapper (x) (n: int) = fft x n n
 
-fun check_result ([], sum) = (sum > 1e11) andalso (sum < 1e14)
+fun check_result ([], sum) = (sum > 721304.0) andalso (sum < 721305.0)
   | check_result ((x :: xs), sum) =
         check_result (xs, (sum + modulus(x)))
 
