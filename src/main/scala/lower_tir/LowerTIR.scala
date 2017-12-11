@@ -131,7 +131,7 @@ object LowerTIR extends Pass[TJavaProgram, JVMProgram]("lower_tir") {
       case (arg :: args) => {
         val otherClasses =
           recursiveLowerFunction(funExp, args, number + 1,
-                                 loweredArgType :: builtupTypes, name,
+                                 builtupTypes :+ loweredArgType, name,
                                  returnType, env)
         val argSet =
           JVMPutField(thisClassRef, "arg" + number, loweredArgType)
@@ -147,21 +147,21 @@ object LowerTIR extends Pass[TJavaProgram, JVMProgram]("lower_tir") {
            JVMDup() ::
           // The code for this function then initializes the head of the
           // otherClasses list
-           (0 until number).map({ (n: Int) =>
+          ((0 until number).map({ (n: Int) =>
              List(JVMSelfLoad(),
                   JVMGetField(thisClassRef, "arg" + n, builtupTypes(n)))
-           }).flatten.toList :::
+           }).flatten.toList) :::
           // Load the argument onto the top of this stack.  For better or for
-          // worse, this is incremented internally to 1.
-           LowerLoadIdent(new TNumberedIdentVar(funName, 0), env)) :+
+          // worse, this index is incremented internally to 1.
+          LowerLoadIdent(new TNumberedIdentVar(funName, 0), env)) :+
           // And cast it
           JVMCheckCast(loweredArgType.getRefFor) :+
           // Then  invoke the constructor for  the next level.
-          new JVMInvokeSpecialMethod(
-            new JVMMethodRef(
-              JVMClassRef.classRefFor(LowerName(otherClasses.head.name)),
-              "<init>", loweredArgType :: builtupTypes,
-              JVMVoidPrimitiveType()))
+           new JVMInvokeSpecialMethod(
+             new JVMMethodRef(
+               JVMClassRef.classRefFor(LowerName(otherClasses.head.name)),
+               "<init>", builtupTypes :+ loweredArgType,
+               JVMVoidPrimitiveType()))
         (instrs, otherClasses)
       }
     }
@@ -176,7 +176,9 @@ object LowerTIR extends Pass[TJavaProgram, JVMProgram]("lower_tir") {
     // There are only ever two things: the value to be stored and the self
     // ref.
     StackLimitDirective(2) ::
-    LocalsLimitDirective(2) ::
+    // But we need to have space for number + 1 arguments, + 1 for the
+    // self ref.
+    LocalsLimitDirective(number + 1 + 1) ::
     // call init:
     JVMSelfLoad() ::
     JVMInvokeSpecialMethod(
