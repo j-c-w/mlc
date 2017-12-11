@@ -8,15 +8,6 @@ import scala.collection.mutable.HashMap
 abstract class GenericUnifier[TypeVariable <: GenericPrintable
                                               with GenericType[TypeVariable]] {
   private val map = new HashMap[TypeVariable, TypeVariable]()
-  // This introduces an early failure mode if a loop is inserted
-  // into the unifier.  It is only enabled in debug mode because
-  // it is costly.
-  private val assertNoLoops = Shared.verifyUnifiers
-
-  // This keeps track of any newly entered variables so
-  // that only variables that are relevant are applied to each
-  // other.
-  private var newMap = new HashMap[TypeVariable, Boolean]()
 
   /* This function MODIFIES THIS UNIFIER!
    * The unifier returned is a new unifier
@@ -30,14 +21,11 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
         // that need to be specialized. This unifier then
         // needs to be unified with this unifier.
         val unifier = specializeTo(map(key), value)
+        this mguSpecialize unifier
         specializeNV(key, unifier(map(key)))
       } else {
         specializeNV(key, value)
       }
-    }
-
-    if (assertNoLoops) {
-      selfApply()
     }
   }
 
@@ -48,14 +36,11 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
         // that need to be specialized. This unifier then
         // needs to be unified with this unifier.
         val unifier = unifyTo(map(key), value)
+        this mguUnify unifier
         specializeNV(key, unifier(map(key)))
       } else {
         specializeNV(key, value)
       }
-    }
-
-    if (assertNoLoops) {
-      selfApply()
     }
   }
 
@@ -71,55 +56,6 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
     for (unifier <- other) {
       mguSpecialize(unifier)
     }
-  }
-
-  /* This function applies the map to itself, removing any redundancies.
-   *
-   * For example, in the map:
-   *
-   *  'a -> int
-   *  'b -> 'a list
-   *
-   * This updates the map with:
-   *
-   *  'a -> int
-   *  'b -> int list
-   *
-   * It is costly O(n^2), so is only applied when it has to be.
-   */
-  private def selfApply(): Unit = {
-    if (noneNew()) {
-      // If there are no new entires, it is not worth going
-      // through the table.
-      return
-    }
-
-    for ((key, value) <- map) {
-      for ((otherKey, otherValue) <- map) {
-        if ((isNew(otherKey) || isNew(key)) && otherValue.contains(key)) {
-          map(otherKey) = otherValue.substituteFor(key, value)
-        }
-      }
-    }
-
-    for ((key, value) <- map) {
-      // We only do this check for single type variables.
-      // (i.e. not Bool or Int or Function etc.
-      if (key.getTypeVars.size == 1)
-        for ((otherKey, otherValue) <- map) {
-          if (otherValue.contains(key)) {
-            throw new ICE("""Error: Cycle in unifier, from: 
-              | %s -> %s
-              | and
-              | %s -> %s""".stripMargin.format(key.prettyPrint,
-                                               value.prettyPrint,
-                                               otherKey.prettyPrint,
-                                               otherValue.prettyPrint))
-          }
-        }
-    }
-
-    setNoneNew()
   }
 
   def selfApply(from: TypeVariable) = {
@@ -148,19 +84,6 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
 
     specializeNV(from, newType)
   }
-
-  private def isNew(variable: TypeVariable) =
-    newMap.contains(variable)
-
-  private def setNoneNew() = {
-    newMap = new HashMap[TypeVariable, Boolean]()
-  }
-
-  private def setNew(variable: TypeVariable) =
-    newMap(variable) = true
-
-  private def noneNew(): Boolean =
-    newMap.size == 0
 
   def apply[TypeEnvClass <: GenericTypeEnv[TypeEnvClass, From, TypeVariable],
             From <: GenericPrintable]
@@ -281,7 +204,6 @@ abstract class GenericUnifier[TypeVariable <: GenericPrintable
       // type pass is correctly handling the unification direction.
     } else {
       map(from) = to
-      newMap(from) = true
     }
   }
 
