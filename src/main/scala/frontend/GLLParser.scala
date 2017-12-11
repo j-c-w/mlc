@@ -84,29 +84,23 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     }
   )
 
+  // This regex matches all single characters
+  // except ". Note that escaping is not supported.
+  // TODO -- extend the strings accepted
+  lazy val asciiRegex = """[\\\]-~ !#-\[]""".r
+  lazy val asciiStringRegex = """([\\\]-~ !#-\[])*""".r
+
   lazy val char: Parser[ASTConstChar] = (
-    "#\"" ~ ascii ~ "\""      ^^ { case (_ ~ charList ~ _) => charList }
+    "#\"" ~ asciiRegex ~ "\""      ^^ {
+      case (_ ~ charList ~ _) => ASTConstChar(charList.charAt(0))
+    }
   )
 
   lazy val string: Parser[ASTConstString] = (
       // Refactored: replaced ascii* with asciiSeq
-      "\"" ~ asciiSeq ~ "\""  ^^ { case (_ ~ string ~ _) =>
-            string }
-      // TODO -- extend the strings accepted
-  )
-
-  lazy val ascii: Parser[ASTConstChar] = (
-    // Omitted: Escape sequences.
-    // This regex matches all single characters
-    // except ". Note that escaping is not supported.
-    """[\\\]-~ !#-\[]""".r     ^^ { (char) => ASTConstChar(char.charAt(0)) }
-  )
-
-  lazy val asciiSeq: Parser[ASTConstString] = (
-      ascii ~ asciiSeq         ^^ { case (ASTConstChar(char) ~
-                                          ASTConstString(str)) =>
-          ASTConstString(char + str) }
-    | ""                       ^^ { (_) => ASTConstString("") }
+      "\"" ~ asciiStringRegex ~ "\""  ^^ {
+        case (_ ~ string ~ _) => ASTConstString(string)
+      }
   )
 
   lazy val bool: Parser[ASTConstBool] = (
