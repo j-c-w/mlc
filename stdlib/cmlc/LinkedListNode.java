@@ -36,9 +36,11 @@ public class LinkedListNode extends LinkedList {
 		// Create a new node since this is immuable.
 		// It may take a pointer to the same object since
 		// that is also immutable.
-		LinkedList list = this;
+		LinkedList list = this.tail;
+
 		LinkedListNode newList = new LinkedListNode(this.head, null);
-		newList.length = other.length + list.length;
+		LinkedListNode newListHead = newList;
+		newList.length = other.length + this.length;
 
 		LinkedListNode previousElementOfNewList = null;
 
@@ -52,7 +54,6 @@ public class LinkedListNode extends LinkedList {
 			// Set the tail of the last node to this copied node.
 			previousElementOfNewList.tail = newList;
 
-
 			// Walk through this list
 			list = ((LinkedListNode) list).tail;
 		}
@@ -60,11 +61,21 @@ public class LinkedListNode extends LinkedList {
 		// Set the last element to be the new list:
 		newList.tail = other;
 
-		return newList;
+		return newListHead;
 	}
 
 	public LinkedList cons(Object newObject) {
 		return new LinkedListNode(newObject, this);
+	}
+
+	public void print() {
+		LinkedList node = this;
+
+		while (!node.isNil()) {
+			System.out.println(((LinkedListNode) node).head);
+
+			node = ((LinkedListNode) node).tail;
+		}
 	}
 
 	@Override
