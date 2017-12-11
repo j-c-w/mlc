@@ -176,7 +176,6 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         idents(0).asInstanceOf[ASTIdentVar].identClass = Some(ASTFunClass())
         identifierClassMap(idents(0).asInstanceOf[ASTIdentVar]) = ASTFunClass()
 
-
         // The pattern matching function does not return a unifier.
         // That is done internally. Each pattern row gets an associated
         // environment (because they are all different)
@@ -242,8 +241,18 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
 
         val resultType = TypeVariableGenerator.getVar()
 
-        val mgu = ASTType.unify(declaredFunType,
-                                ASTFunctionType(appType, resultType))
+        val mgu = ASTUnifier()
+        declaredFunType match {
+          case ASTFunctionType(from, to) => {
+            mgu mguUnify (from unify appType)
+            mgu mguUnify (resultType unify to)
+          }
+          case ASTUnconstrainedTypeVar(name) =>
+            mgu mguUnify
+              (declaredFunType unify ASTFunctionType(appType, resultType))
+          case other =>
+            throw new ICE("Function identifier with non-function type %s".format(other.prettyPrint))
+        }
 
         // This is used for later optimizations. It is helpful
         // to know exactly what types the function is going
@@ -316,9 +325,9 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         // to the environment. The application to the environment is
         // left as a final step.
         val mgu = ASTUnifier()
-        unifiers.foreach( {
+        unifiers.foreach {
           case (unifier, _) => mgu mguUnify unifier
-        })
+        }
 
         // In this case, it does not matter whether we apply the unifier here
         // or at the top level.
@@ -402,7 +411,6 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         val (falseUnifier, falseType) = principalType(env, ifFalse)
         falseUnifier(env)
 
-
         val mgu = condUnifier
         mgu.mguUnify(trueUnifier)
         mgu.mguUnify(falseUnifier)
@@ -472,7 +480,6 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         (unifier, typ)
       }
     }
-
 
   def listPatternType(patterns: List[List[ASTPat]],
                       types: List[Option[ASTType]],
