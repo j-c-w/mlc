@@ -11,7 +11,7 @@ case class JVMMethod(var name: String, var arguments: List[JVMType],
   |     %s
   |  .end method""".stripMargin.format(staticModifier, name,
                                        arguments.map(
-                                         _.prettyPrint).mkString(";"),
+                                         _.prettyPrint).mkString(""),
                                        result.prettyPrint,
                                        body.map(
                                          _.prettyPrint).mkString("\n     "),
