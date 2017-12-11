@@ -63,12 +63,17 @@ fun do_test 0 = true
                  (eval_poly ()) andalso
                  do_test (n - 1))
 
+(* Inserted so that the recursion depth does not get too deep for the JVM.  *)
+fun do_test_wrapper 0 = true
+  | do_test_wrapper n =
+        do_test 1000 andalso do_test_wrapper (n - 1)
+
 fun main () = 
   let 
     val timer = Timer.startRealTimer()
   in
     let
-      val result = do_test 100000
+      val result = do_test_wrapper 100
       val res_str = if (result) then "pass" else "fail"
     in 
       let
