@@ -29,7 +29,6 @@ object Toplev extends App {
 
   Shared.filename = file.toString
   Shared.debug = cli.debug
-  Shared.verifyUnifiers = cli.runVerifyUnifiers
 
   // Frontend
   val code = FileUtils.readFileToString(file, StandardCharsets.UTF_8)

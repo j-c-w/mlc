@@ -13,9 +13,6 @@ class Arguments(arguments: Seq[String]) {
     val verifyAll = opt[Boolean]()
     val runLambdaLiftVerify = opt[Boolean]()
     val runLowerProgramVerify = opt[Boolean]()
-    // One must be carefule with this one, as it modifies
-    // state internally. (in theory, it should be safe).
-    val runVerifyUnifiers = opt[Boolean]()
 
     // A marker to state whether the compiler should dump stats about
     // the compilation.
@@ -45,8 +42,6 @@ class Arguments(arguments: Seq[String]) {
   val runLambdaLiftVerify = parser.runLambdaLiftVerify() || parser.verifyAll()
   val runLowerProgramVerify =
     parser.runLowerProgramVerify() || parser.verifyAll()
-  val runVerifyUnifiers =
-    parser.runVerifyUnifiers() || parser.verifyAll()
 
   // Stats
   val compileStats =
