@@ -4,6 +4,6 @@ import cmlc.Function;
 
 public class fromInt extends Function {
 	public Object apply(Object input) {
-		return (Float) input;
+		return (Float) ((float) ((Integer) input));
 	}
 }
