@@ -26,8 +26,6 @@ object LowerExp {
       // Build the tuple and extract it to get the arguments:
       extractNTuple(application, env, 2,
                     List(JVMObjectType(), JVMObjectType()), false) :+
-      // Need the first value to be on top.
-      JVMSwap() :+
       // Now call the append method on the list class
       JVMInvokeVirtualMethod(
         new JVMMethodRef(new JVMLinkedListRef(), "append",
