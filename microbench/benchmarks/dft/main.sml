@@ -1,6 +1,4 @@
-(* The seeds are as from:
-* https://en.wikipedia.org/wiki/Lehmer_random_number_generator *)
-fun random(seed) = ((16807 * seed) mod 2147483647, (16807 * seed) mod 2147483647)
+fun random(seed) = ((13 * seed) mod 997, (11 * seed) mod 2134)
 
 fun randomlist(0, seed) = []
   | randomlist(len, seed) = 
@@ -62,7 +60,7 @@ fun fft x fourierLength 0 = []
 
 fun fft_wrapper (x) (n: int) = fft x n n
 
-fun check_result ([], sum) = (sum > 721304.0) andalso (sum < 721305.0)
+fun check_result ([], sum) = (sum > 249786.0) andalso (sum < 249787.0)
   | check_result ((x :: xs), sum) =
         check_result (xs, (sum + modulus(x)))
 
@@ -74,7 +72,7 @@ fun main () =
     let
       (* Use 1 as the seed for the RNG. This makes the results
          repeatable, but no constant foldable.  *)
-      val length = 1000
+      val length = 400
       (* This yeilds the reverse of the traditional Fourier Transform. *)
       val result = fft_wrapper
                     (fft_list(length, 1)) length
