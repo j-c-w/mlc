@@ -322,7 +322,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
 
         // In this case, it does not matter whether we apply the unifier here
         // or at the top level.
-        (mgu, ASTTupleType(resType))
+        (mgu, ASTTupleType(resType.map(mgu(_))))
       }
       case ASTExpList(elems) => {
         // This used to be typed by using the other case.  However, that leads
