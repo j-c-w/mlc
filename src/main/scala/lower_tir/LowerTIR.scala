@@ -104,13 +104,15 @@ object LowerTIR extends Pass[TJavaProgram, JVMProgram]("lower_tir") {
       case Nil => throw new ICE("Empty function arguments")
       // This is the last application that needs to be considered:
       case List(arg) => {
-        // The direct arguments to this function is 1.
-        val (stackDepth, expCode) =
-          LowerBody(funExp.exp, 1, funExp.valdecs.size, env)
         // We need at least one varibale for the passed variable.
         // However, slot is reused later, just have to ensure it exists.
         // The other slot we need is for the local function reference.
         val localsCount = Math.max(funExp.valdecs.size + 1, 2)
+
+        // The number of direct arguments to this function is 1,
+        // so we don't initialize register 1 here.
+        val (stackDepth, expCode) =
+          LowerBody(funExp.exp, 1, localsCount, env)
         val argSet = List(
           // The directives need to go first.  Again, the pushing of the
           // argument requires a stack depth of 1.
