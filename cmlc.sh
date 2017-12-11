@@ -18,7 +18,7 @@ if [ ! -f ${@:$#} ]; then
 	exit 1
 fi
 
-base=$(basename ${@:$#})
+base=${@:$#}
 # Name of the file without the extension.
 filename="${base%.*}"
 
