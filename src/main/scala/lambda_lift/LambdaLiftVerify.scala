@@ -4,7 +4,7 @@ import environment_soundness.EnvironmentSoundnessWalk
 import exceptions.ICE
 import tir._
 import toplev.OptionalPass
-import tpass.TPass
+import tpass._
 
 /* This class contains a walk to the tree to make sure that:
  *   (1) there are no Fns left

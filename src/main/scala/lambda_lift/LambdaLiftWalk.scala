@@ -38,7 +38,7 @@ class LambdaLiftWalk(val program: TProgram)
         case _ => false
       } map (_.asInstanceOf[TVal])
 
-      val fundecs = decs.filter {
+      var fundecs = decs.filter {
         case TFun(_, _) => true
         case _ => false
       } map (_.asInstanceOf[TFun])
@@ -114,6 +114,9 @@ class LambdaLiftWalk(val program: TProgram)
                 val callUpdater =
                   new FunCallUpdateWalk(fun.name, freeValsTuple, freeValsType,
                                         oldFunctionType, env)
+                // Now remove the old function def from the fundecs list:
+                fundecs = fundecs.filter(x => x != fun)
+
                 // We walk the function lists in this manner.
                 //
                 // Note that this is OK to do as the functions are in
@@ -135,6 +138,16 @@ class LambdaLiftWalk(val program: TProgram)
                                                program.typeEnv)
                 }
                 newTopLevelFunctions.foreach(callUpdater((), _))
+
+                // Sanity check to ensure that nothing has been replaced twice
+                // as that would (and has) failed silently later.
+                fundecs.foreach { x =>
+                  if (newTopLevelFunctions.contains(x)) {
+                    throw new ICE("""Function %s appears in two
+                      |lists and so has been substituted for twice.""".
+                      stripMargin.format(x.prettyPrint))
+                  }
+                }
 
                 // Second part (replace names within the valdecs):
                 val newVal =
@@ -172,7 +185,6 @@ class LambdaLiftWalk(val program: TProgram)
                 }
                 valdecs = insertIntoList(valdecs, newVal, freeIdentsList)
 
-                //
                 // Further, it is important that we do not walk the fundecs at
                 // this point.
                 val tempLet = TExpLetIn(valdecs, let.exp, letEnv)

@@ -53,13 +53,13 @@ class FreeValsWalk(val program: TProgram,
   override def apply(env: TTypeEnv, exp: TExp): Unit = exp match {
     case TExpIdent(identVar: TIdentVar) => {
       // We check whether the identifier was declared between this
-      // environment and the top function environment. 
+      // environment and the top function environment.
       if (!env.hasTypeBetweenInclusive(functionEnv, identVar)) {
-        env.getOrFail(identVar) match {
+        identVar.identClass match {
           // If this is a function, then we should walk that function
           // to find it's free variables.  Mark the function in the
           // visited function map so that we don't visit it twice.
-          case TFunctionType(_, _) => {
+          case TFunClass() => {
             if (!visited.contains(identVar)) {
               val foundDef =
                 DefFinder(program.typeEnv, program, identVar)
@@ -74,7 +74,7 @@ class FreeValsWalk(val program: TProgram,
                                      functionEnv, visited)
 
                   recursiveWalk(otherEnv, identDef)
-                  
+
                   recursiveWalk.freeValsSet.foreach {
                     // Only add the ident to the free vals set if it would be
                     // free in this function.
