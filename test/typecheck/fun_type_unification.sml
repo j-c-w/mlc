@@ -1,4 +1,4 @@
-(* t-compile: --run-verify-unifiers *)
+(* t-compile: *)
 (* Regression:  This used to insert mutually referential types
 * into the unifier. *)
 

@@ -1,4 +1,4 @@
-(* t-compile: --run-verify-unifiers *)
+(* t-compile: *)
 (* Regression: This case broken when I introduced a change to the unifier
 * to fix a dual case.  *)
 
