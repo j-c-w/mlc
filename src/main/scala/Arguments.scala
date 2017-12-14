@@ -20,6 +20,7 @@ class Arguments(arguments: Seq[String]) {
 
     // Dump options:
     val dumpAll = opt[Boolean]()
+    val dumpLex = opt[Boolean]()
     val dumpAst = opt[Boolean]()
     val dumpChangeNames = opt[Boolean]()
     val dumpTypecheck = opt[Boolean]()
@@ -48,6 +49,8 @@ class Arguments(arguments: Seq[String]) {
     parser.compileStats()
 
   // Dump options:
+  val dumpLex =
+    parser.dumpLex() || parser.dumpAll()
   val dumpAst =
     parser.dumpAst() || parser.dumpAll()
   val dumpChangeNames =

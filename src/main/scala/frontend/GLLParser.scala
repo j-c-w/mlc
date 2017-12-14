@@ -3,6 +3,7 @@ package frontend
 import exceptions.ICE
 import java.math.BigDecimal
 import java.math.BigInteger
+import lexer._
 import scala.util.parsing.combinator._
 import scala.util.parsing.input._
 import toplev.Pass
@@ -34,98 +35,51 @@ import toplev.Pass
  *    are treated equally.
  */
 
-object GLLParser extends Pass[String, ASTProgram]("ast")
-  with Parsers with RegexParsers {
-  // This is used as a preliminary pass to strip comments
-  // and excess whitespace.
-  override def skipWhitespace = true
-  override val whiteSpace = """(?s)(\s|\(\*(.*?)\*\))+"""r
+object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
+    with Parsers {
+  override type Elem = Lexeme
+
+  lazy val charLiteral: Parser[LexCharLiteral] =
+    accept("char literal", { case (x: LexCharLiteral) => x })
+
+  lazy val floatLiteral: Parser[LexFloatLiteral] =
+    accept("float literal", { case (x: LexFloatLiteral) => x })
+
+  lazy val intLiteral: Parser[LexIntLiteral] =
+    accept("int literal", { case (x: LexIntLiteral) => x })
+
+  lazy val longIdentifier: Parser[LexLongIdentifier] =
+    accept("long identifier", { case (x: LexLongIdentifier) => x })
+
+  lazy val lexIdentifier: Parser[LexIdentifier] =
+    accept("identifier", { case (x: LexIdentifier) => x})
+
+  lazy val stringLiteral: Parser[LexStringLiteral] =
+    accept("string literal", { case (x: LexStringLiteral) => x })
+
+  lazy val unconstrainedType: Parser[LexUnconstrainedType] =
+    accept("unconstraint tyvar", { case (x: LexUnconstrainedType) => x })
+
+  lazy val equalityType: Parser[LexEqualityType] =
+    accept("equality  tyvar", { case (x: LexEqualityType) => x })
 
   // Constants
-
   lazy val con: Parser[ASTConst] = (
     // Omitted: word
-    // Order swapped here as ints are a prefix of floats
-      float
-    | int
-    | char
-    | string
-    | bool
-  )
-
-  lazy val int: Parser[ASTConstInt] = (
-    num
-    | "~" ~ num     ^^ { case (_ ~ ASTConstInt(int)) =>
-                  ASTConstInt(int.negate()) }
-    // Omitted: (~)0xhex (hexadecimal)
-  )
-
-  // Omitted: word
-
-  // These all match pairs becase the conversion needs to know the number
-  // of zeroes before a decimal point.  The zeroesInt and zeroesNum
-  // record the length of the constants they measure.
-  lazy val float: Parser[ASTConstFloat] = (
-    // Refactored: Replaced ~num with int
-      zeroesInt ~ "." ~ zeroesNum ~ "(e|E)".r ~ zeroesInt  ^^ {
-          case (int ~ _ ~ dec ~ _ ~ exp) =>
-            ASTConstFloat(int._2, (dec._1, dec._2), exp._2)
-      }
-    | zeroesInt ~ "(e|E)".r ~ zeroesInt                    ^^ {
-          case (int ~ _ ~ exp) =>
-            ASTConstFloat(int._2,
-                          (0, ASTConstInt(new BigInteger(new Array[Byte](1)))),
-                          exp._2)
+      floatLiteral          ^^ {
+        case LexFloatLiteral(value) => ASTConstFloat(value)
     }
-    | zeroesInt ~ "." ~ zeroesNum                          ^^ {
-          case (int ~ _ ~ dec) =>
-            ASTConstFloat(int._2, (dec._1, dec._2),
-                          ASTConstInt(new BigInteger(new Array[Byte](1))))
+    | intLiteral            ^^ {
+      case LexIntLiteral(value) => ASTConstInt(value)
     }
-  )
-
-  // This regex matches all single characters
-  // except ". Note that escaping is not supported.
-  // TODO -- extend the strings accepted
-  lazy val asciiRegex = """[\\\]-~ !#-\[]""".r
-  lazy val asciiStringRegex = """([\\\]-~ !#-\[])*""".r
-
-  lazy val char: Parser[ASTConstChar] = (
-    "#\"" ~ asciiRegex ~ "\""      ^^ {
-      case (_ ~ charList ~ _) => ASTConstChar(charList.charAt(0))
+    | charLiteral           ^^ {
+      case LexCharLiteral(value) => ASTConstChar(value)
     }
-  )
-
-  lazy val string: Parser[ASTConstString] = (
-      // Refactored: replaced ascii* with asciiSeq
-      "\"" ~ asciiStringRegex ~ "\""  ^^ {
-        case (_ ~ string ~ _) => ASTConstString(string)
-      }
-  )
-
-  lazy val bool: Parser[ASTConstBool] = (
-      "true".r       ^^ { (_) => ASTConstTrue() }
-    | "false".r      ^^ { (_) => ASTConstFalse() }
-  )
-
-  lazy val num: Parser[ASTConstInt] = (
-    // Note, may not start with a 0
-    """[1-9][0-9]*""".r        ^^ { (int) => ASTConstInt(new BigInteger(int)) }
-    | "0"                      ^^ { (_) => ASTConstInt(new BigInteger("0")) }
-  )
-
-  // This returns a tuple of the number of digits in the number and the
-  // number itself (represented as a big int)
-  lazy val zeroesInt: Parser[(Int, ASTConstInt)] = (
-      "~" ~ zeroesNum           ^^ { case(_ ~ num)
-            => (num._1, ASTConstInt(num._2.int.negate())) }
-    | zeroesNum
-  )
-
-  lazy val zeroesNum: Parser[(Int, ASTConstInt)] = (
-    """[0-9]+""".r             ^^ {
-      (int) => (int.length, ASTConstInt(new BigInteger(int)))
+    | stringLiteral         ^^ {
+      case LexStringLiteral(string) => ASTConstString(string)
     }
+    | LexBoolTrue           ^^ { (_) => ASTConstTrue() }
+    | LexBoolFalse          ^^ { (_) => ASTConstFalse() }
   )
 
   // Identifiers
@@ -138,83 +92,76 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     // interpret them individually.
     // Note that these are ordered so as to keep any
     // that prefix any others at the bottom
-      "(" ~ ")"         ^^ { case (_ ~ _) => ASTUnitIdent() }
+      LexUnit               ^^ { (_) => ASTUnitIdent() }
     | restrictedIDAllowList
   )
 
   lazy val restrictedIDAllowList: Parser[ASTIdent] = (
-      "[" ~ "]"         ^^ { case (_ ~ _) => ASTEmptyListIdent() }
-    | "nil"             ^^ { (_) => ASTEmptyListIdent() }
+      LexNil                ^^ { (_) => ASTEmptyListIdent() }
     | restrictedID
   )
 
   lazy val restrictedID: Parser[ASTIdent] = (
-    // We add the restrictions on the front as
-    // keywords are not valid identifiers.
-    ("(?!fun[^A-Za-z0-9_']|val[^A-Za-z0-9_']|int[^A-Za-z0-9_']|" +
-      "real[^A-Za-z0-9_']|char[^A-Za-z0-9_']|list[^A-Za-z0-9_']|" +
-      "string[^A-Za-z0-9_']|case[^A-Za-z0-9_']|of[^A-Za-z0-9_']|" +
-      "if[^A-Za-z0-9_']|then[^A-Za-z0-9_']|else[^A-Za-z0-9_']|" +
-      "fn[^A-Za-z0-9_']|nil[^A-Za-z0-9_']|let[^A-Za-z0-9_']|" +
-      "in[^A-Za-z0-9_']|end[^A-Za-z0-9_']|orelse[^A-Aa-z0-9_']|" +
-      "andalso[^A-Za-z0-9_']|mod[^A-Za-z0-9_']|div[^A-Za-z0-9_']|" +
-      "print[^A-Za-z0-9_']|false[^A-Za-z0-9_']|true[^A-Za-z0-9_'])" +
-      "([A-Za-z][A-Za-z0-9_']*)").r
-                         ^^  { (str) => ASTIdentVar(str) }
+    lexIdentifier           ^^ {
+      case (LexIdentifier(name)) => ASTIdentVar(name)
+    }
   )
 
   lazy val longid: Parser[ASTLongIdent] = (
-      id ~ "." ~ longid ^^ { case (ident1 ~ _ ~ ASTLongIdent(rest)) =>
-            ASTLongIdent(ident1 :: rest) }
-    | id                ^^ { (ident) => ASTLongIdent(List(ident)) }
+    longIdentifier          ^^ {
+      case LexLongIdentifier(names) =>
+        ASTLongIdent(names.map(new ASTIdentVar(_)))
+    }
   )
 
   // Inserted, UnOP
   lazy val unOp: Parser[ASTUnOp] = (
-    "~"       ^^ { (_) => ASTUnOpNegate() }
-    | "not"   ^^ { (_) => ASTUnOpNot() }
-    | "print" ^^ { (_) => ASTUnOpPrint() }
+      LexNeg                ^^ { (_) => ASTUnOpNegate() }
+    | LexNot                ^^ { (_) => ASTUnOpNot() }
+    | LexPrint              ^^ { (_) => ASTUnOpPrint() }
   )
 
   // Restructure: rename var to tyvar as var is a keyword.
   lazy val tyvar: Parser[ASTTypeVar] = (
-    // Restructure: Avoid ambiguity between unconstrained and
-    // equality types. Use regex to avoid various space issues.
-    "'[A-Za-z][A-Za-z0-9_']*".r ~ tyvarTail  ^^ { case (name ~ tail) =>
-                tail(ASTUnconstrainedTypeVar(name.substring(1))) }
-    | "''[A-Za-z0-9_']+".r ~ tyvarTail       ^^ { case (name ~ tail) =>
-                tail(ASTEqualityTypeVar(name.substring(2))) }
+      unconstrainedType ~ tyvarTail ^^ {
+        case (LexUnconstrainedType(name) ~ tail) =>
+          tail(ASTUnconstrainedTypeVar(name))
+      }
+    | equalityType ~ tyvarTail ^^ {
+        case (LexEqualityType(name) ~ tail) =>
+                tail(ASTEqualityTypeVar(name))
+    }
     // These are inserted as the grammar has omitted them.
-    | "int" ~ tyvarTail                      ^^ { case (_ ~ tail) =>
+    | LexIntType ~ tyvarTail ^^ { case (_ ~ tail) =>
                 tail(ASTIntType())
     }
-    | "real" ~ tyvarTail                     ^^ { case (_ ~ tail) =>
+    | LexRealType ~ tyvarTail ^^ { case (_ ~ tail) =>
                 tail(ASTRealType())
     }
-    | "string" ~ tyvarTail                   ^^ { case (_ ~ tail) =>
+    | LexStringType ~ tyvarTail ^^ { case (_ ~ tail) =>
                 tail(ASTStringType())
     }
-    | "char" ~ tyvarTail                     ^^ { case (_ ~ tail) =>
+    | LexCharType ~ tyvarTail ^^ { case (_ ~ tail) =>
                 tail(ASTCharType())
     }
-    | "bool" ~ tyvarTail                     ^^ { case (_ ~ tail) =>
+    | LexBoolType ~ tyvarTail ^^ { case (_ ~ tail) =>
                 tail(ASTBoolType())
     }
-    | "unit" ~ tyvarTail                     ^^ { case (_ ~ tail) =>
+    | LexUnitType ~ tyvarTail ^^ { case (_ ~ tail) =>
                 tail(ASTUnitType())
     }
     // Refactored: Lists are the tail here because they are
     // left recursive
-    | "[A-Za-z][A-Za-z0-9_']*".r ~ tyvarTail ^^ { case (name ~ tail) =>
-                tail(ASTDataTypeName(name))
+    | lexIdentifier ~ tyvarTail ^^ {
+        case (LexIdentifier(name) ~ tail) => tail(ASTDataTypeName(name))
     }
   )
 
   lazy val tyvarTail: Parser[ASTTypeVar => ASTTypeVar] = (
-    "list" ~ tyvarTail                     ^^ { case (_ ~ tail) =>
-      ((ty: ASTTypeVar) => tail(ASTListType(ty)))
+    opt(LexListType ~> tyvarTail) ^^ {
+      case Some(tail) => ((ty: ASTTypeVar) => tail(ASTListType(ty)))
+      case None => ((x: ASTTypeVar) => x)
     }
-    | ""                                   ^^ { (_) => ((x: ASTTypeVar) => x) }
   )
 
   // Omitted: letter, digit. They cause issues with the lexing and
@@ -223,8 +170,10 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   // Expressions
   // Refactored to avoid left recursion.
   lazy val exp: Parser[ASTExp] = (
-      infixApp ~ infix8Tail                    ^^ { case (infix ~ expTail)
-            => expTail(infix) }
+      infixApp ~ opt(infix8Tail) ^^ {
+        case (infix ~ Some(expTail)) => expTail(infix)
+        case (infix ~ None) => infix
+      }
     // Refactored: (exp1 dots expn) replaced by the above
     // Omitted: raise exp
     // Omitted: exp handle match
@@ -234,14 +183,14 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     // This may be subject to change.
     // Note that since 'else' is associated with all ifs, this avoids
     // the dangling else ambiguity.
-    | "if" ~ exp ~ "then" ~ exp ~ "else" ~ exp ^^ {
+    | LexIf ~ exp ~ LexThen ~ exp ~ LexElse ~ exp ^^ {
           case (_ ~ cond ~ _ ~ taken ~ _ ~ notTaken)
             => ASTExpIfThenElse(cond, taken, notTaken)
     }
     // Rename  match to matchPat since match is a keyword in Scala
-    | "case" ~ exp ~ "of" ~ matchPat ^^ { case (_ ~ exp ~ _ ~ matchPat)
+    | LexCase ~ exp ~ LexOf ~ matchPat ^^ { case (_ ~ exp ~ _ ~ matchPat)
             => ASTExpCase(exp, matchPat) }
-    | "fn" ~ matchPat        ^^ { case (_ ~ body) => ASTExpFn(body) }
+    | LexFn ~ matchPat                 ^^ { case (_ ~ body) => ASTExpFn(body) }
   )
 
   lazy val infixApp: Parser[ASTExp] = (
@@ -260,137 +209,168 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   // Artificiall inserted to get these to bind the right way.
   lazy val infixTop: Parser[ASTExp] = (
     infix4 ~ infixTopTail  ^^ {
-        case (exp ~ tail) =>
-          tail(exp)
+        case (exp ~ tail) => tail(exp)
     }
   )
 
   lazy val infixTopTail: Parser[(ASTExp => ASTExp)] = (
-      "orelse" ~ infixTop    ^^ { case (_ ~ tail)
-          => ((x: ASTExp) => ASTExpInfixApp(ASTOrIdent(), x, tail)) }
-    | "andalso" ~ infixTop   ^^ { case (_ ~ tail)
-          => ((x: ASTExp) => ASTExpInfixApp(ASTAndIdent(), x, tail)) }
-    | infix8Tail             ^^ { (tail) => ((x: ASTExp) => tail(x)) }
+      LexOrElse ~ infixTop    ^^ {
+        case (_ ~ tail) => ((x: ASTExp) =>
+            ASTExpInfixApp(ASTOrIdent(), x, tail))
+      }
+    | LexAndAlso ~ infixTop   ^^ {
+        case (_ ~ tail) => ((x: ASTExp) =>
+            ASTExpInfixApp(ASTAndIdent(), x, tail))
+    }
+    | opt(infix8Tail)         ^^ {
+        case (Some(tail)) => ((x: ASTExp) => tail(x))
+        case None => ((x: ASTExp) => x)
+    }
   )
 
   lazy val infix4: Parser[ASTExp] = (
-    infix5 ~ infix4Tail  ^^ {
-        case (exp ~ tail) =>
-          tail(exp)
+    infix5 ~ opt(infix4Tail)  ^^ {
+      case (exp ~ Some(tail)) => tail(exp)
+      case (exp ~ None) => exp
     }
   )
 
   lazy val infix4Tail: Parser[(ASTExp => ASTExp)] = (
-      "<=" ~ infix4        ^^ { case(_ ~ tail)
-          => ((x: ASTExp) =>
-              ASTExpInfixApp.leftAssociate(ASTLEQIdent(), x, tail)) }
-    | ">=" ~ infix4        ^^ { case(_ ~ tail)
-          => ((x: ASTExp) =>
-              ASTExpInfixApp.leftAssociate(ASTGEQIdent(), x, tail)) }
-    | "<"  ~ infix4        ^^ { case(_ ~ tail)
-          => ((x: ASTExp) =>
-              ASTExpInfixApp.leftAssociate(ASTLTIdent(), x, tail)) }
-    | ">"  ~ infix4        ^^ { case(_ ~ tail)
-          => ((x: ASTExp) =>
-              ASTExpInfixApp.leftAssociate(ASTGTIdent(), x, tail)) }
-    | "="  ~ infix4        ^^ { case(_ ~ tail)
-          => ((x: ASTExp) =>
-              ASTExpInfixApp.leftAssociate(ASTEqIdent(), x, tail)) }
-    | "<>" ~ infix4        ^^ { case(_ ~ tail)
-          => ((x: ASTExp) =>
-              ASTExpUnOpApply(ASTUnOpNot(),
-                              ASTExpInfixApp.leftAssociate(ASTEqIdent(),
-                                                           x, tail)))
+      LexLEQ ~ infix4       ^^ {
+        case(_ ~ tail) => ((x: ASTExp) =>
+          ASTExpInfixApp.leftAssociate(ASTLEQIdent(), x, tail))
+      }
+    | LexGEQ ~ infix4       ^^ {
+        case(_ ~ tail) => ((x: ASTExp) =>
+          ASTExpInfixApp.leftAssociate(ASTGEQIdent(), x, tail))
     }
-    | ""                   ^^ { (_) => ((x: ASTExp) => x) }
+    | LexLT  ~ infix4       ^^ {
+        case(_ ~ tail) => ((x: ASTExp) =>
+          ASTExpInfixApp.leftAssociate(ASTLTIdent(), x, tail))
+    }
+    | LexGT  ~ infix4       ^^ {
+        case(_ ~ tail) => ((x: ASTExp) =>
+          ASTExpInfixApp.leftAssociate(ASTGTIdent(), x, tail))
+    }
+    | LexEq  ~ infix4       ^^ {
+        case(_ ~ tail) => ((x: ASTExp) =>
+          ASTExpInfixApp.leftAssociate(ASTEqIdent(), x, tail))
+    }
+    | LexNeq ~ infix4       ^^ {
+        case(_ ~ tail) => ((x: ASTExp) =>
+          ASTExpUnOpApply(ASTUnOpNot(),
+                          ASTExpInfixApp.leftAssociate(ASTEqIdent(), x, tail)))
+    }
   )
 
   lazy val infix5: Parser[ASTExp] = (
-    infix6 ~ infix5Tail    ^^ { case (exp ~ tail) => tail(exp) }
+    infix6 ~ opt(infix5Tail) ^^ {
+      case (exp ~ Some(tail)) => tail(exp)
+      case (exp ~ None) => exp
+    }
   )
 
   lazy val infix5Tail: Parser[(ASTExp => ASTExp)] = (
-      "::" ~ infix5        ^^ { case(_ ~ tail)
-          => ((x: ASTExp) => ASTExpInfixApp(ASTConsIdent(), x, tail)) }
-    | "@"  ~ infix5        ^^ { case(_ ~ tail)
-          => ((x: ASTExp) => ASTExpInfixApp(ASTAppendIdent(), x, tail)) }
-    | ""                   ^^ { (_) => ((x: ASTExp) => x) }
+      LexCons ~ infix5      ^^ {
+        case(_ ~ tail) =>
+          ((x: ASTExp) => ASTExpInfixApp(ASTConsIdent(), x, tail))
+      }
+    | LexAppend ~ infix5    ^^ {
+        case(_ ~ tail) =>
+          ((x: ASTExp) => ASTExpInfixApp(ASTAppendIdent(), x, tail))
+    }
   )
 
   lazy val infix6: Parser[ASTExp] = (
-    infix7 ~ infix6Tail    ^^ { case (exp ~ tail) => tail(exp) }
+    infix7 ~ opt(infix6Tail) ^^ {
+      case (exp ~ Some(tail)) => tail(exp)
+      case (exp ~ None) => exp
+    }
   )
 
   lazy val infix6Tail: Parser[(ASTExp => ASTExp)] = (
-      "+" ~ infix6         ^^ { case(_ ~ tail)
-          => ((x: ASTExp) =>
-                ASTExpInfixApp.leftAssociate(ASTPlusIdent(), x, tail)) }
-    | "-" ~ infix6         ^^ { case(_ ~ tail)
-          => ((x: ASTExp) =>
-                ASTExpInfixApp.leftAssociate(ASTMinusIdent(), x, tail)) }
-    | "^" ~ infix6         ^^ { case(_ ~ tail)
-          => ((x: ASTExp) =>
-                ASTExpInfixApp.leftAssociate(ASTStringCatIdent(), x, tail)) }
-    | ""                   ^^ { (_) => ((x: ASTExp) => x) }
+      LexPlus ~ infix6      ^^ {
+        case(_ ~ tail) => ((x: ASTExp) =>
+          ASTExpInfixApp.leftAssociate(ASTPlusIdent(), x, tail))
+      }
+    | LexMinus ~ infix6     ^^ {
+        case(_ ~ tail) => ((x: ASTExp) =>
+          ASTExpInfixApp.leftAssociate(ASTMinusIdent(), x, tail))
+    }
+    | LexStringCat ~ infix6 ^^ {
+        case(_ ~ tail) => ((x: ASTExp) =>
+          ASTExpInfixApp.leftAssociate(ASTStringCatIdent(), x, tail))
+    }
   )
 
   lazy val infix7: Parser[ASTExp] = (
-    infix8 ~ infix7Tail    ^^ { case (exp ~ tail) => tail(exp) }
+    infix8 ~ opt(infix7Tail) ^^ {
+      case (exp ~ Some(tail)) => tail(exp)
+      case (exp ~ None) => exp
+    }
   )
 
   lazy val infix7Tail: Parser[(ASTExp => ASTExp)] = (
-      "*" ~ infix7         ^^ { case (_ ~ tail)
-          => ((x: ASTExp) =>
-                  ASTExpInfixApp.leftAssociate(ASTTimesIdent(), x, tail)) }
-    | "/" ~ infix7         ^^ { case (_ ~ tail)
-          => ((x: ASTExp) =>
-                  ASTExpInfixApp.leftAssociate(ASTRealDivIdent(), x, tail)) }
-    | "mod" ~ infix7       ^^ { case (_ ~ tail)
-          => ((x: ASTExp) =>
-                  ASTExpInfixApp.leftAssociate(ASTModIdent(), x, tail)) }
-    | "div" ~ infix7       ^^ { case (_ ~ tail)
-          => ((x: ASTExp) =>
-                  ASTExpInfixApp.leftAssociate(ASTIntDivIdent(), x, tail)) }
-    | ""                   ^^ { (_) => ((x : ASTExp) => x) }
+      LexTimes ~ infix7     ^^ {
+        case (_ ~ tail) => ((x: ASTExp) =>
+            ASTExpInfixApp.leftAssociate(ASTTimesIdent(), x, tail))
+      }
+    | LexRealDiv ~ infix7   ^^ {
+        case (_ ~ tail) => ((x: ASTExp) =>
+            ASTExpInfixApp.leftAssociate(ASTRealDivIdent(), x, tail))
+    }
+    | LexMod ~ infix7       ^^ {
+        case (_ ~ tail) => ((x: ASTExp) =>
+            ASTExpInfixApp.leftAssociate(ASTModIdent(), x, tail))
+    }
+    | LexIntDiv ~ infix7    ^^ {
+        case (_ ~ tail) => ((x: ASTExp) =>
+            ASTExpInfixApp.leftAssociate(ASTIntDivIdent(), x, tail))
+    }
   )
 
   // New level inserted to deal with 'andalso' and 'orelse'
   lazy val infix8: Parser[ASTExp] = (
-      "(" ~ exp ~ ")" ~ infix8Tail        ^^ {
-          case (_ ~ exp ~ _ ~ tail) => tail(exp)
+      LexLParen ~ exp ~ LexRParen ~ opt(infix8Tail) ^^ {
+        case (_ ~ exp ~ _ ~ Some(tail)) => tail(exp)
+        case (_ ~ exp ~ _ ~ None) => exp
       }
     // The ordering of these two is important! ID's tend to eat
     // some constants (depite my best efforts)
-    | unOp ~ simpleExp                    ^^ {
-            case (unop ~ simpleExp) => ASTExpUnOpApply(unop, simpleExp)
+    | unOp ~ simpleExp      ^^ {
+        case (unop ~ simpleExp) => ASTExpUnOpApply(unop, simpleExp)
     }
-    | con ~ infix8Tail                    ^^ {
-            case (con ~ infix8Tail) => infix8Tail(ASTExpConst(con)) }
-    | longid ~ infix8Tail                 ^^ { case (id ~ infix8Tail)
-        => id match {
+    | con ~ opt(infix8Tail) ^^ {
+        case (con ~ Some(infix8Tail)) => infix8Tail(ASTExpConst(con))
+        case (con ~ None) => ASTExpConst(con)
+    }
+    | longid ~ opt(infix8Tail) ^^ {
+        case (id ~ Some(infix8Tail)) => id match {
             case ASTLongIdent(Nil) => unreachable
             case ASTLongIdent(id :: Nil) => infix8Tail(ASTExpIdent(id))
             case ASTLongIdent(ids) =>
               infix8Tail(ASTExpIdent(ASTLongIdent(ids)))
         }
+        case (id ~ None) => ASTExpIdent(id)
     }
-    | id ~ infix8Tail                     ^^ {
-          case (exp ~ tail) => tail(ASTExpIdent(exp))
+    | id ~ opt(infix8Tail)  ^^ {
+        case (exp ~ Some(tail)) => tail(ASTExpIdent(exp))
+        case (exp ~ None) => ASTExpIdent(exp)
     }
-    | expLetIn ~ infix8Tail ^^ {
-          case (letIn ~ infix8Tail) =>
-             infix8Tail(letIn)
+    | expLetIn ~ opt(infix8Tail) ^^ {
+        case (letIn ~ Some(infix8Tail)) => infix8Tail(letIn)
+        case (letIn ~ None) => letIn
     }
     // Note that () and [] are treated as special values are so
     // are not considered as part of these expressions.
     // A single bracketing has to be treated as a special case
-    | "(" ~ expSeq ~ ")" ~ infix8Tail      ^^ {
-        case (_ ~ exp ~ _ ~ infix8Tail) =>
-          infix8Tail(ASTExpSeq(exp))
+    | LexLParen ~ expSeq ~ LexRParen ~ opt(infix8Tail) ^^ {
+        case (_ ~ exp ~ _ ~ Some(infix8Tail)) => infix8Tail(ASTExpSeq(exp))
+        case (_ ~ exp ~ _ ~ None) => ASTExpSeq(exp)
     }
-    | "(" ~ expTuple ~ ")" ~ infix8Tail    ^^ {
-        case (_ ~ exp ~ _ ~ infix8Tail) =>
-          infix8Tail(ASTExpTuple(exp))
+    | LexLParen ~ expTuple ~ LexRParen ~ opt(infix8Tail) ^^ {
+        case (_ ~ exp ~ _ ~ Some(infix8Tail)) => infix8Tail(ASTExpTuple(exp))
+        case (_ ~ exp ~ _ ~ None) => ASTExpTuple(exp)
     }
     // We use this rather than expTuple because expList allows
     // for singleton lists whereas expTuple excludes tuples
@@ -398,13 +378,14 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     // ExpList elements of size 1 are treated as a special case, because
     // they cause an expoenetial blowup if they are allowed
     // to proceed into the expList code.
-    | "[" ~ exp ~ "]" ~ infix8Tail         ^^ {
-        case (_ ~ exp ~ _ ~ infix8Tail) =>
+    | LexLBrack ~ exp ~ LexRBrack ~ opt(infix8Tail) ^^ {
+        case (_ ~ exp ~ _ ~ Some(infix8Tail)) =>
           infix8Tail(ASTExpList(List(exp)))
+        case (_ ~ exp ~ _ ~ None) => ASTExpList(List(exp))
     }
-    | "[" ~ expList ~ "]" ~ infix8Tail     ^^ {
-        case (_ ~ exp ~ _ ~ infix8Tail) =>
-          infix8Tail(ASTExpList(exp))
+    | LexLBrack ~ expList ~ LexRBrack ~ opt(infix8Tail) ^^ {
+        case (_ ~ exp ~ _ ~ Some(infix8Tail)) => infix8Tail(ASTExpList(exp))
+        case (_ ~ exp ~ _ ~ None) => ASTExpList(exp)
     }
   )
 
@@ -412,50 +393,64 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
       // This is added as a special case, as in this case, if
       // exp is a function application, we do not want to left
       // associate within the function application.
-      "(" ~ exp ~ ")" ~ infix8Tail ^^ { case (_ ~ app ~ _ ~ tail) =>
-        (fun: ASTExp) => tail(ASTExpFunApp(fun, app))
+      LexLParen ~ exp ~ LexRParen ~ opt(infix8Tail) ^^ {
+        case (_ ~ app ~ _ ~ Some(tail)) =>
+          (fun: ASTExp) => tail(ASTExpFunApp(fun, app))
+        case (_ ~ app ~ _ ~ None) =>
+          (fun: ASTExp) => ASTExpFunApp(fun, app)
       }
-    | simpleExp ~ infix8Tail       ^^ { case (app ~ tail) =>
-        (fun: ASTExp) => { app match {
-          case app @ ASTExpFunApp(function, application) =>
-            tail(app.leftAssociate(fun))
-          case value => tail(ASTExpFunApp(fun, value))
+    | simpleExp ~ opt(infix8Tail)       ^^ {
+      case (app ~ tail) => (fun: ASTExp) => { app match {
+          case app @ ASTExpFunApp(function, application) => tail match {
+            case Some(tail) => tail(app.leftAssociate(fun))
+            case None => app.leftAssociate(fun)
+          }
+          case value => tail match {
+            case Some(tail) => tail(ASTExpFunApp(fun, value))
+            case None => ASTExpFunApp(fun, value)
+          }
         }
       }
     }
-    | ":" ~ typ              ^^ { case (_ ~ typ) =>
-          ((exp: ASTExp) => ASTExpTyped(exp, typ)) }
-    | ""                     ^^ { (_) => (x: ASTExp) => x }
+    | LexColon ~ typ              ^^ {
+        case (_ ~ typ) => ((exp: ASTExp) => ASTExpTyped(exp, typ))
+    }
   )
 
   lazy val simpleExp: Parser[ASTExp] = (
       id                    ^^ { (id) => ASTExpIdent(id) }
     | con                   ^^ { (con) => ASTExpConst(con) }
-    | "(" ~ exp ~ ")"       ^^ { case (_ ~ exp ~ _) => exp }
-    | "(" ~ expTuple ~ ")"  ^^ { case (_ ~ exp ~ _) => ASTExpTuple(exp) }
-    | "[" ~ expList ~ "]"   ^^ { case (_ ~ exp ~ _) => ASTExpList(exp) }
+    | LexLParen ~ exp ~ LexRParen ^^ { case (_ ~ exp ~ _) => exp }
+    | LexLParen ~ expTuple ~ LexRParen ^^ {
+        case (_ ~ exp ~ _) => ASTExpTuple(exp)
+    }
+    | LexLBrack ~ expList ~ LexRBrack ^^ {
+        case (_ ~ exp ~ _) => ASTExpList(exp)
+    }
   )
 
   lazy val expLetIn: Parser[ASTExp] =
-    "let" ~ decs ~ "in" ~ expSeq ~ "end" ^^ {
+    LexLet ~ decs ~ LexIn ~ expSeq ~ LexEnd ^^ {
       case (_ ~ decs ~ _ ~ seq ~ _) => ASTExpLetIn(decs, seq)
     }
 
   lazy val expTuple: Parser[List[ASTExp]] = (
-    exp ~ "," ~ expList        ^^ {
+    exp ~ LexComma ~ expList ^^ {
       case (e ~ _ ~ list) => e :: list
     }
   )
 
   lazy val expList: Parser[List[ASTExp]] = (
-    exp ~ "," ~ expList        ^^ { case (e ~ _ ~ list) => e :: list }
-    | exp                      ^^ { (x) => List(x) }
+    exp ~ LexComma ~ expList ^^ { case (e ~ _ ~ list) => e :: list }
+    | exp                   ^^ { (x) => List(x) }
   )
 
   // This accepts seqs of one or more.
   lazy val expSeq: Parser[List[ASTExp]] = (
-      exp ~ ";" ~ expSeq ^^ { case (exp ~ _ ~ expSeq) => exp :: expSeq }
-    | exp                ^^ { (e) => List(e) }
+      exp ~ rep(LexSemiColon) ~ expSeq ^^ {
+        case (exp ~ _ ~ expSeq) => exp :: expSeq
+      }
+    | exp ~ rep(LexSemiColon)   ^^ { case (e ~ _) => List(e) }
   )
 
   // Omitted: exprow
@@ -463,29 +458,38 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   // Renamed to matchPat since match is a keyword in scala
   lazy val matchPat: Parser[List[ASTExpMatchRow]] = (
     // Note that this is not allowed to be empty
-      pat ~ "=>" ~ exp ~ "|" ~ matchPat     ^^ {
-          case (pat ~ _ ~ exp ~ _ ~ rest) =>
-                ASTExpMatchRow(List(pat), exp) :: rest }
-    | pat ~ "=>" ~ exp                      ^^ { case (pat ~ _ ~ exp) =>
-                List(ASTExpMatchRow(List(pat), exp)) }
+    pat ~ LexFnDecArrow ~ exp ~ opt(LexVBar ~ matchPat) ^^ {
+      case (pat ~ _ ~ exp ~ Some(_ ~ rest)) =>
+        ASTExpMatchRow(List(pat), exp) :: rest
+      case (pat ~ _ ~ exp ~ None) => List(ASTExpMatchRow(List(pat), exp))
+    }
   )
 
   // Patterns
 
   // Restructured to avoid left recursion.
   lazy val pat: Parser[ASTPat] = (
-      con ~ patTail                     ^^ { case (con ~ patTail)
-            => patTail._1(ASTPatConst(con, patTail._2)) }
-    | "_" ~ patTail                     ^^ { case (_ ~ patTail)
-            => patTail._1(ASTPatWildcard(patTail._2)) }
+      con ~ opt(patTail)      ^^ {
+        case (con ~ Some(patTail)) => patTail._1(ASTPatConst(con, patTail._2))
+        case (con ~ None) => ASTPatConst(con, List())
+      }
+    | LexUnderscore ~ opt(patTail) ^^ {
+        case (_ ~ Some(patTail)) => patTail._1(ASTPatWildcard(patTail._2))
+        case (_ ~ None) => ASTPatWildcard(List())
+    }
     // This is inserted to avoid creating an empty patseq below
     // (which causes problems later)
-    | "()" ~ patTail                    ^^ { case (_ ~ tail)
-            => tail._1(ASTPatVariable(ASTUnitIdent(), tail._2)) }
+    | LexUnit ~ opt(patTail) ^^ {
+        case (_ ~ Some(tail)) =>
+          tail._1(ASTPatVariable(ASTUnitIdent(), tail._2))
+        case (_ ~ None) => ASTPatVariable(ASTUnitIdent(), List())
+    }
     // Restricted here as special characters may not appear
     // in pat lists.
-    | restrictedIDAllowList  ~ patTail  ^^ { case (id ~ patTail)
-            => patTail._1(ASTPatVariable(id, patTail._2)) }
+    | restrictedIDAllowList  ~ opt(patTail) ^^ {
+        case (id ~ Some(patTail)) => patTail._1(ASTPatVariable(id, patTail._2))
+        case (id ~ None) => ASTPatVariable(id, List())
+    }
     // Omitted: (op) longid (pat); construction
     // Omitted: (pat) id (pat)
     // Special case: pat id pat -> pat :: pat.
@@ -493,51 +497,67 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
     // Restructured: (pat) replaced with (patList)
     // Resturctured: Single element patterns are treated on their own
     // since they result in an exponential blowup if they are not.
-    | "(" ~ pat ~ ")" ~ patTail         ^^ {
-          case (_ ~ pat ~ _ ~ patTail) =>
-                   patTail._1((pat.appendTypes(patTail._2))) }
-    | "(" ~ patList ~ ")" ~ patTail     ^^ {
-          case (_ ~ ASTPatSeq(patList, _) ~ _ ~ patTail) =>
-                   patTail._1(ASTPatSeq(patList, patTail._2)) }
+    | LexLParen ~ pat ~ LexRParen ~ opt(patTail) ^^ {
+        case (_ ~ pat ~ _ ~ Some(patTail)) =>
+          patTail._1((pat.appendTypes(patTail._2)))
+        case (_ ~ pat ~ _ ~ None) => pat
+    }
+
+    | LexLParen ~ patList ~ LexRParen ~ opt(patTail) ^^ {
+        case (_ ~ ASTPatSeq(patList, _) ~ _ ~ Some(patTail)) =>
+          patTail._1(ASTPatSeq(patList, patTail._2))
+        case (_ ~ patSeq ~ _ ~ None) =>
+          patSeq
+    }
     // Note that there is a distinction between ASTPatSeq and
     // ASTListPat. The former is a pattern list and the later
     // is a list of patterns.
     // Again, single element lists are treated as special cases
     // as they result in an exponential blowup if allowed to continue
     // past here.
-    | "[" ~ pat ~ "]" ~ patTail     ^^ {
-          case (_ ~ pat ~ _ ~ patTail) =>
-                   patTail._1(ASTListPat(List(pat), patTail._2)) }
-    | "[" ~ patList ~ "]" ~ patTail     ^^ {
-          case (_ ~ ASTPatSeq(patSeq, _) ~ _ ~ patTail) =>
-                   patTail._1(ASTListPat(patSeq, patTail._2)) }
+    | LexLBrack ~ pat ~ LexRBrack ~ opt(patTail) ^^ {
+        case (_ ~ pat ~ _ ~ Some(patTail)) =>
+          patTail._1(ASTListPat(List(pat), patTail._2))
+        case (_ ~ pat ~ _ ~ None) =>
+          ASTListPat(List(pat), List())
+    }
+    | LexLBrack ~ patList ~ LexRBrack ~ opt(patTail) ^^ {
+        case (_ ~ ASTPatSeq(patSeq, _) ~ _ ~ Some(patTail)) =>
+          patTail._1(ASTListPat(patSeq, patTail._2))
+        case (_ ~ ASTPatSeq(patSeq, _) ~ _ ~ None) =>
+          ASTListPat(patSeq, List())
+    }
     // Omitted: (op) id (:typ) as pat; layed
   )
 
   lazy val patTail: Parser[((ASTPat => ASTPat), List[ASTType])] = (
-      "::" ~ pat                        ^^ { case (_ ~ pat) =>
+      LexCons ~ pat            ^^ { case (_ ~ pat) =>
         ((prePat: ASTPat) =>
           ASTPatCons(prePat, pat, List[ASTType]()), List[ASTType]())
     }
-    | ":" ~ typ ~ typList               ^^ { case (_ ~ typ ~ typList) =>
-        (((x: ASTPat) => x), (typ :: typList)) }
-    | ""                                ^^ { _ =>
-        (((x: ASTPat) => x), List[ASTType]()) }
+    | LexColon ~ typ ~ opt(typList) ^^ {
+        case (_ ~ typ ~ Some(typList)) =>
+          (((x: ASTPat) => x), (typ :: typList))
+        case (_ ~ typ ~ None) => ((x: ASTPat) => x, List(typ))
+    }
   )
 
   lazy val typList: Parser[List[ASTType]] = (
-      ":" ~ typ ~ typList              ^^ { case (_ ~ typ ~ typList) =>
-              typ :: typList }
-    | ""  ^^ { (_) => List[ASTType]() }
+      LexColon ~ typ ~ opt(typList) ^^ {
+        case (_ ~ typ ~ Some(typList)) => typ :: typList
+        case (_ ~ typ ~ None) => List(typ)
+      }
   )
 
   // Note that the second argument of ASTPatSeq is a list of
   // types that is assigned to this sequence (as a WHOLE)
   lazy val patList: Parser[ASTPatSeq] = (
-      pat ~ "," ~ patList            ^^ { case (pat ~ _ ~ ASTPatSeq(list, Nil))
-            => ASTPatSeq(pat :: list, Nil) }
-    | pat                            ^^ { (pat) => ASTPatSeq(List(pat), Nil) }
-    | ""                             ^^ { (_) => ASTPatSeq(Nil, Nil) }
+      pat ~ opt(LexComma ~ patList) ^^ {
+        case (pat ~ Some(_ ~ ASTPatSeq(list, Nil))) =>
+          ASTPatSeq(pat :: list, Nil)
+        case (pat ~ None) =>
+          ASTPatSeq(List(pat), Nil)
+      }
   )
 
   // Omitted: patrow
@@ -547,23 +567,37 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   lazy val typ: Parser[ASTType] = (
     // Restructure: Rename var to tyvar as var is a keyword.
     // Restructure: use typTail to avoid ambiguity
-    tyvar ~ typTail     ^^ { case (tyvar ~ tail) => tail(tyvar)}
+    tyvar ~ opt(typTail)    ^^ {
+        case (tyvar ~ Some(tail)) => tail(tyvar)
+        case (tyvar ~ None) => tyvar
+    }
     // Omitted: (typ)(,) longid; constructor
-    | "(" ~ typ ~ ")" ~ typTail  ^^ { case (_ ~ typ ~ _ ~ typTail) =>
-            typTail(typ) }
+    | LexLParen ~ typ ~ LexRParen ~ opt(typTail) ^^ {
+        case (_ ~ typ ~ _ ~ Some(typTail)) => typTail(typ)
+        case (_ ~ typ ~ _ ~ None) => typ
+    }
     // Omitted: { (typrow) }; record
   )
 
   lazy val typTail: Parser[(ASTType => ASTType)] = (
-    "->" ~ typ ~ typTail      ^^ { case (_ ~ typ1 ~ typTail) =>
-       ((typ: ASTType) => typTail(ASTFunctionType(typ, typ1))) }
-    |  "*" ~ typ ~ typTail    ^^ { case (_ ~ typ1 ~ typTail) =>
-       ((typ: ASTType) => typ match {
-         case (ASTTupleType(tail)) => typTail(ASTTupleType(typ :: tail))
-         case (otherTyp) => typTail(ASTTupleType(List(typ, typ1)))
-       })
+    LexFunType ~ typ ~ opt(typTail) ^^ {
+      case (_ ~ typ1 ~ Some(typTail)) =>
+        ((typ: ASTType) => ASTFunctionType(typ, typTail(typ1)))
+      case (_ ~ typ1 ~ None) =>
+        ((typ: ASTType) => ASTFunctionType(typ, typ1))
     }
-    |  ""                     ^^ { _ => ((x: ASTType) => x) }
+    |  LexTimes ~ typ ~ opt(typTail) ^^ {
+      case (_ ~ typ1 ~ Some(typTail)) =>
+       ((typ: ASTType) => typ match {
+         case ASTTupleType(tail) => typTail(ASTTupleType(typ :: tail))
+         case otherTyp => typTail(ASTTupleType(List(typ, typ1)))
+       })
+      case ( _ ~ typ1 ~ None) =>
+        ((typ: ASTType) => typ match {
+          case ASTTupleType(tail) => ASTTupleType(typ :: tail)
+          case otherTyp => ASTTupleType(List(typ, typ1))
+        })
+    }
   )
 
   // Omitted: typrow
@@ -572,12 +606,18 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
 
   lazy val dec: Parser[ASTDeclaration] = (
     // Omitted: val (val)(,) valbind
-      "val" ~ valbind                ^^ { case (_ ~ valbind) => valbind }
+      LexVal ~ valbind ~ rep(LexSemiColon) ^^ {
+        case (_ ~ valbind ~ _) => valbind
+      }
     // Omitted: val (val)(,) funbind
-    | "fun" ~ funbind                ^^ { case (_ ~ funbind) => funbind }
+    | LexFun ~ funbind ~ rep(LexSemiColon) ^^ {
+        case (_ ~ funbind ~ _) => funbind
+    }
     // Omitted: type typebind
     // Omitted: (with typebind)
-    | "datatype" ~ datbind           ^^ { case (_ ~ datbind) => datbind }
+    | LexDatatype ~ datbind ~ rep(LexSemiColon) ^^ {
+        case (_ ~ datbind ~ _) => datbind
+    }
     // Omitted: abstype datbind (withtype typbind) with dec end
     // Omitted: exnbind
     // Omitted: structure
@@ -591,9 +631,7 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   // Inserted: This pattern is inserted to avoid left recursion
   // in dec.
   lazy val decs: Parser[List[ASTDeclaration]] = (
-    dec ~ decs                  ^^ { case (hd ~ tail) => hd :: tail }
-    | ";"                       ^^ { (_) => List[ASTDeclaration]() }
-    | ""                        ^^ { (_) => List[ASTDeclaration]() }
+    rep(dec)                ^^ { case (decs) => decs }
   )
 
   lazy val valbind: Parser[ASTDeclaration] = (
@@ -601,36 +639,36 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
       // simplicity. Cost is some valid expressions.
       // Restricted as special characters may not appear
       // Refactor:
-    valIDs ~ "=" ~ exp  ^^ {
+    valIDs ~ LexEq ~ exp    ^^ {
         case (id ~ _ ~ exp) => ASTValBind(id.flatten, exp) }
       // Omitted pat = exp and valbind
       // Omitted rec valbind
   )
 
   lazy val valIDs: Parser[ASTIdentTuple] = (
-      "(" ~> restrictedIDList <~ ")"
-    | restrictedValID                    ^^ { (id) => ASTIdentTuple(List(id)) }
+      LexLParen ~> restrictedIDList <~ LexRParen
+    | restrictedValID       ^^ { (id) => ASTIdentTuple(List(id)) }
   )
 
   lazy val restrictedIDList: Parser[ASTIdentTuple] = (
-      "(" ~ restrictedIDList ~ ")" ~ "," ~ restrictedIDList ^^ {
-            case (_ ~ innerTuple ~ _ ~ _ ~ ASTIdentTuple(rest)) =>
-              ASTIdentTuple(innerTuple.flatten :: rest)
+      LexLParen ~ restrictedIDList ~ LexRParen ~
+        opt(LexComma ~ restrictedIDList) ^^ {
+          case (_ ~ innerTuple ~ _ ~ Some(_ ~ ASTIdentTuple(rest))) =>
+            ASTIdentTuple(innerTuple.flatten :: rest)
+          case (_ ~ innerTuple ~ _ ~ None) =>
+            ASTIdentTuple(List(innerTuple))
       }
-      | "(" ~> restrictedIDList <~ ")"             ^^ { case (innerTuple) =>
-              ASTIdentTuple(List(innerTuple))
-      }
-      | restrictedValID ~ "," ~ restrictedIDList   ^^ {
-            case (id ~ _ ~ ASTIdentTuple(idList)) =>
+      | restrictedValID ~ LexComma ~ restrictedIDList ^^ {
+          case (id ~ _ ~ ASTIdentTuple(idList)) =>
               ASTIdentTuple(id :: idList)
       }
-      | restrictedValID                            ^^ { case (id) =>
+      | restrictedValID     ^^ { case (id) =>
               ASTIdentTuple(List(id))
       }
   )
 
   lazy val restrictedValID: Parser[ASTIdent] = (
-      "_"                 ^^ { (_) => ASTUnderscoreIdent() }
+      LexUnderscore         ^^ { (_) => ASTUnderscoreIdent() }
     | restrictedID
   )
 
@@ -642,73 +680,68 @@ object GLLParser extends Pass[String, ASTProgram]("ast")
   lazy val funmatch: Parser[ASTFunBind] = (
     // Omitted: (op) prefix
     // Restructured: replace pat1 ... patn with patN parser.
-      restrictedID ~ patN ~ "=" ~ exp ~ "|" ~ funmatch             ^^ {
-          case (id ~ pattern ~ _ ~ exp ~ _ ~ ASTFunBind(patList))
-            => ASTFunBind((id, pattern, None, exp) :: patList) }
-    | restrictedID ~ patN ~ ":" ~ typ ~ "=" ~ exp ~ "|" ~ funmatch ^^ {
-          case (id ~ pattern ~ _ ~ typ ~ _ ~ exp ~ _ ~ ASTFunBind(patList))
-            => ASTFunBind((id, pattern, Some(typ), exp) :: patList) }
-    | restrictedID ~ patN ~ "=" ~ exp                              ^^ {
-          case (id ~ pattern ~ _ ~ exp)
-            => ASTFunBind(List((id, pattern, None, exp))) }
-    | restrictedID ~ patN ~ ":" ~ typ ~ "=" ~ exp                  ^^ {
-          case (id ~ pattern ~ _ ~ typ ~ _ ~ exp)
-            => ASTFunBind(List((id, pattern, Some(typ), exp))) }
+    restrictedID ~ patN ~ opt(LexColon ~ typ) ~
+      LexEq ~ exp ~ opt(LexVBar ~ funmatch) ^^ {
+        case (id ~ pattern ~ Some(_ ~ typ) ~
+              _ ~ exp ~ Some(_ ~ ASTFunBind(patList))) =>
+          ASTFunBind((id, pattern, Some(typ), exp) :: patList)
+        case (id ~ pattern ~ Some(_ ~ typ) ~ _ ~ exp ~ None) =>
+          ASTFunBind(List((id, pattern, Some(typ), exp)))
+        case (id ~ pattern ~ None ~ _ ~ exp ~ Some(_ ~ ASTFunBind(patList))) =>
+          ASTFunBind((id, pattern, None, exp) :: patList)
+        case (id ~ pattern ~ None ~ _ ~ exp ~ None) =>
+          ASTFunBind(List((id, pattern, None, exp )))
+      }
     // Omitted: infix patterns:
     //   pat1 id pat2 (: typ) = exp (funmatch)
     //   (pat1 id pat2) pat`1 ... pat`N (: typ) = exp (| funmatch)
   )
 
   lazy val patN: Parser[List[ASTPat]] = (
-      pat ~ patN      ^^ { case (pat ~ patList) => pat :: patList }
-    | pat             ^^ { (pat) => List(pat) }
+    pat ~ opt(patN)         ^^ {
+      case (pat ~ Some(patList)) => pat :: patList
+      case (pat ~ None) => List(pat)
+    }
   )
 
   lazy val datbind: Parser[ASTDeclaration] = (
     // Omitted: var (,) id = conbind (and datbind)
     // Omitted: var (,) prefix
-    restrictedID ~ "=" ~ conbind       ^^ { case (id ~ _ ~ conbind)
-          => ASTDataType(id, conbind) }
+    restrictedID ~ LexEq ~ conbind ^^ {
+      case (id ~ _ ~ conbind) => ASTDataType(id, conbind)
+    }
   )
 
   lazy val conbind: Parser[List[ASTDataConstructor]] = (
-      restrictedID ~ "of" ~ typ ~ "|" ~ conbind ^^ {
-        case (id ~ _ ~ typ ~ _ ~ rest)
-            => ASTDataConstructorDefinitionWithType(id, typ) :: rest }
-    | restrictedID ~ "of" ~ typ                 ^^ { case (id ~ _ ~ typ)
-            => List(ASTDataConstructorDefinitionWithType(id, typ)) }
-    | restrictedID ~ "|" ~ conbind              ^^ { case (id ~ _ ~ rest)
-            => ASTDataConstructorDefinition(id) :: rest }
-    | restrictedID                              ^^ { x
-            => List(ASTDataConstructorDefinition(x)) }
+    restrictedID ~ opt(LexOf ~ typ) ~ opt(LexVBar ~ conbind) ^^ {
+      case (id ~ Some(_ ~ typ) ~ Some(_ ~ rest)) =>
+        ASTDataConstructorDefinitionWithType(id, typ) :: rest
+      case (id ~ Some(_ ~ typ) ~ none) =>
+        List(ASTDataConstructorDefinitionWithType(id, typ))
+      case (id ~ None ~ Some(_ ~ rest)) =>
+        ASTDataConstructorDefinition(id) :: rest
+      case (id ~ None ~ None) => List(ASTDataConstructorDefinition(id))
+    }
   )
 
   // Programs
 
   lazy val prog: Parser[List[ASTDeclaration]] = (
-    decs ~ "\0" ^^ { case (decs ~ _) => decs }
+    phrase(decs)            ^^ { (decs) => decs }
   )
 
   override def treeToString(input: ASTProgram) =
     input.prettyPrint + "\n\n__ Formatted Version __\n\n" +
     input.toString
 
-  private def charSequenceReaderToString(build: String, input: Reader[Char])
-          : String = input.first match {
-      case CharSequenceReader.EofCh => build
-      case character => charSequenceReaderToString(build + character,
-                                                   input.rest)
-    }
-
-  protected def run(code: String) = {
-    val ast = parse(prog, code + "\0")
+  protected def run(code: LexemeSeq) = {
+    val lexemeReader = new LexemeReader(code.seq)
+    val ast = prog(lexemeReader)
 
     ast match {
       case Failure(msg, remaining) => {
           println("Syntax Error")
           println(msg)
-          println("Rest of input is: ")
-          println(charSequenceReaderToString("", remaining))
           System.exit(1)
           null
         }

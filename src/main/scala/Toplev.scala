@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets
 import utils.FileUtils
 
 // These passes are imported in the order they are used.
+import lexer.Lexer
 import frontend.GLLParser
 import ast_change_names.ASTChangeNames
 import typecheck.HindleyMilner
@@ -32,7 +33,8 @@ object Toplev extends App {
 
   // Frontend
   val code = FileUtils.readFileToString(file, StandardCharsets.UTF_8)
-  val tree = GLLParser.execute(code, cli.dumpAst)
+  val lexemes = Lexer.execute(code, cli.dumpLex)
+  val tree = GLLParser.execute(lexemes, cli.dumpAst)
   val uniqueified = ASTChangeNames.execute(tree, cli.dumpChangeNames)
   val typechecked = HindleyMilner.execute(uniqueified, cli.dumpTypecheck)
 
