@@ -15,5 +15,5 @@ val _ = if (x true) then print "pass" else print "fail"
 * by the lambda lift pass. *)
 
 (* Duplicated since we have one for the type environment.  *)
-(* t-scan-times-5: TopLevel_ : lower_ast *)
-(* t-scan-times-9: TopLevel_ : lambda_lift *)
+(* t-scan-times-3: TopLevel_ : lower_ast *)
+(* t-scan-times-6: TopLevel_ : lambda_lift *)
