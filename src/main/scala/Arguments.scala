@@ -18,6 +18,8 @@ class Arguments(arguments: Seq[String]) {
     // the compilation.
     val compileStats = opt[Boolean]()
 
+    val optimize = opt[Boolean]()
+
     // Dump options:
     val dumpAll = opt[Boolean]()
     val dumpLex = opt[Boolean]()
@@ -47,6 +49,9 @@ class Arguments(arguments: Seq[String]) {
   // Stats
   val compileStats =
     parser.compileStats()
+
+  val optimize =
+    parser.optimize()
 
   // Dump options:
   val dumpLex =
