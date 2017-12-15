@@ -12,5 +12,6 @@ date=$(date +"%Y_%m_%d_%H_%M")
 
 mkdir reports/prev-$date/
 mv reports/current/*.json  reports/prev-$date/
+mv reports/current/*.perf  reports/prev-$date/
 
 deactivate
