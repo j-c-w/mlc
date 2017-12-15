@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 source lnt-install/bin/activate
 
 # Import the reports
