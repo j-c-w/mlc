@@ -30,7 +30,26 @@ class Compiler(object):
 
     def run(self, command, use_perf, source_filename):
         if use_perf:
-            command = ['perf', 'stat', '-o', 'data.perf'] + command
+            fields = ['branch-instructions', 'branch-misses',
+                      'cpu-cycles', 'L1-dcache-load-misses',
+                      'L1-dcache-loads', 'L1-dcache-stores',
+                      'l1d.replacement',  'dTLB-load-misses',
+                      'dTLB-loads', 'dTLB-store-misses',
+                      'dTLB-stores', 'iTLB-load-misses',
+                      'iTLB-loads', 'branch-loads',
+                      'node-load-misses', 'node-loads',
+                      'node-store-misses', 'node-stores',
+                      'branch-load-misses',
+                      'bus-cycles', 'cache-references',
+                      'cache-misses', 'instructions',
+                      'mem-loads', 'mem-stores',
+                      'icache.hit', 'icache.misses',
+                      'load_hit_pre.hw_pf', 'load_hit_pre.sw_pf',
+                      'resource_stalls.any', 'resource_stalls.rob',
+                      'rs_events.empty_cycles']
+
+            command = ['perf', 'stat', '-e', ",".join(fields), '-o', 'data.perf'] + \
+                    command
 
         try:
             return subprocess.check_output(['taskset', '-c', '1'] + command)
@@ -328,7 +347,7 @@ def parse_output(output, compile_time, perf_directory, benchmark_id):
 
     if perf_directory:
         # We copy the data item into the output folder.
-        perf_file_name = perf_directory + '/' + benchmark_id
+        perf_file_name = os.path.join(perf_directory, benchmark_id) + '.perf'
         subprocess.check_output(['mv', 'data.perf', perf_file_name])
 
     # See the associated README.  That explains the expected
