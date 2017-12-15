@@ -28,26 +28,29 @@ class Compiler(object):
     def __init__(self):
         pass
 
-    def run(self, command, use_perf):
+    def run(self, command, use_perf, source_filename):
         if use_perf:
-            command = ['perf', 'record'] + command
+            command = ['perf', 'stat', '-o', 'data.perf'] + command
 
         try:
             return subprocess.check_output(['taskset', '-c', '1'] + command)
         except subprocess.CalledProcessError as e:
+            print "Run of task failed"
             print e
             return None
 
-    def compile(self, command):
+    def compile(self, command, input_filename):
         # Delete the old executable if it exists
-        if os.path.exists(self.get_generated_executable()):
-            os.remove(self.get_generated_executable())
+        if os.path.exists(self.get_generated_executable(input_filename)):
+            os.remove(self.get_generated_executable(input_filename))
 
+        print "compiler is " + str(command)
         # We use a rough approximation to the compilation time here.
         start = time.time()
         try:
             subprocess.call(command)
         except subprocess.CalledProcessError as e:
+            print "Build failed"
             print e
             # We allow any kind of error to fail silently here.
             # This indicates that the build failed.
@@ -61,36 +64,38 @@ class CMLC(Compiler):
         self.jit = use_jit
 
     def compile(self, filename, options):
-        return Compiler.compile(self, self.executable + options + [filename])
+        return Compiler.compile(self, self.executable + options + [filename],
+                                filename)
 
-    def get_generated_executable(self):
-        return './a.out'
+    def get_generated_executable(self, input_filename):
+        return 'main.jar'
 
-    def run(self, options, use_perf):
-        command = ['java']
+    def run(self, options, use_perf, source_filename):
+        command = ['java', '-jar']
 
         if not self.jit:
             command += ['-Djava.compiler=None']
 
-        command += [self.get_generated_executable()]
+        command += [self.get_generated_executable(source_filename)]
 
-        return Compiler.run(self, command, use_perf)
+        return Compiler.run(self, command, use_perf, source_filename)
 
 
 class MOSML(Compiler):
     def __init__(self, executable=['mosmlc']):
         self.executable = executable
 
-    def get_generated_executable(self):
+    def get_generated_executable(self, input_filename):
         return './a.out'
 
     def compile(self, filename, options):
-        return Compiler.compile(self, self.executable + options + [filename])
+        return Compiler.compile(self, self.executable + options + [filename],
+                                filename)
 
-    def run(self, options, use_perf):
-        command = [self.get_generated_executable()]
+    def run(self, options, use_perf, source_filename):
+        command = [self.get_generated_executable(source_filename)]
 
-        return Compiler.run(self, command, use_perf)
+        return Compiler.run(self, command, use_perf, source_filename)
 
 
 class NumpyMachineDataWrapper(object):
@@ -197,12 +202,6 @@ class DataItem(object):
     def get_compile_time(self):
         return self.compile_time
 
-    def set_perf_data(self, data):
-        self.perf_data = data
-
-    def get_perf_data(self):
-        return self.perf_data
-
     def set_run_failed(self, failed):
         self.run_failed = failed
 
@@ -306,32 +305,13 @@ class Data(object):
                     'failed': test_failed
                 })
 
-        # Add the perf records.
-        for item in self.lnt_items:
-            if item.get_perf_data() is None:
-                continue
-
-            item_added = False
-
-            for benchmark in tests_list:
-                # Again, scan through to see if it is already there.
-                if benchmark['name'] == item.get_benchmark_name() + '.perf':
-                    benchmark['data'].append(item.get_perf_data())
-
-                    item_added = True
-
-            if not item_added:
-                tests_list.append({
-                    'data': [item.get_perf_data()],
-                    'name': item.get_benchmark_name() + '.perf'
-                })
         return results
 
     def __str__(self):
         return json.dumps(self.to_dictionary(), sort_keys=True, indent=4)
 
 
-def parse_output(output, compile_time, used_perf):
+def parse_output(output, compile_time, perf_directory, benchmark_id):
     """ Given the output of a program as defined in the README,
         extract that output into a dictionary as expected by LNT.  """
     lnt_data_item = DataItem()
@@ -346,16 +326,10 @@ def parse_output(output, compile_time, used_perf):
         lnt_data_item.set_run_failed(True)
         return lnt_data_item
 
-    if used_perf:
-        # To do this, we convert the data to a base64 string as requested
-        # by LNT.
-        subprocess.call(['lnt', 'profile', 'upgrade', 'perf.data', 'perf.lnt'])
-        subprocess.call(['base64', '-i', 'perf.lnt', '-o', 'perf.b64'])
-
-        with open('perf.b64') as f:
-            base64_string = f.read()
-
-        lnt_data_item.set_perf_data(base64_string)
+    if perf_directory:
+        # We copy the data item into the output folder.
+        perf_file_name = perf_directory + '/' + benchmark_id
+        subprocess.check_output(['mv', 'data.perf', perf_file_name])
 
     # See the associated README.  That explains the expected
     # format of the output.
@@ -382,7 +356,7 @@ def parse_output(output, compile_time, used_perf):
 
 
 def execute_benchmarks(compiler, benchmarks_list, compile_options,
-                       runtime_options, runtime_use_perf,
+                       runtime_options, runtime_perf_directory,
                        number, machine_name, project_version,
                        name_prefix):
     """ Take the list of benchmarks and the associated options
@@ -398,10 +372,16 @@ def execute_benchmarks(compiler, benchmarks_list, compile_options,
 
         for i in range(number):
             print "Run number: ", str(i)
-            compile_time = compiler.compile('main.sml', compile_options)
-            output = compiler.run(runtime_options, runtime_use_perf)
+            benchmark_file = 'main.sml'
+            compile_time = compiler.compile(benchmark_file, compile_options)
+            output = \
+                compiler.run(runtime_options,
+                             runtime_perf_directory is not None,
+                             benchmark_file)
 
-            lnt_item = parse_output(output, compile_time, runtime_use_perf)
+            lnt_item = parse_output(output, compile_time,
+                                    runtime_perf_directory,
+                                    benchmark_folder + '_' + str(i))
             lnt_item.set_benchmark_name(name_prefix + benchmark_folder)
 
             benchmark_data.add(lnt_item)
@@ -443,8 +423,10 @@ if __name__ == "__main__":
                         default='', action='store',
                         help='Options to pass during runtime')
     parser.add_argument('--run-use-perf', dest='run_perf',
-                        action='store_true', default=False,
-                        help='Use perf stat on the run of the benchmarks')
+                        action='store', default=None,
+                        help=('Use perf stat on the run of the benchmarks. '
+                              'If so, a directory in which to store must '
+                              'be provided as argument.'))
     parser.add_argument('--benchmarks', dest='benchmark_pattern',
                         action='store', default=None,
                         help=('only run benchmarks whose names match the'
@@ -506,10 +488,6 @@ if __name__ == "__main__":
     compile_options = []
     runtime_options = []
 
-    if args.run_perf:
-        print "Use perf isn't yet implemented"
-        sys.exit(1)
-
     if args.compile_options:
         compile_options = args.compile_options.split(' ')
 
@@ -518,12 +496,16 @@ if __name__ == "__main__":
 
     starttime = datetime.datetime.now().isoformat()
 
+    # Set the perf directory to an absolute path since the execution
+    # takes place within various directories.
+    full_run_perf = os.path.join(os.getcwd(), args.run_perf)
+
     # Now, build the benchmarks.
     benchmarks = find_benchmarks(args.benchmark_pattern)
     gathered_data = execute_benchmarks(compiler, benchmarks,
                                        compile_options,
                                        runtime_options,
-                                       args.run_perf, args.number_of_runs,
+                                       full_run_perf, args.number_of_runs,
                                        args.machine_name, args.project_version,
                                        args.name_prefix)
 
