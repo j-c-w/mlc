@@ -18,7 +18,6 @@ fun main () =
     let
       (* Use 1 as the seed for the RNG. This makes the results
          repeatable, but no constant foldable.  *)
-      val length = 1000
       (* This yeilds the reverse of the traditional Fourier Transform. *)
       val result = do_sum()
   in 
