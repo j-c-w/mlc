@@ -10,7 +10,7 @@ lnt import lnt-install/performance_db reports/current/*.json
 # Then move the reports to a backup folder.
 date=$(date +"%Y_%m_%d_%H_%M")
 
-mkdir reports/prev-$date/
+mkdir -p reports/prev-$date/
 mv reports/current/*.json  reports/prev-$date/
 mv reports/current/*.perf  reports/prev-$date/
 
