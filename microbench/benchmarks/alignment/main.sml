@@ -1,8 +1,5 @@
 val list2 =
   ["A", "C", "G", "T", "G", "T", "T", "C", "G", "G", "G", "A", "G", "G", "G",
-  "C", "T", "T", "T", "C", "T", "A", "G", "G", "A", "G", "C", "T", "T", "A",
-  "G", "G", "C", "T", "A", "T", "A", "A", "A", "T", "A", "G", "G", "G", "C",
-  "T", "T", "A", "T", "T", "A", "G", "G", "G", "C", "G", "G", "A", "G", "A",
   "A", "A", "G", "A", "G", "G", "A", "G", "A", "G", "A", "G", "G", "A", "G",
   "G", "A", "G", "C", "G", "C", "G", "A", "G", "A", "G", "G", "C", "G", "G",
   "C", "G", "A", "G", "G", "A", "G", "C", "G", "A", "T", "T", "C", "T", "T",
@@ -17,9 +14,6 @@ val list2 =
   "T", "A", "C", "G", "T", "A", "T", "G", "A", "C", "G", "T"]
 val list1 =
   ["A", "C", "G", "A", "T", "C", "G", "T", "A", "C", "G", "G", "T", "A", "C",
-  "G", "T", "A", "T", "T", "T", "A", "C", "G", "C", "G", "C", "G", "A", "G",
-  "A", "C", "G", "G", "C", "C", "G", "C", "G", "T", "C", "A", "G", "T", "A",
-  "T", "A", "G", "C", "G", "A", "G", "A", "G", "C", "G", "G", "C", "G", "T",
   "A", "T", "C", "G", "A", "T", "G", "T", "A", "C", "G", "T", "A", "C", "T",
   "G", "A", "C", "G", "T", "C", "A", "T", "A", "T", "C", "G", "T", "A", "C",
   "T", "A", "T", "G", "C", "T", "A", "G", "T", "C", "A", "T", "T", "A", "T",
@@ -100,7 +94,7 @@ fun main () =
         val time = Timer.checkRealTimer(timer)
         val result_num =
           at (at result ((length(list2)) - 1)) (((length(list1)) - 1))
-        val result_ok = if (result_num = 389) then "pass" else "fail"
+        val result_ok = if (result_num = 307) then "pass" else "fail"
       in
         (print("Execution Time: " ^ Time.toString(time) ^ "\n");
         print("Validation: " ^ result_ok ^ "\n"))
