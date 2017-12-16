@@ -28,7 +28,7 @@ fun twice f x = f (f x)
 fun thrice f x = f (f (f x))
 fun quice f = twice twice f
 fun t256 f = twice(twice(twice twice)) f   (* apply 256 times *)
-fun t1024 f = quice(quice(quice(quice(t256(f)))))
+fun t1024 f = quice(quice(quice(t256(f))))
 (* Catagorise the point type 1,2,3,4,_ or " " *)
 (* Complete 200 iterations then test for period of 1,2,3 or 4 *)
 fun cat p = let
