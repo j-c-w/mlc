@@ -48,8 +48,8 @@ class Compiler(object):
                       'resource_stalls.any', 'resource_stalls.rob',
                       'rs_events.empty_cycles']
 
-            command = ['perf', 'stat', '-e', ",".join(fields), '-o', 'data.perf'] + \
-                    command
+            command = ['perf', 'stat', '-e', ",".join(fields),
+                       '-o', 'data.perf'] + command
 
         try:
             return subprocess.check_output(['taskset', '-c', '1'] + command)
@@ -128,7 +128,7 @@ class NumpyMachineDataWrapper(object):
         # Each of those items is a list of lists.
         # More specifically, the format is:
         # {
-        #    'benchmark': [ 
+        #    'benchmark': [
         #       {'execution_time': [
         #           {'machine': __, 'time': [...]}}}
         self.data_by_benchmark = {}
@@ -192,7 +192,7 @@ class DataItem(object):
         self.execution_time = None
         self.benchmark_name = None
         self.compile_time = None
-        self.perf_data = None
+        self.code_size = None
 
         self.compile_failed = False
         self.run_failed = False
@@ -233,12 +233,19 @@ class DataItem(object):
     def get_compile_failed(self):
         return self.run_failed
 
+    def set_code_size(self, size):
+        self.code_size = size
+
+    def get_code_size(self):
+        return self.code_size
+
     def all_defined(self):
-        return (self.get_compile_failed() or \
+        return (self.get_compile_failed() or
                 self.get_run_failed()) or \
                 self.execution_passed is not None and \
                 self.execution_time is not None and \
                 self.benchmark_name is not None and \
+                self.code_size is not None and \
                 self.compile_time is not None
 
 
@@ -293,24 +300,27 @@ class Data(object):
                 print "Benchmark " + item.get_benchmark_name() + " failed"
                 test_failed = True
 
+            run_failed = item.get_run_failed() or not item.get_execution_pass()
+
             for benchmark in tests_list:
-                # Scan through the already added items. If the
-                # item is already there, then append to that.
+                # Scan through the already added items.  If the item is already
+                # there, then append to that.
                 if benchmark['name'] == item.get_benchmark_name():
-                    benchmark['failed'] = benchmark['failed'] or test_failed
+                    # Non-zero for a compile failure.  By adding onto this, we
+                    # are guaranteed to preserve the non-zeroness of the
+                    # benchmark.
+                    benchmark['compile_status'] += \
+                        1 if item.get_compile_failed() else 0
+                    benchmark['execution_status'] += 1 if run_failed else 0
+
+                    # Really, the code sizes should be the same.
+                    benchmark['code_size'] = \
+                        max(item.get_code_size(), benchmark['code_size'])
 
                     benchmark['execution_time'].append(
                             item.get_execution_time())
                     benchmark['compile_time'].append(
                             item.get_compile_time())
-
-                    # A slight abusal of LNT's verification
-                    # of benchmarks.
-                    if benchmark['hash']:
-                        if item.get_execution_pass():
-                            benchmark['hash'] = 'passed'
-                        else:
-                            benchmark['hash'] = ''
 
                     item_added = True
 
@@ -320,8 +330,9 @@ class Data(object):
                     'name': item.get_benchmark_name(),
                     'execution_time': [item.get_execution_time()],
                     'compile_time': [item.get_compile_time()],
-                    'hash': item.get_execution_pass(),
-                    'failed': test_failed
+                    'compile_status': 1 if item.get_compile_failed() else 0,
+                    'execution_status': 1 if run_failed else 0,
+                    'code_size': item.get_code_size()
                 })
 
         return results
@@ -330,7 +341,8 @@ class Data(object):
         return json.dumps(self.to_dictionary(), sort_keys=True, indent=4)
 
 
-def parse_output(output, compile_time, perf_directory, benchmark_id):
+def parse_output(output, compile_time, perf_directory, benchmark_id,
+                 executable_file):
     """ Given the output of a program as defined in the README,
         extract that output into a dictionary as expected by LNT.  """
     lnt_data_item = DataItem()
@@ -340,10 +352,15 @@ def parse_output(output, compile_time, perf_directory, benchmark_id):
         lnt_data_item.set_compile_failed(True)
         return lnt_data_item
 
-    if output == None:
+    if output is None:
         # The run failed. Mark that and return
         lnt_data_item.set_run_failed(True)
         return lnt_data_item
+
+    # We chose not to record this if the run failed.  We could do, but it
+    # would be borderline useless.
+    if executable_file is not None:
+        lnt_data_item.set_code_size(os.path.getsize(executable_file))
 
     if perf_directory:
         # We copy the data item into the output folder.
@@ -400,7 +417,10 @@ def execute_benchmarks(compiler, benchmarks_list, compile_options,
 
             lnt_item = parse_output(output, compile_time,
                                     runtime_perf_directory,
-                                    benchmark_folder + '_' + str(i))
+                                    machine_name + benchmark_folder +
+                                    '_' + str(i),
+                                    compiler.get_generated_executable(
+                                        benchmark_file))
             lnt_item.set_benchmark_name(name_prefix + benchmark_folder)
 
             benchmark_data.add(lnt_item)
@@ -509,6 +529,16 @@ if __name__ == "__main__":
 
     if args.compile_options:
         compile_options = args.compile_options.split(' ')
+        for index in range(0, len(compile_options)):
+            if compile_options[index][0] == '-':
+                raise Error("Argument error: Arguments passed with be prefixed"
+                            "with - and -- automatically.  Found" + "'" +
+                            compile_options[index] + "'")
+
+            if len(compile_options[index]) == 1:
+                compile_options[index] = '-' + compile_options[index]
+            else:
+                compile_options[index] = '--' + compile_options[index]
 
     if args.runtime_options:
         runtime_options = args.runtime_options.split(' ')
