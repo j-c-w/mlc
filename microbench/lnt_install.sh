@@ -28,7 +28,12 @@ if [ -d lnt ]; then
 	fi
 fi
 
-sudo easy_install virtualenv
+# We cannot just install virtualenv because we might not have root permissions.
+# Just inform the use and exit.
+if ! type "virtualenv" > /dev/null; then
+	echo "Command 'virtualenv' not installed.  Install using sudo pip install virtualenv"
+	exit 1
+fi
 
 mkdir lnt-install
 virtualenv lnt-install
