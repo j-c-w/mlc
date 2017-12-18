@@ -26,8 +26,8 @@ if ( set -o noclobber; echo "$$" > "$lockfile") 2> /dev/null; then
 	./benchmark_cmlc.sh "cmlc-$1" $rev_number "$2"
 	./lnt_import.sh
 
-	./benchmark_mosml.sh "mosml-$1" $rev_number
-	./lnt_import.sh
+	# ./benchmark_mosml.sh "mosml-$1" $rev_number
+	# ./lnt_import.sh
 
 	# clean up after yourself, and release your trap
 	rm -f "$lockfile"
