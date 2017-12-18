@@ -13,6 +13,9 @@ if [ "$#" -ne 2 ]; then
 EOF
 fi
 
+# Make sure that the directory structure is in place:
+mkdir -p reports/current
+
 lockfile=.benchmark_lockfile
 
 if ( set -o noclobber; echo "$$" > "$lockfile") 2> /dev/null; then
