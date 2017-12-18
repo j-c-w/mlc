@@ -31,22 +31,16 @@ class Compiler(object):
     def run(self, command, use_perf, source_filename):
         if use_perf:
             fields = ['branch-instructions', 'branch-misses',
+                      'cpu-clock', 'page-faults', 'alignment-faults',
                       'cpu-cycles', 'L1-dcache-load-misses',
                       'L1-dcache-loads', 'L1-dcache-stores',
-                      'l1d.replacement',  'dTLB-load-misses',
-                      'dTLB-loads', 'dTLB-store-misses',
-                      'dTLB-stores', 'iTLB-load-misses',
-                      'iTLB-loads', 'branch-loads',
-                      'node-load-misses', 'node-loads',
-                      'node-store-misses', 'node-stores',
-                      'branch-load-misses',
-                      'bus-cycles', 'cache-references',
-                      'cache-misses', 'instructions',
-                      'mem-loads', 'mem-stores',
-                      'icache.hit', 'icache.misses',
-                      'load_hit_pre.hw_pf', 'load_hit_pre.sw_pf',
-                      'resource_stalls.any', 'resource_stalls.rob',
-                      'rs_events.empty_cycles']
+                      'L1-dcache-store-misses', 'L1-dcache-prefetch-misses',
+                      'L1-icache-load-misses', 'dTLB-load-misses',
+                      'dTLB-loads', 'dTLB-store-misses', 'branch-loads',
+                      'branch-load-misses', 'bus-cycles', 'cache-references',
+                      'cache-misses', 'instructions', 'mem-loads',
+                      'mem-stores', 'stalled-cycles-backend',
+                      'stalled-cycles-frontend']
 
             command = ['perf', 'stat', '-e', ",".join(fields),
                        '-o', 'data.perf'] + command
