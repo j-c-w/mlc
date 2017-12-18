@@ -28,19 +28,33 @@ class Compiler(object):
     def __init__(self):
         pass
 
-    def run(self, command, use_perf, source_filename):
+    def run(self, command, use_perf, perf_round, source_filename):
         if use_perf:
-            fields = ['branch-instructions', 'branch-misses',
-                      'cpu-clock', 'page-faults', 'alignment-faults',
-                      'cpu-cycles', 'L1-dcache-load-misses',
-                      'L1-dcache-loads', 'L1-dcache-stores',
-                      'L1-dcache-store-misses', 'L1-dcache-prefetch-misses',
-                      'L1-icache-load-misses', 'dTLB-load-misses',
-                      'dTLB-loads', 'dTLB-store-misses', 'branch-loads',
-                      'branch-load-misses', 'bus-cycles', 'cache-references',
-                      'cache-misses', 'instructions', 'mem-loads',
-                      'mem-stores', 'stalled-cycles-backend',
-                      'stalled-cycles-frontend']
+            # Some devices do not have sufficient registers to gather
+            # all the information we want to gather.  On these
+            # devices, we alterante between perf fields.
+            if perf_round % 2 == 0:
+                fields = ['instructions',
+                          'cpu-clock',
+                          'branch-instructions',
+                          'branch-misses',
+                          'branch-loads',
+                          'branch-load-misses',
+                          'dTLB-loads',
+                          'dTLB-load-misses',
+                          'cache-references',
+                          'cache-misses']
+            else:
+                fields = ['instructions',
+                          'cpu-clock',
+                          'L1-dcache-loads',
+                          'L1-dcache-load-misses',
+                          'L1-dcache-stores',
+                          'L1-dcache-store-misses',
+                          'L1-icache-load-misses',
+                          'cpu-cycles',
+                          'bus-cycles',
+                          'ref-cycles']
 
             command = ['perf', 'stat', '-e', ",".join(fields),
                        '-o', 'data.perf'] + command
@@ -83,7 +97,7 @@ class CMLC(Compiler):
     def get_generated_executable(self, input_filename):
         return 'main.jar'
 
-    def run(self, options, use_perf, source_filename):
+    def run(self, options, use_perf, perf_number, source_filename):
         command = ['java', '-jar']
 
         if not self.jit:
@@ -91,7 +105,8 @@ class CMLC(Compiler):
 
         command += [self.get_generated_executable(source_filename)]
 
-        return Compiler.run(self, command, use_perf, source_filename)
+        return Compiler.run(self, command, use_perf, perf_number,
+                            source_filename)
 
 
 class MOSML(Compiler):
@@ -105,10 +120,11 @@ class MOSML(Compiler):
         return Compiler.compile(self, self.executable + options + [filename],
                                 filename)
 
-    def run(self, options, use_perf, source_filename):
+    def run(self, options, use_perf, perf_number, source_filename):
         command = [self.get_generated_executable(source_filename)]
 
-        return Compiler.run(self, command, use_perf, source_filename)
+        return Compiler.run(self, command, use_perf, perf_number,
+                            source_filename)
 
 
 class NumpyMachineDataWrapper(object):
@@ -407,7 +423,7 @@ def execute_benchmarks(compiler, benchmarks_list, compile_options,
             output = \
                 compiler.run(runtime_options,
                              runtime_perf_directory is not None,
-                             benchmark_file)
+                             i, benchmark_file)
 
             lnt_item = parse_output(output, compile_time,
                                     runtime_perf_directory,
