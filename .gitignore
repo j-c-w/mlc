@@ -1,7 +1,8 @@
-project/*
-target
-test.sml*
-debug_install/*
-cmlc
+/project/*
+/target
+/test*.sml*
+/test*.jar
+/debug_install/*
+/cmlc
 
 !project/plugins.sbt
