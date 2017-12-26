@@ -4,6 +4,7 @@ import java.io.File
 import java.nio.charset.StandardCharsets
 
 import utils.FileUtils
+import target.JVMConfig
 
 // These passes are imported in the order they are used.
 import lexer.Lexer
@@ -17,6 +18,7 @@ import lower_program.LowerProgram
 import lower_program.LowerProgramVerify
 import lower_variables.LowerVariablesPass
 import lower_tir.LowerTIR
+import peephole.Peephole
 
 object Toplev extends App {
   val startTime = System.currentTimeMillis()
@@ -30,6 +32,7 @@ object Toplev extends App {
 
   Shared.filename = file.toString
   Shared.debug = cli.debug
+  Shared.targetConfig = JVMConfig
 
   // Frontend
   val code = FileUtils.readFileToString(file, StandardCharsets.UTF_8)
@@ -62,10 +65,12 @@ object Toplev extends App {
   val byteR = LowerTIR.execute(numberedProgram, cli.dumpLowerTir)
 
   // Optimizations on byteR
+  val peepholesSet = Shared.targetConfig.peepholeSet
+  val postPeephole = Peephole.execute((peepholesSet, byteR), cli.dumpPeephole)
   
   // Output byteR
   val outputFileName = Shared.filename.replaceAll("\\.[^.]*$", "") + ".j"
-  FileUtils.writeStringToFile(outputFileName, byteR.prettyPrint)
+  FileUtils.writeStringToFile(outputFileName, postPeephole.prettyPrint)
 
   if (cli.compileStats) {
     val endTime = System.currentTimeMillis()

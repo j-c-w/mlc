@@ -32,6 +32,7 @@ class Arguments(arguments: Seq[String]) {
     val dumpSimplify = opt[Boolean]()
     val dumpNumberedProgram = opt[Boolean]()
     val dumpLowerTir = opt[Boolean]()
+    val dumpPeephole = opt[Boolean]()
 
     verify()
   }
@@ -74,4 +75,6 @@ class Arguments(arguments: Seq[String]) {
     parser.dumpNumberedProgram() || parser.dumpAll()
   val dumpLowerTir =
     parser.dumpLowerTir() || parser.dumpAll()
+  val dumpPeephole =
+    parser.dumpPeephole() || parser.dumpAll()
 }
