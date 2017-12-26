@@ -3,16 +3,18 @@ package byteR
 import exceptions.ICE
 import toplev.GenericPrintable
 
-trait JVMType extends GenericPrintable {
+sealed trait JVMType extends GenericPrintable {
   def getRefFor: JVMClassRef
 
   def getSizeBytes: Int
 }
 
-trait JVMPrimitiveType extends JVMType {
+sealed trait JVMPrimitiveType extends JVMType {
   def getRefFor =
     throw new ICE("Cannot get ref of a primitive type")
 }
+
+sealed trait JVMBoxedType extends JVMType
 
 case class JVMVoidPrimitiveType() extends JVMPrimitiveType {
   def prettyPrint = "V"
@@ -44,7 +46,7 @@ case class JVMBooleanPrimitiveType() extends JVMPrimitiveType {
   def getSizeBytes = 4
 }
 
-trait JVMRefType extends JVMType {
+sealed trait JVMRefType extends JVMType {
   def getSizeBytes = 4
 }
 
@@ -62,13 +64,13 @@ case class JVMStringType() extends JVMRefType {
   def getRefFor = new JVMStringRef()
 }
 
-case class JVMCharacterType() extends JVMRefType {
+case class JVMCharacterType() extends JVMRefType with JVMBoxedType {
   def prettyPrint = "Ljava/lang/Character;"
 
   def getRefFor = new JVMCharacterRef()
 }
 
-case class JVMBooleanType() extends JVMRefType {
+case class JVMBooleanType() extends JVMRefType with JVMBoxedType {
   def prettyPrint = "Ljava/lang/Boolean;"
 
   def getRefFor = new JVMBooleanRef()
@@ -94,13 +96,13 @@ case class JVMClassType(var name: JVMClassRef) extends JVMRefType {
   def getRefFor = name
 }
 
-case class JVMIntegerType() extends JVMRefType {
+case class JVMIntegerType() extends JVMRefType with JVMBoxedType {
   def prettyPrint = "Ljava/lang/Integer;"
 
   def getRefFor = new JVMIntegerRef()
 }
 
-case class JVMFloatType() extends JVMRefType {
+case class JVMFloatType() extends JVMRefType with JVMBoxedType {
   def prettyPrint = "Ljava/lang/Float;"
 
   def getRefFor = new JVMFloatRef()

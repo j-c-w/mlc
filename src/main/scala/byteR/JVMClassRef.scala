@@ -8,7 +8,9 @@ object JVMClassRef {
   }
 }
 
-trait JVMClassRef extends GenericPrintable
+sealed trait JVMClassRef extends GenericPrintable
+
+sealed trait JVMBoxedRef extends JVMClassRef
 
 case class JVMCustomClassRef(var name: String) extends JVMClassRef {
   def prettyPrint = name
@@ -22,15 +24,15 @@ case class JVMObjectRef() extends JVMClassRef {
   def prettyPrint = "java/lang/Object"
 }
 
-case class JVMIntegerRef() extends JVMClassRef {
+case class JVMIntegerRef() extends JVMBoxedRef {
   def prettyPrint = "java/lang/Integer"
 }
 
-case class JVMBooleanRef() extends JVMClassRef {
+case class JVMBooleanRef() extends JVMBoxedRef {
   def prettyPrint = "java/lang/Boolean"
 }
 
-case class JVMFloatRef() extends JVMClassRef {
+case class JVMFloatRef() extends JVMBoxedRef {
   def prettyPrint = "java/lang/Float"
 }
 
@@ -38,7 +40,7 @@ case class JVMStringRef() extends JVMClassRef {
   def prettyPrint = "java/lang/String"
 }
 
-case class JVMCharacterRef() extends JVMClassRef {
+case class JVMCharacterRef() extends JVMBoxedRef {
   def prettyPrint = "java/lang/Character"
 }
 

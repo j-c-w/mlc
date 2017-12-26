@@ -25,15 +25,26 @@ sealed trait JVMPushInstruction extends JVMInstruction {
 
 sealed trait JVMLabelInstruction extends JVMInstruction
 
+sealed trait JVMJumpInstruction extends JVMInstruction {
+  def getTarget: JVMLabel
+}
+
+sealed trait JVMConditionalJumpInstruction extends JVMJumpInstruction
+
 // This is for walks of the tree to emit warnings if they are missing
 // instructions with children.  It is for instructions with non-primitive
 // children.
 sealed trait JVMParentInstruction extends JVMInstruction
 
-sealed trait JVMCompareAndJumpInstruction extends JVMInstruction {
+sealed trait JVMCompareAndJumpInstruction
+    extends JVMConditionalJumpInstruction {
   def stackEffect = -2
+}
 
-  def getTarget: JVMLabel
+case object JVMNoInstruction extends JVMInstruction {
+  def stackEffect = 0
+
+  def prettyPrint = ""
 }
 
 case class JVMCheckCast(to: JVMClassRef) extends JVMUnaryInstruction 
@@ -150,10 +161,13 @@ case class JVMAThrow() extends JVMInstruction {
 }
 
 case class JVMJump(var dest: JVMLabel) extends JVMLabelInstruction
+    with JVMJumpInstruction
     with JVMParentInstruction {
   def prettyPrint = "goto " + dest.prettyPrint
 
   def stackEffect = 0
+
+  def getTarget = dest
 }
 
 case class JVMLabelMark(var label: JVMLabel) extends JVMLabelInstruction
