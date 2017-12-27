@@ -23,7 +23,7 @@ run_microrun() {
 	local json_dump="$2"
 	local additional_opts="$3"
 
-	./microrun.py --cmlc --machine-name "$machine_name" --project-version=$version --runs 5 --run-use-perf ./reports/current --json-dump ./reports/current/$json_dump --compiler "$compiler" $additional_opts
+	./microrun.py --cmlc --machine-name "$machine_name" --project-version=$version --runs 10 --run-use-perf ./reports/current --json-dump ./reports/current/$json_dump --compiler "$compiler" $additional_opts
 }
 
 source lnt-install/bin/activate
