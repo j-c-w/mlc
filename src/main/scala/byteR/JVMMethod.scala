@@ -26,7 +26,10 @@ case class JVMMethod(var name: String, var arguments: List[JVMType],
       case JVMIntPrimitiveType() => List(JVMIReturn())
       case JVMFloatPrimitiveType() => List(JVMFReturn())
       case JVMCharPrimitiveType() => List(JVMIReturn())
-      case JVMVoidPrimitiveType() => List(JVMPop(), JVMVReturn())
+      case JVMBooleanPrimitiveType() => List(JVMIReturn())
+      // For void returns, we expect the generating function
+      // to have removed the return.
+      case JVMVoidPrimitiveType() => List(JVMVReturn())
     }
     case other => List(JVMAReturn())
   }

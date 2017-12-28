@@ -23,7 +23,8 @@ object LowerTIR extends Pass[TJavaProgram, JVMProgram]("lower_tir") {
     // We must add one to the local variables size because 0 is reserved for
     // references.
       LocalsLimitDirective(fun.exp.valdecs.size + 1) ::
-      functionCode
+      (functionCode :+
+       JVMPop())
 
     val function = JVMMethod("main", List(JVMArrayType(JVMStringType())),
                              JVMVoidPrimitiveType(), limitedCode, true)
@@ -190,10 +191,7 @@ object LowerTIR extends Pass[TJavaProgram, JVMProgram]("lower_tir") {
       (JVMSelfLoad() ::
        LowerLoadIdent(new TNumberedIdentVar(funName, n), env)) :+
       JVMPutField(thisClassRef, "arg" + n, builtupTypes(n))
-    }).toList.flatten :::
-    // We have to add a new unit on the end so that the generator
-    // something to pop off
-    LowerLoadIdent(new TUnitIdent(), env)
+    }).toList.flatten
 
     // This is the list of local variables for the class.
     // Because we have optimized out the local vairable
