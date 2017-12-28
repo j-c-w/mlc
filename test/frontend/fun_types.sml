@@ -1,5 +1,5 @@
 (* t-compile: *)
-(* t-fail *)
+(* Regression. Types were not properly recorded for functions. *)
 
 (* This should pass.  *)
 fun f x: string = (x + 1; "Hello")

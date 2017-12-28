@@ -16,19 +16,11 @@ import toplev.Pass
  */
 
 /* Known issues:
- *    We could be more accepting of ';'. The current parser
- *    rejects them where they are harmless (but not useful).
- *    It just means that other implementations compile things that
- *    CMLC does not compile.
- *
  *    Nested comments are currently not supported. They probably should
  *    be.
  *
  *    Type annotations on patterns are currently not supported. They probably
  *    should be.
- *
- *    Type annotations on functions don't work as expected. This should be
- *    resolved.
  *
  *    There are issues with the prceedence of 'andalso' and 'orelse'. They
  *    should be lower precedence than the other infix operators, but
@@ -467,6 +459,36 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
 
   // Patterns
 
+  // This is inserted as not all patterns are allowed without brackets.
+  // For example, fun f x :: xs is not allowed.  This is needed as a wrapper.
+  lazy val patNoType: Parser[ASTPat] = (
+      con                     ^^ {
+        case (con) => ASTPatConst(con, List())
+    }
+    | LexUnderscore           ^^ {
+      case (_) => ASTPatWildcard(List())
+    }
+    | LexUnit                 ^^ {
+      case (_) => ASTPatVariable(ASTUnitIdent(), List())
+    }
+    | restrictedIDAllowList   ^^ {
+      case (id) => ASTPatVariable(id, List())
+    }
+    | LexLParen ~ pat ~ LexRParen ^^ {
+      case (_ ~ pat ~ _) => pat
+    }
+    | LexLParen ~ patList ~ LexRParen ^^ {
+      case (_ ~ patList ~ _) => patList
+    }
+    | LexLBrack ~ pat ~ LexRBrack ^^ {
+      case (_ ~ pat ~ _) => ASTListPat(List(pat), List())
+    }
+    | LexLBrack ~ patList ~ LexRBrack ^^ {
+      case (_ ~ ASTPatSeq(seq, List()) ~ _) =>
+        ASTListPat(seq, List())
+    }
+  )
+
   // Restructured to avoid left recursion.
   lazy val pat: Parser[ASTPat] = (
       con ~ opt(patTail)      ^^ {
@@ -680,7 +702,7 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
   lazy val funmatch: Parser[ASTFunBind] = (
     // Omitted: (op) prefix
     // Restructured: replace pat1 ... patn with patN parser.
-    restrictedID ~ patN ~ opt(LexColon ~ typ) ~
+    restrictedID ~ patCurriedNoTypes ~ opt(LexColon ~ typ) ~
       LexEq ~ exp ~ opt(LexVBar ~ funmatch) ^^ {
         case (id ~ pattern ~ Some(_ ~ typ) ~
               _ ~ exp ~ Some(_ ~ ASTFunBind(patList))) =>
@@ -697,8 +719,8 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
     //   (pat1 id pat2) pat`1 ... pat`N (: typ) = exp (| funmatch)
   )
 
-  lazy val patN: Parser[List[ASTPat]] = (
-    pat ~ opt(patN)         ^^ {
+  lazy val patCurriedNoTypes: Parser[List[ASTPat]] = (
+    patNoType ~ opt(patCurriedNoTypes) ^^ {
       case (pat ~ Some(patList)) => pat :: patList
       case (pat ~ None) => List(pat)
     }
