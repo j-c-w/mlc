@@ -6,3 +6,4 @@
 /cmlc
 
 !project/plugins.sbt
+!project/build.properties
