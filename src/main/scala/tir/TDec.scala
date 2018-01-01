@@ -15,6 +15,9 @@ case class TFun(var name: TNamedIdent, var patterns: List[TExpMatchRow])
   |""".stripMargin.format(name.prettyPrint,
                           patterns.map(_.prettyPrint).mkString("\n    | "))
 
+  def curriedArgumentsCount: Int =
+    patterns(0).pat.length
+
   def nodeClone =
     new TFun(name.nodeClone, patterns.map(_.nodeClone))
 }
