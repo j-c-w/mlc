@@ -3,6 +3,7 @@ package tpass
 import tir._
 
 trait TTypeEnvUnitPass extends TTypeEnvPass[Unit] {
-  def default = ()
-  def combine(x: Unit, y: Unit) = x
+  override def default = ()
+  override def combine(x: Unit, y: Unit) = x
+  override def combineList(ls: List[Unit]) = ()
 }

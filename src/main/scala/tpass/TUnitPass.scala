@@ -1,6 +1,7 @@
 package tpass
 
 trait TUnitPass extends TPass[Unit, Unit] {
-  def combine(u: Unit, v: Unit) = u
-  def default = ()
+  override def combine(u: Unit, v: Unit) = u
+  override def combineList(u: List[Unit]) = ()
+  override def default = ()
 }
