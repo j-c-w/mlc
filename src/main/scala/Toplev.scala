@@ -65,8 +65,8 @@ object Toplev extends App {
   val byteR = LowerTIR.execute(numberedProgram, cli.dumpLowerTir)
 
   // Optimizations on byteR
-  val peepholesSet = Shared.targetConfig.peepholeSet
-  val postPeephole = Peephole.execute((peepholesSet, byteR), cli.dumpPeephole)
+  val postPeephole = Peephole.optionalExecute(cli.runPeephole, byteR,
+                                              cli.dumpPeephole)
   
   // Output byteR
   val outputFileName = Shared.filename.replaceAll("\\.[^.]*$", "") + ".j"

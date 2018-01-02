@@ -20,6 +20,10 @@ class Arguments(arguments: Seq[String]) {
 
     val optimize = opt[Boolean]()
 
+    // Pass by pass optimization flags:
+    val fPeephole = opt[Boolean]()
+    val fnoPeephole = opt[Boolean]()
+
     // Dump options:
     val dumpAll = opt[Boolean]()
     val dumpLex = opt[Boolean]()
@@ -53,6 +57,10 @@ class Arguments(arguments: Seq[String]) {
 
   val optimize =
     parser.optimize()
+
+  // Pass run options:
+  val runPeephole =
+    !parser.fnoPeephole() || parser.fPeephole()
 
   // Dump options:
   val dumpLex =

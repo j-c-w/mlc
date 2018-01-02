@@ -1,11 +1,10 @@
 package peephole
 
 import byteR._
-import toplev.Pass
+import toplev.{OptionalPass,Shared}
 
 object Peephole
-    extends Pass[(PeepholeSet[JVMInstruction], JVMProgram),
-                 JVMProgram]("peephole") {
+    extends OptionalPass[JVMProgram]("peephole") {
   def walkFunction(peepholeSet: PeepholeSet[JVMInstruction],
                    function: JVMMethod) = {
     val walk = new PeepholeWalk(function.body)
@@ -15,8 +14,8 @@ object Peephole
   def walkClass(peepholeSet: PeepholeSet[JVMInstruction], jvmClass: JVMClass) =
     jvmClass.methods.foreach(walkFunction(peepholeSet, _))
 
-  def run(peephole: (PeepholeSet[JVMInstruction], JVMProgram)) = {
-    peephole._2.classes.foreach(walkClass(peephole._1, _))
-    peephole._2
+  def run(program: JVMProgram) = {
+    program.classes.foreach(walkClass(Shared.targetConfig.peepholeSet, _))
+    program
   }
 }
