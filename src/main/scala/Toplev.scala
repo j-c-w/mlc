@@ -12,6 +12,7 @@ import frontend.GLLParser
 import ast_change_names.ASTChangeNames
 import typecheck.HindleyMilner
 import lower_ast.LowerAST
+import lower_ast.LowerASTVerify
 import lambda_lift.LambdaLift
 import lambda_lift.LambdaLiftVerify
 import lower_program.LowerProgram
@@ -44,8 +45,10 @@ object Toplev extends App {
   // Lowering from AST -- These all use the tree and so are OK
   // on memory.
   val intermediate = LowerAST.execute(typechecked, cli.dumpTir)
+  val _0 = LowerASTVerify.optionalExecute(cli.runLowerAstVerify, intermediate,
+                                          false)
   val lambda_lifted = LambdaLift.execute(intermediate, cli.dumpLambdaLift)
-  val _0 = LambdaLiftVerify.optionalExecute(cli.runLambdaLiftVerify,
+  val _1 = LambdaLiftVerify.optionalExecute(cli.runLambdaLiftVerify,
                                             lambda_lifted, false)
 
   // Optimizations on the TIR
@@ -53,7 +56,7 @@ object Toplev extends App {
   // Lower the TIR down into TIR+Assigns.
   val lowered_program = LowerProgram.execute(lambda_lifted,
                                              cli.dumpLowerProgram)
-  val _1 = LowerProgramVerify.optionalExecute(cli.runLowerProgramVerify,
+  val _2 = LowerProgramVerify.optionalExecute(cli.runLowerProgramVerify,
                                               lowered_program, false)
 
   // Optimizations on TIR+Assigns

@@ -11,6 +11,7 @@ class Arguments(arguments: Seq[String]) {
 
     // Optional pass options:
     val verifyAll = opt[Boolean]()
+    val runLowerAstVerify = opt[Boolean]()
     val runLambdaLiftVerify = opt[Boolean]()
     val runLowerProgramVerify = opt[Boolean]()
 
@@ -47,6 +48,7 @@ class Arguments(arguments: Seq[String]) {
   val debug = parser.debug()
   
   // Optional pass options:
+  val runLowerAstVerify = parser.runLowerAstVerify() || parser.verifyAll()
   val runLambdaLiftVerify = parser.runLambdaLiftVerify() || parser.verifyAll()
   val runLowerProgramVerify =
     parser.runLowerProgramVerify() || parser.verifyAll()
