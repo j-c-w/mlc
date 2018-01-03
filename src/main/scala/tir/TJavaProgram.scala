@@ -21,7 +21,7 @@ Main: %s
   """.format(topLevelVariables.map(_.prettyPrint).mkString("\n"), 
              main.prettyPrint, functions.map(_.prettyPrint).mkString("\n\n"))
 
-  def nodeClone: TJavaProgram =
-    new TJavaProgram(typeEnv, main.nodeClone, topLevelVariables,
-                     functions.map(_.nodeClone))
+  def nodeClone(env: TTypeEnv): TJavaProgram =
+    new TJavaProgram(typeEnv, main.nodeClone(typeEnv), topLevelVariables,
+                     functions.map(_.nodeClone(typeEnv)))
 }

@@ -4,7 +4,7 @@ import toplev.GenericPrintable
 import tpass.TPass
 
 sealed trait TDec extends TTree {
-  def nodeClone: TDec
+  def nodeClone(env: TTypeEnv): TDec
 }
 
 case class TFun(var name: TNamedIdent, var patterns: List[TExpMatchRow])
@@ -18,8 +18,8 @@ case class TFun(var name: TNamedIdent, var patterns: List[TExpMatchRow])
   def curriedArgumentsCount: Int =
     patterns(0).pat.length
 
-  def nodeClone =
-    new TFun(name.nodeClone, patterns.map(_.nodeClone))
+  def nodeClone(env: TTypeEnv) =
+    new TFun(name.nodeClone(env), patterns.map(_.nodeClone(env)))
 }
 
 /* This is inserted by the let lowering pass. */
@@ -33,9 +33,9 @@ case class TJavaFun(var name: TTopLevelIdent,
   """.stripMargin.format(name.prettyPrint,
                          exp.prettyPrint)
 
-  def nodeClone =
-    new TJavaFun(name.nodeClone, curriedArgs.map(_.nodeClone),
-                 exp.nodeClone, env)
+  def nodeClone(env: TTypeEnv) =
+    new TJavaFun(name.nodeClone(env), curriedArgs.map(_.nodeClone(env)),
+                 exp.nodeClone(env), env)
 }
 
 case class TVal(var ident: TIdent, var exp: TExp) extends TDec {
@@ -43,6 +43,6 @@ case class TVal(var ident: TIdent, var exp: TExp) extends TDec {
   |val %s = %s
   """.stripMargin.format(ident.prettyPrint, exp.prettyPrint)
 
-  def nodeClone =
-    new TVal(ident.nodeClone, exp.nodeClone)
+  def nodeClone(env: TTypeEnv) =
+    new TVal(ident.nodeClone(env), exp.nodeClone(env))
 }

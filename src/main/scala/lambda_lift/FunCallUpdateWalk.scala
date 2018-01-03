@@ -145,7 +145,7 @@ class FunCallUpdateWalk(val funID: TNamedIdent, val newParams: TExp,
 
         env.addTopLevel(callTypeIdent, callType, false)
 
-        (true, TExpFunApp(expIdent, newParams, callTypeIdent).nodeClone)
+        (true, TExpFunApp(expIdent, newParams, callTypeIdent).nodeClone(env))
       } else {
         (false, exp)
       }

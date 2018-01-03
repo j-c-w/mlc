@@ -10,19 +10,19 @@ import tpass.TPass
  */
 
 sealed trait TExp extends TTree {
-  def nodeClone: TExp
+  def nodeClone(env: TTypeEnv): TExp
 }
 
 case class TExpConst(var const: TConst) extends TExp {
   def prettyPrint = const.prettyPrint
 
-  def nodeClone = new TExpConst(const.nodeClone)
+  def nodeClone(env: TTypeEnv) = new TExpConst(const.nodeClone(env))
 }
 
 case class TExpIdent(var ident: TIdent) extends TExp {
   def prettyPrint = ident.prettyPrint
 
-  def nodeClone = new TExpIdent(ident.nodeClone)
+  def nodeClone(env: TTypeEnv) = new TExpIdent(ident.nodeClone(env))
 }
 
 case class TExpFunApp(var funname: TExp, var application: TExp,
@@ -30,8 +30,9 @@ case class TExpFunApp(var funname: TExp, var application: TExp,
   def prettyPrint =
     "(" + funname.prettyPrint + ") (" + application.prettyPrint + ")"
 
-  def nodeClone =
-    new TExpFunApp(funname.nodeClone, application.nodeClone, callType.nodeClone)
+  def nodeClone(env: TTypeEnv) =
+    new TExpFunApp(funname.nodeClone(env), application.nodeClone(env),
+                   callType.nodeClone(env))
 }
 
 case class TExpTuple(var elems: List[TExp])
@@ -42,8 +43,8 @@ case class TExpTuple(var elems: List[TExp])
 
   def prettyPrint = "(" + elems.map(_.prettyPrint).mkString(", ") + ")"
 
-  def nodeClone =
-    new TExpTuple(elems.map(_.nodeClone))
+  def nodeClone(env: TTypeEnv) =
+    new TExpTuple(elems.map(_.nodeClone(env)))
 
   def flatten =
     if (elems.length == 1)
@@ -61,16 +62,16 @@ case class TExpTuple(var elems: List[TExp])
 case class TExpList(var elems: List[TExp]) extends TExp {
   def prettyPrint = "[" + elems.map(_.prettyPrint).mkString(", ") + "]"
 
-  def nodeClone =
-    new TExpList(elems.map(_.nodeClone))
+  def nodeClone(env: TTypeEnv) =
+    new TExpList(elems.map(_.nodeClone(env)))
 }
 
 case class TExpSeq(var seq: List[TExp]) extends TExp with TFlattenable[TExp] {
   assert(seq.length > 1)
   def prettyPrint = "(" + seq.map(_.prettyPrint).mkString(";\n") + ")"
 
-  def nodeClone =
-    new TExpSeq(seq.map(_.nodeClone))
+  def nodeClone(env: TTypeEnv) =
+    new TExpSeq(seq.map(_.nodeClone(env)))
 
   def flatten = if (seq.length == 1)
       seq(0) match {
@@ -101,8 +102,8 @@ case class TExpLetIn(var decs: List[TDec], var exp: TExp, var env: TTypeEnv)
                          exp.prettyPrint)
 
   // Note that we do not nodeClone the type environment.
-  def nodeClone =
-    new TExpLetIn(decs.map(_.nodeClone), exp.nodeClone, env)
+  def nodeClone(env: TTypeEnv) =
+    new TExpLetIn(decs.map(_.nodeClone(env)), exp.nodeClone(env), env)
 }
 
 // Note that application type is a function type here, with
@@ -113,11 +114,14 @@ case class TExpCase(var exp: TExp, var cases: List[TExpMatchRow],
   def prettyPrint = """
   |match %s with
   |   %s
+  |type: %s
   """.stripMargin.format(exp.prettyPrint,
-                         cases.map(_.prettyPrint).mkString("\n   |"))
+                         cases.map(_.prettyPrint).mkString("\n   |"),
+                         applicationType.prettyPrint)
 
-  def nodeClone =
-    new TExpCase(exp.nodeClone, cases.map(_.nodeClone), applicationType.nodeClone)
+  def nodeClone(env: TTypeEnv) =
+    new TExpCase(exp.nodeClone(env), cases.map(_.nodeClone(env)),
+                 applicationType.nodeClone(env))
 }
 
 case class TExpMatchRow(var pat: List[TPat], var exp: TExp, var env: TTypeEnv)
@@ -125,8 +129,8 @@ case class TExpMatchRow(var pat: List[TPat], var exp: TExp, var env: TTypeEnv)
   def prettyPrint =
     pat.map(_.prettyPrint).mkString(" ") + " => " + exp.prettyPrint
 
-  def nodeClone =
-    new TExpMatchRow(pat.map(_.nodeClone), exp.nodeClone, env)
+  def nodeClone(env: TTypeEnv) =
+    new TExpMatchRow(pat.map(_.nodeClone(env)), exp.nodeClone(env), env)
 }
 
 /* This is removed from the tree during the lambda lifting pass.  */
@@ -135,8 +139,8 @@ case class TExpFn(var patterns: List[TExpMatchRow],
     extends TExp {
   def prettyPrint = "(fn " + patterns.map(_.prettyPrint).mkString("\n|") + ")"
 
-  def nodeClone =
-    new TExpFn(patterns.map(_.nodeClone), funType.nodeClone)
+  def nodeClone(env: TTypeEnv) =
+    new TExpFn(patterns.map(_.nodeClone(env)), funType.nodeClone(env))
 }
 
 /* These are only used after the lower_program pass.  */
@@ -145,8 +149,8 @@ case class TExpAssign(var ident: TNamedIdent, var expression: TExp)
   def prettyPrint =
     "Assign %s to (%s)".format(ident.prettyPrint, expression.prettyPrint)
 
-  def nodeClone =
-    new TExpAssign(ident.nodeClone, expression.nodeClone)
+  def nodeClone(env: TTypeEnv) =
+    new TExpAssign(ident.nodeClone(env), expression.nodeClone(env))
 }
 
 case class TExpListHead(var list: TExp, var tyVar: TInternalIdentVar)
@@ -154,16 +158,16 @@ case class TExpListHead(var list: TExp, var tyVar: TInternalIdentVar)
   def prettyPrint =
     "Head(%s)".format(list.prettyPrint)
 
-  def nodeClone =
-    new TExpListHead(list.nodeClone, tyVar.nodeClone)
+  def nodeClone(env: TTypeEnv) =
+    new TExpListHead(list.nodeClone(env), tyVar.nodeClone(env))
 }
 
 case class TExpListTail(var list: TExp) extends TExp {
   def prettyPrint =
     "Tail(%s)".format(list.prettyPrint)
 
-  def nodeClone =
-    new TExpListTail(list.nodeClone)
+  def nodeClone(env: TTypeEnv) =
+    new TExpListTail(list.nodeClone(env))
 }
 
 case class TExpTupleExtract(var tuple: TExp, var tupleSize: Int,
@@ -175,8 +179,9 @@ case class TExpTupleExtract(var tuple: TExp, var tupleSize: Int,
   def prettyPrint =
     "(%s)._%s".format(tuple.prettyPrint, index)
 
-  def nodeClone =
-    new TExpTupleExtract(tuple.nodeClone, index, tupleSize, tyVar.nodeClone)
+  def nodeClone(env: TTypeEnv) =
+    new TExpTupleExtract(tuple.nodeClone(env), index, tupleSize,
+                         tyVar.nodeClone(env))
 }
 
 case class TExpListExtract(var list: TExp, var index: Int,
@@ -184,15 +189,15 @@ case class TExpListExtract(var list: TExp, var index: Int,
   def prettyPrint =
     "(%s)[%s]".format(list.prettyPrint, index)
 
-  def nodeClone =
-    new TExpListExtract(list.nodeClone, index, tyVar.nodeClone)
+  def nodeClone(env: TTypeEnv) =
+    new TExpListExtract(list.nodeClone(env), index, tyVar.nodeClone(env))
 }
 
 case class TExpListLength(var list: TExp) extends TExp {
   def prettyPrint = "Length of (%s)".format(list.prettyPrint)
 
-  def nodeClone =
-    new TExpListLength(list.nodeClone)
+  def nodeClone(env: TTypeEnv) =
+    new TExpListLength(list.nodeClone(env))
 }
 
 case class TExpFunLet(var valdecs: Set[TNamedIdent], var exp: TExp)
@@ -205,8 +210,8 @@ case class TExpFunLet(var valdecs: Set[TNamedIdent], var exp: TExp)
     |End""".stripMargin.format(valdecs.map(_.prettyPrint).mkString("\n"),
                                exp.prettyPrint)
 
-  def nodeClone =
-    new TExpFunLet(valdecs.map(_.nodeClone), exp.nodeClone)
+  def nodeClone(env: TTypeEnv) =
+    new TExpFunLet(valdecs.map(_.nodeClone(env)), exp.nodeClone(env))
 }
 
 case class TExpIf(var cond: TExp, var ifTrue: TExp, var ifFalse: TExp)
@@ -217,13 +222,14 @@ case class TExpIf(var cond: TExp, var ifTrue: TExp, var ifFalse: TExp)
   |Else (%s)""".stripMargin.format(cond.prettyPrint, ifTrue.prettyPrint,
                                    ifFalse.prettyPrint)
 
-  def nodeClone =
-    new TExpIf(cond.nodeClone, ifTrue.nodeClone, ifFalse.nodeClone)
+  def nodeClone(env: TTypeEnv) =
+    new TExpIf(cond.nodeClone(env), ifTrue.nodeClone(env),
+               ifFalse.nodeClone(env))
 }
 
 case class TExpThrow(var throwable: TIdentThrowable) extends TExp {
   def prettyPrint = "throw (%s)".format(throwable.prettyPrint)
 
-  def nodeClone =
-    new TExpThrow(throwable.nodeClone)
+  def nodeClone(env: TTypeEnv) =
+    new TExpThrow(throwable.nodeClone(env))
 }

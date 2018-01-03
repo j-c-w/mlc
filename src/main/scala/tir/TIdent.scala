@@ -1,9 +1,10 @@
 package tir
 
 import scala.collection.mutable.HashSet
+import typecheck.VariableGenerator
 
 sealed trait TIdent extends TTree {
-  def nodeClone: TIdent
+  def nodeClone(env: TTypeEnv): TIdent
 
   def getDeclaredIdents: HashSet[TNamedIdent]
 }
@@ -13,7 +14,7 @@ sealed trait BuiltinIdent extends TIdent {
 }
 
 sealed trait TNamedIdent extends TIdent {
-  def nodeClone: TNamedIdent
+  def nodeClone(env: TTypeEnv): TNamedIdent
 
   def getDeclaredIdents = {
     val set = new HashSet[TNamedIdent]()
@@ -25,8 +26,8 @@ sealed trait TNamedIdent extends TIdent {
 case class TIdentTuple(var subTypes: List[TIdent]) extends TIdent {
   def prettyPrint = "(" + subTypes.map(_.prettyPrint).mkString(", ") + ")"
 
-  def nodeClone =
-    new TIdentTuple(subTypes.map(_.nodeClone))
+  def nodeClone(env: TTypeEnv) =
+    new TIdentTuple(subTypes.map(_.nodeClone(env)))
 
   def getDeclaredIdents =
     subTypes.map(_.getDeclaredIdents).foldLeft(new HashSet[TNamedIdent]) {
@@ -38,24 +39,29 @@ case class TIdentVar(var name: String, var identClass: TIdentClass)
     extends TNamedIdent {
   def prettyPrint = name
 
-  def nodeClone =
-    new TIdentVar(new String(name), identClass.nodeClone)
+  def nodeClone(env: TTypeEnv) =
+    new TIdentVar(new String(name), identClass.nodeClone(env))
 }
 
-// This is a class for representing type tags on nodes.
+// This is a class for representing type tags on nodes.  Each
+// TInternalIdentVar MUST be typed at the top level and MUST
+// appear at most once.
 case class TInternalIdentVar(var name: String) extends TNamedIdent {
   def prettyPrint = "Internal_" + name
 
-  def nodeClone =
-    new TInternalIdentVar(new String(name))
+  def nodeClone(env: TTypeEnv) = {
+    val newNode = VariableGenerator.newTInternalVariable()
+    env.addTopLevel(newNode, env.getOrFail(this), false)
+    newNode
+  }
 }
 
 case class TIdentLongVar(var name: List[String], var identClass: TIdentClass)
     extends TNamedIdent {
   def prettyPrint = name.mkString(".")
 
-  def nodeClone =
-    new TIdentLongVar(name.map(new String(_)), identClass.nodeClone)
+  def nodeClone(env: TTypeEnv) =
+    new TIdentLongVar(name.map(new String(_)), identClass.nodeClone(env))
 }
 
 /* This class is introduced in the LowerProgram pass.
@@ -65,16 +71,16 @@ case class TArgumentNode(var funname: TTopLevelIdent,
   // Argument nodes may be assumed to be of TValClass
   def prettyPrint = "Argument_" + argNumber
 
-  def nodeClone =
-    new TArgumentNode(funname.nodeClone, argNumber)
+  def nodeClone(env: TTypeEnv) =
+    new TArgumentNode(funname.nodeClone(env), argNumber)
 }
 
 case class TTopLevelIdent(var name: String, var identClass: TIdentClass)
     extends TNamedIdent {
   def prettyPrint = "TopLevel_" + name
 
-  def nodeClone =
-    new TTopLevelIdent(new String(name), identClass.nodeClone)
+  def nodeClone(env: TTypeEnv) =
+    new TTopLevelIdent(new String(name), identClass.nodeClone(env))
 }
 
 case class TNumberedIdentVar(var name: String, var number: Int)
@@ -82,170 +88,170 @@ case class TNumberedIdentVar(var name: String, var number: Int)
   // Numbered Ident Vars may assumed to be of TValClass
   def prettyPrint = name + "_" + number.toString
 
-  def nodeClone =
+  def nodeClone(env: TTypeEnv) =
     new TNumberedIdentVar(new String(name), number)
 }
 
 case class TUnderscoreIdent() extends BuiltinIdent {
   def prettyPrint = "_"
 
-  def nodeClone = new TUnderscoreIdent()
+  def nodeClone(env: TTypeEnv) = new TUnderscoreIdent()
 }
 
 case class TUnitIdent() extends BuiltinIdent {
   def prettyPrint = "()"
 
-  def nodeClone = new TUnitIdent()
+  def nodeClone(env: TTypeEnv) = new TUnitIdent()
 }
 
 case class TConsIdent() extends BuiltinIdent {
   def prettyPrint = "::"
 
-  def nodeClone = new TConsIdent()
+  def nodeClone(env: TTypeEnv) = new TConsIdent()
 }
 
 case class TAppendIdent() extends BuiltinIdent {
   def prettyPrint = "@"
 
-  def nodeClone = new TAppendIdent()
+  def nodeClone(env: TTypeEnv) = new TAppendIdent()
 }
 
 case class TEmptyListIdent() extends BuiltinIdent {
   def prettyPrint = "[]"
 
-  def nodeClone = new TEmptyListIdent()
+  def nodeClone(env: TTypeEnv) = new TEmptyListIdent()
 }
 
 case class TRealPlusIdent() extends BuiltinIdent {
   def prettyPrint = " +r "
 
-  def nodeClone = new TRealPlusIdent()
+  def nodeClone(env: TTypeEnv) = new TRealPlusIdent()
 }
 
 case class TRealMinusIdent() extends BuiltinIdent {
   def prettyPrint = " -r "
 
-  def nodeClone = new TRealMinusIdent()
+  def nodeClone(env: TTypeEnv) = new TRealMinusIdent()
 }
 
 case class TRealTimesIdent() extends BuiltinIdent {
   def prettyPrint = " *r "
 
-  def nodeClone = new TRealTimesIdent()
+  def nodeClone(env: TTypeEnv) = new TRealTimesIdent()
 }
 
 case class TRealDivIdent() extends BuiltinIdent {
   def prettyPrint = " /r "
 
-  def nodeClone = new TRealDivIdent()
+  def nodeClone(env: TTypeEnv) = new TRealDivIdent()
 }
 
 case class TIntPlusIdent() extends BuiltinIdent {
   def prettyPrint = " +i "
 
-  def nodeClone = new TIntPlusIdent()
+  def nodeClone(env: TTypeEnv) = new TIntPlusIdent()
 }
 
 case class TIntMinusIdent() extends BuiltinIdent {
   def prettyPrint = " -i "
 
-  def nodeClone = new TIntMinusIdent()
+  def nodeClone(env: TTypeEnv) = new TIntMinusIdent()
 }
 
 case class TIntTimesIdent() extends BuiltinIdent {
   def prettyPrint = " *i "
 
-  def nodeClone = new TIntTimesIdent()
+  def nodeClone(env: TTypeEnv) = new TIntTimesIdent()
 }
 
 case class TIntDivIdent() extends BuiltinIdent {
   def prettyPrint = " /i "
 
-  def nodeClone = new TIntDivIdent()
+  def nodeClone(env: TTypeEnv) = new TIntDivIdent()
 }
 
 case class TIntModIdent() extends BuiltinIdent {
   def prettyPrint = " mod "
 
-  def nodeClone = new TIntModIdent()
+  def nodeClone(env: TTypeEnv) = new TIntModIdent()
 }
 
 case class TStringCatIdent() extends BuiltinIdent {
   def prettyPrint = " ^s "
 
-  def nodeClone = new TStringCatIdent()
+  def nodeClone(env: TTypeEnv) = new TStringCatIdent()
 }
 
 case class TIntLEQIdent() extends BuiltinIdent {
   def prettyPrint = " <=i "
 
-  def nodeClone = new TIntLEQIdent()
+  def nodeClone(env: TTypeEnv) = new TIntLEQIdent()
 }
 
 case class TIntGEQIdent() extends BuiltinIdent {
   def prettyPrint = " >=i "
 
-  def nodeClone = new TIntGEQIdent()
+  def nodeClone(env: TTypeEnv) = new TIntGEQIdent()
 }
 
 case class TIntLTIdent() extends BuiltinIdent {
   def prettyPrint = " <i "
 
-  def nodeClone = new TIntLTIdent()
+  def nodeClone(env: TTypeEnv) = new TIntLTIdent()
 }
 
 case class TIntGTIdent() extends BuiltinIdent {
   def prettyPrint = " >i "
 
-  def nodeClone = new TIntGTIdent()
+  def nodeClone(env: TTypeEnv) = new TIntGTIdent()
 }
 
 case class TRealLEQIdent() extends BuiltinIdent {
   def prettyPrint = " <=r "
 
-  def nodeClone = new TRealLEQIdent()
+  def nodeClone(env: TTypeEnv) = new TRealLEQIdent()
 }
 
 case class TRealGEQIdent() extends BuiltinIdent {
   def prettyPrint = " >=r "
 
-  def nodeClone = new TRealGEQIdent()
+  def nodeClone(env: TTypeEnv) = new TRealGEQIdent()
 }
 
 case class TRealLTIdent() extends BuiltinIdent {
   def prettyPrint = " <r "
 
-  def nodeClone = new TRealLTIdent()
+  def nodeClone(env: TTypeEnv) = new TRealLTIdent()
 }
 
 case class TRealGTIdent() extends BuiltinIdent {
   def prettyPrint = " >r "
 
-  def nodeClone = new TRealGTIdent()
+  def nodeClone(env: TTypeEnv) = new TRealGTIdent()
 }
 
 case class TStringLEQIdent() extends BuiltinIdent {
   def prettyPrint = " <=s "
 
-  def nodeClone = new TStringLEQIdent()
+  def nodeClone(env: TTypeEnv) = new TStringLEQIdent()
 }
 
 case class TStringGEQIdent() extends BuiltinIdent {
   def prettyPrint = " >=s "
 
-  def nodeClone = new TStringGEQIdent()
+  def nodeClone(env: TTypeEnv) = new TStringGEQIdent()
 }
 
 case class TStringLTIdent() extends BuiltinIdent {
   def prettyPrint = " <s "
 
-  def nodeClone = new TStringLTIdent()
+  def nodeClone(env: TTypeEnv) = new TStringLTIdent()
 }
 
 case class TStringGTIdent() extends BuiltinIdent {
   def prettyPrint = " >s "
 
-  def nodeClone = new TStringGTIdent()
+  def nodeClone(env: TTypeEnv) = new TStringGTIdent()
 }
 
 /* Although equals does not have to be specialized, we do so because
@@ -254,72 +260,72 @@ case class TStringGTIdent() extends BuiltinIdent {
 case class TGenericEqualsIdent() extends BuiltinIdent {
   def prettyPrint = " =gen "
 
-  def nodeClone = new TGenericEqualsIdent()
+  def nodeClone(env: TTypeEnv) = new TGenericEqualsIdent()
 }
 
 case class TIntEqualsIdent() extends BuiltinIdent {
   def prettyPrint = " =i "
 
-  def nodeClone = new TIntEqualsIdent()
+  def nodeClone(env: TTypeEnv) = new TIntEqualsIdent()
 }
 
 case class TRealEqualsIdent() extends BuiltinIdent {
   def prettyPrint = " =r "
 
-  def nodeClone = new TRealEqualsIdent()
+  def nodeClone(env: TTypeEnv) = new TRealEqualsIdent()
 }
 
 case class TStringEqualsIdent() extends BuiltinIdent {
   def prettyPrint = " =s "
 
-  def nodeClone = new TStringEqualsIdent()
+  def nodeClone(env: TTypeEnv) = new TStringEqualsIdent()
 }
 
 case class TBoolEqualsIdent() extends BuiltinIdent {
   def prettyPrint = " =b "
 
-  def nodeClone = new TBoolEqualsIdent()
+  def nodeClone(env: TTypeEnv) = new TBoolEqualsIdent()
 }
 
 case class TAnd() extends BuiltinIdent {
   def prettyPrint = " andalso "
 
-  def nodeClone = new TAnd()
+  def nodeClone(env: TTypeEnv) = new TAnd()
 }
 
 case class TOr() extends BuiltinIdent {
   def prettyPrint = " orelse "
 
-  def nodeClone = new TOr()
+  def nodeClone(env: TTypeEnv) = new TOr()
 }
 
 case class TNegInt() extends BuiltinIdent {
   def prettyPrint = " ~i "
 
-  def nodeClone = new TNegInt()
+  def nodeClone(env: TTypeEnv) = new TNegInt()
 }
 
 case class TNegReal() extends BuiltinIdent {
   def prettyPrint = " ~r "
 
-  def nodeClone = new TNegReal()
+  def nodeClone(env: TTypeEnv) = new TNegReal()
 }
 
 case class TNot() extends BuiltinIdent {
   def prettyPrint = " not "
 
-  def nodeClone = new TNot()
+  def nodeClone(env: TTypeEnv) = new TNot()
 }
 
 case class TPrint() extends BuiltinIdent {
   def prettyPrint = " print "
 
-  def nodeClone = new TPrint()
+  def nodeClone(env: TTypeEnv) = new TPrint()
 }
 
 /* This class has some special cases for built in exceptions.  */
 trait TIdentThrowable extends TIdent {
-  def nodeClone: TIdentThrowable
+  def nodeClone(env: TTypeEnv): TIdentThrowable
 
   def getDeclaredIdents = new HashSet[TNamedIdent]()
 }
@@ -327,5 +333,5 @@ trait TIdentThrowable extends TIdent {
 case class TIdentMatchError() extends TIdentThrowable {
   def prettyPrint = "raise MatchError"
 
-  def nodeClone = new TIdentMatchError()
+  def nodeClone(env: TTypeEnv) = new TIdentMatchError()
 }

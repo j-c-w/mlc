@@ -153,7 +153,8 @@ class LambdaLiftWalk(val program: TProgram)
                 val newVal =
                   TVal(valdecName,
                        TExpFunApp(TExpIdent(fun.name),
-                                  freeValsTuple.nodeClone, callTypeIdent))
+                                  freeValsTuple.nodeClone(letEnv),
+                                  callTypeIdent))
 
                 // replace all uses of the function with uses of the new
                 // valdec.

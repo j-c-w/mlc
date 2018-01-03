@@ -1,7 +1,7 @@
 package tir
 
 sealed trait TIdentClass extends TTree {
-  def nodeClone: TIdentClass
+  def nodeClone(env: TTypeEnv): TIdentClass
 
   /* This should be true if the type can be put into a register or variable.
    *
@@ -16,7 +16,7 @@ case class TValClass() extends TIdentClass {
 
   def isRegisterClass = true
 
-  def nodeClone = new TValClass()
+  def nodeClone(env: TTypeEnv) = new TValClass()
 }
 
 case class TFunClass() extends TIdentClass {
@@ -24,5 +24,5 @@ case class TFunClass() extends TIdentClass {
 
   def isRegisterClass = false
 
-  def nodeClone = new TFunClass()
+  def nodeClone(env: TTypeEnv) = new TFunClass()
 }

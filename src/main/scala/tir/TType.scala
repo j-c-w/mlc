@@ -22,7 +22,7 @@ sealed trait TType extends TTree with GenericType[TType] {
   def specializesTo(otherType: TType): Boolean = ???
   def substituteFor(subFor: TType,subIn: TType): TType = ???
   def unify(typ: TType): GenericUnifier[TType] = ???
-  def nodeClone: TType = typeClone
+  def nodeClone(env: TTypeEnv): TType = typeClone
 }
 
 case class TFunctionType(var argType: TType, var resType: TType)
