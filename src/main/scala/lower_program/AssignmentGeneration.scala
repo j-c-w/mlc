@@ -111,7 +111,7 @@ object AssignmentGeneration {
         val elemsTypesList = typeEnv.getOrFail(parentIdent) match {
           case tuple @ TTupleType(typs) =>
             // This check is required because the typechecker removes
-            // excess tuples around elements. So, ((((1)))) becomes
+            // excess tuples around elements.  So, ((((1)))) becomes
             // 'int', which is correct, but it means that this recursion
             // breaks (because the first descent gets the type 'int' and
             // all subsequent descents are broken).  The solution to the
@@ -131,7 +131,7 @@ object AssignmentGeneration {
         }
 
         // Since tuples are guaranteed to be the right length by type
-        // checking, we do not have to insert any  checks here.
+        // checking, we do not have to insert any checks here.
         unpackList(elems,
                    (index => {
                      val itemType = elemsTypesList(index)
@@ -333,7 +333,7 @@ object AssignmentGeneration {
   /* This creates a list of assignment expressions that correspond
    * to assigning the variables to the patterns that they match.
    *
-   * The expression is  a boolean expression that evalueates
+   * The expression is a boolean expression that evalueates
    * to true if the pattern matches and false otherwise.
    *
    * It inserts the TArgumentNode to represent identifiers
