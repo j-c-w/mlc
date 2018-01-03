@@ -48,7 +48,7 @@ object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
         case (0, other) => List()
         case (n, TFunctionType(arg, res)) => {
           val variable = VariableGenerator.newTInternalVariable()
-          parent.add(variable, arg, false)
+          parent.addTopLevel(variable, arg, false)
 
           variable :: getTypeFrom(patternLength - 1, res)
         }

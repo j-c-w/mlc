@@ -69,7 +69,7 @@ object AssignmentGeneration {
         unpackList(subIdents, (index => {
                      val itemType = typeEnv.compoundTypeOf(subIdents(index))
                      val id = VariableGenerator.newTInternalVariable()
-                     typeEnv.add(id, itemType, false)
+                     typeEnv.addTopLevel(id, itemType, false)
                      (TExpTupleExtract(TExpIdent(parentIdent),
                                       subIdents.length, index, id),
                       itemType)
@@ -136,7 +136,7 @@ object AssignmentGeneration {
                    (index => {
                      val itemType = elemsTypesList(index)
                      val id = VariableGenerator.newTInternalVariable()
-                     typeEnv.add(id, itemType, false)
+                     typeEnv.addTopLevel(id, itemType, false)
                      (TExpTupleExtract(TExpIdent(parentIdent), elems.length,
                                        index, id),
                       itemType)
@@ -156,7 +156,7 @@ object AssignmentGeneration {
           unpackList(listElems,
                      (index => {
                        val id = VariableGenerator.newTInternalVariable()
-                       typeEnv.add(id, rawType, false)
+                       typeEnv.addTopLevel(id, rawType, false)
                        (TExpListExtract(TExpIdent(parentIdent), index, id),
                         rawType)
                      }),
@@ -165,10 +165,11 @@ object AssignmentGeneration {
         val comparisonType = VariableGenerator.newTInternalVariable()
 
         // Insert the comparison type into the type environment
-        typeEnv.add(comparisonType,
-                    TFunctionType(TTupleType(List(TIntType(), TIntType())),
-                                  TBoolType()),
-                    false)
+        typeEnv.addTopLevel(comparisonType,
+                            TFunctionType(TTupleType(List(TIntType(),
+                                                          TIntType())),
+                                          TBoolType()),
+                            false)
 
         (TExpIf(
           TExpFunApp(
@@ -185,10 +186,11 @@ object AssignmentGeneration {
       case TPatConst(const) => {
         val funIdent = VariableGenerator.newTInternalVariable()
 
-        typeEnv.add(funIdent,
-                    TFunctionType(TTupleType(List(TBoolType(), TBoolType())),
-                                  TBoolType()),
-                    false)
+        typeEnv.addTopLevel(funIdent,
+                            TFunctionType(TTupleType(List(TBoolType(),
+                                                          TBoolType())),
+                                          TBoolType()),
+                            false)
 
         val equalsIdent = typeEnv.getOrFail(parentIdent) match {
           case TBoolType() => TBoolEqualsIdent()
@@ -229,7 +231,7 @@ object AssignmentGeneration {
 
         typeEnv.add(headIdent, rawType, false)
         typeEnv.add(tailIdent, TListType(rawType), false)
-        typeEnv.add(listTyIdent, rawType, false)
+        typeEnv.addTopLevel(listTyIdent, rawType, false)
 
         val headExpression =
           TExpAssign(headIdent,
@@ -249,7 +251,7 @@ object AssignmentGeneration {
           TFunctionType(TTupleType(List(TIntType(), TIntType())),
                         TBoolType())
 
-        typeEnv.add(intCompareTypeID, intCompareType, false)
+        typeEnv.addTopLevel(intCompareTypeID, intCompareType, false)
 
         val newExp =
           TExpIf(
@@ -321,7 +323,7 @@ object AssignmentGeneration {
           TFunctionType(TTupleType(List(TBoolType(), TBoolType())),
                         TBoolType())
 
-        typeEnv.add(boolFunctionTypeID, boolFunctionType, false)
+        typeEnv.addTopLevel(boolFunctionTypeID, boolFunctionType, false)
 
         TExpFunApp(TExpIdent(TAnd()),
                    TExpTuple(List(nextExp, currentExp)),
