@@ -1,6 +1,7 @@
 package lower_ast
 
 import exceptions.{BadIntException,ICE}
+import environment_soundness.EnvironmentSoundnessWalk
 import scala.collection.mutable.HashMap
 import toplev.Pass
 import java.math.BigInteger
@@ -348,12 +349,13 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
       // Since this is an if, we know that the expression has type
       // boolean.
       val boolTypeRef = VariableGenerator.newTInternalVariable()
-      loweredEnv.add(boolTypeRef,
-                     lowerAST(ASTFunctionType(ASTBoolType(),
-                                              env.getOrFail(
-                                                ifThenElse.branchType.get)),
-                              env),
-                     false)
+      loweredEnv.addTopLevel(boolTypeRef,
+                             lowerAST(ASTFunctionType(ASTBoolType(),
+                                                      env.getOrFail(
+                                                      ifThenElse.
+                                                        branchType.get)),
+                                      env),
+                             false)
 
       TExpCase(lowerAST(cond, env), List(ifTrueCase, ifFalseCase),
                boolTypeRef)
@@ -419,7 +421,10 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
 
   def run(input: ASTProgram) = {
     try {
-      lowerAST(input)
+      val ast = lowerAST(input)
+      val walk = new EnvironmentSoundnessWalk(ast.typeEnv)
+      walk(ast.typeEnv, ast)
+      ast
     } catch {
       case e: BadIntException => {
         println("Bad integer")

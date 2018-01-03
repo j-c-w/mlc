@@ -424,7 +424,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
 
         // We need to add the type of the result to the environment.
         val branchTypeID = VariableGenerator.newInternalVariable()
-        env.add(branchTypeID, mgu(trueType), false)
+        env.addTopLevel(branchTypeID, mgu(trueType), false)
         ifThenElse.branchType = Some(branchTypeID)
 
         (mgu, mgu(trueType))
@@ -468,7 +468,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         // Add that type to the environment under a new name.
         val funTypeIdentifier = VariableGenerator.newInternalVariable()
 
-        env.add(funTypeIdentifier,
+        env.addTopLevel(funTypeIdentifier,
                 // For safety, we assert here that this is indeed
                 // a function type.
                 unifier(typ).asInstanceOf[ASTFunctionType],
