@@ -41,6 +41,8 @@ case class TFunctionType(var argType: TType, var resType: TType)
 
 case class TTupleType(var subTypes: List[TType])
     extends TType with TFlattenable[TType] {
+  assert(subTypes.length > 1)
+
   def getTypeVars() = {
     val emptySet: GenericTypeSet[TType] = new TTypeSet()
 
