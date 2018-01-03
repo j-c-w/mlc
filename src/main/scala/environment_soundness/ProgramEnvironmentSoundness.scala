@@ -6,7 +6,8 @@ import toplev.OptionalPass
 object ProgramEnvironmnetSoundness
     extends OptionalPass[TProgram]("environment_soundness") {
   def run(tree: TProgram) = {
-    EnvironmentSoundnessWalk(tree.typeEnv, tree)
+    val walk = new EnvironmentSoundnessWalk(tree.typeEnv)
+    walk(tree.typeEnv, tree)
     tree
   }
 }

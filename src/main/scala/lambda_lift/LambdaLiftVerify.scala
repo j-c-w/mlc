@@ -55,7 +55,8 @@ object LambdaLiftVerify extends OptionalPass[TProgram]("verify")
   def run(tree: TProgram) = {
     apply((), tree)
     // Also check the soundness of the environment
-    EnvironmentSoundnessWalk(tree.typeEnv, tree)
+    val walk = new EnvironmentSoundnessWalk(tree.typeEnv)
+    walk(tree.typeEnv, tree)
     tree
   }
 }
