@@ -34,9 +34,9 @@ case class TJavaFun(var name: TTopLevelIdent,
                          exp.prettyPrint)
 
   def nodeClone(parentEnv: TTypeEnv) =
-    new TJavaFun(name.nodeClone(parentEnv),
-                 curriedArgs.map(_.nodeClone(parentEnv)),
-                 exp.nodeClone(parentEnv), env)
+    new TJavaFun(name.nodeClone(env),
+                 curriedArgs.map(_.nodeClone(env)),
+                 exp.nodeClone(env), env)
 }
 
 case class TVal(var ident: TIdent, var exp: TExp) extends TDec {

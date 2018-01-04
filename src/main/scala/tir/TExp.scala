@@ -103,8 +103,8 @@ case class TExpLetIn(var decs: List[TDec], var exp: TExp, var env: TTypeEnv)
 
   // Note that we do not nodeClone the type environment.
   def nodeClone(parentEnv: TTypeEnv) =
-    new TExpLetIn(decs.map(_.nodeClone(parentEnv)),
-                  exp.nodeClone(parentEnv), env)
+    new TExpLetIn(decs.map(_.nodeClone(env)),
+                  exp.nodeClone(env), env)
 }
 
 // Note that application type is a function type here, with
@@ -131,8 +131,8 @@ case class TExpMatchRow(var pat: List[TPat], var exp: TExp, var env: TTypeEnv)
     pat.map(_.prettyPrint).mkString(" ") + " => " + exp.prettyPrint
 
   def nodeClone(parentEnv: TTypeEnv) =
-    new TExpMatchRow(pat.map(_.nodeClone(parentEnv)),
-                     exp.nodeClone(parentEnv), env)
+    new TExpMatchRow(pat.map(_.nodeClone(env)),
+                     exp.nodeClone(env), env)
 }
 
 /* This is removed from the tree during the lambda lifting pass.  */
