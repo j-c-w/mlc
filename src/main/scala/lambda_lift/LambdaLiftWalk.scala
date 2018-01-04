@@ -232,8 +232,8 @@ class LambdaLiftWalk(val program: TProgram)
           // application.
           val applicationIdent = VariableGenerator.newTInternalVariable()
 
-          env.add(applicationIdent,
-                  TFunctionType(freeValsType, oldFunctionType), false)
+          env.addTopLevel(applicationIdent,
+                          TFunctionType(freeValsType, oldFunctionType), false)
 
           // The only use of this funciton is where it is declared.
           // Update that use.
