@@ -8,7 +8,11 @@ class AlphaApplyWalk(val map: HashMap[TNamedIdent, TNamedIdent])
     extends TParentSetPass[Unit] {
   override def apply(u: Unit, ident: TIdent) = ident match {
     case namedIdent: TNamedIdent =>
-      Some(map(namedIdent))
+      if (map.contains(namedIdent)) {
+        Some(map(namedIdent))
+      } else {
+        None
+      }
     case other => super.apply(u, ident)
   }
 }

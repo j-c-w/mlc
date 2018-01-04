@@ -61,23 +61,29 @@ class AlphaRenameWalk extends TTypeEnvUnitPass {
   private def mapIdents(env: TTypeEnv, ident: TIdent): Unit = ident match {
     case TIdentTuple(elems) =>
       elems.map(mapIdents(env, _))
-    case namedIdent @ TIdentVar(name, identClass) => {
-      renameMap(namedIdent) = VariableGenerator.newTVariable(identClass)
-      env.add(namedIdent, env.getOrFail(namedIdent), false)
+    case namedIdent: TNamedIdent => namedIdent match {
+      case internalIdent @ TInternalIdentVar(_) => {
+        println(internalIdent)
+      }
+      case namedIdent @ TIdentVar(name, identClass) => {
+        renameMap(namedIdent) = VariableGenerator.newTVariable(identClass)
+        println(renameMap(namedIdent))
+        env.add(renameMap(namedIdent), env.getOrFail(namedIdent), false)
+      }
+      case TIdentLongVar(idents, _) =>
+        throw new ICE("Declaration of LongIdent being alpha renamed")
+      case argument: TArgumentNode =>
+        // There is nother particularly difficult about supporting this case.
+        // Careful thought needs to be done about what to alpha rename the
+        // variable to, so it has been omitted for now.
+        throw new ICE("AlphaRenaming after LowerProgram not currently supported")
+      case numberedIdent: TNumberedIdentVar =>
+        // Again, careful thought must  be given to what to rename a number
+        // to.
+        throw new ICE("AlphaRenaming after NumberIdents not currently supported")
+      case TTopLevelIdent(_, _) =>
+        throw new ICE("AlphaRenaming at top level is not currently supported")
     }
-    case TIdentLongVar(idents, _) =>
-      throw new ICE("Declaration of LongIdent being alpha renamed")
-    case argument: TArgumentNode =>
-      // There is nother particularly difficult about supporting this case.
-      // Careful thought needs to be done about what to alpha rename the
-      // variable to, so it has been omitted for now.
-      throw new ICE("AlphaRenaming after LowerProgram not currently supported")
-    case numberedIdent: TNumberedIdentVar =>
-      // Again, careful thought must  be given to what to rename a number
-      // to.
-      throw new ICE("AlphaRenaming after NumberIdents not currently supported")
-    case TTopLevelIdent(_, _) =>
-      throw new ICE("AlphaRenaming at top level is not currently supported")
     case other =>
       // Do nothing.
   }
