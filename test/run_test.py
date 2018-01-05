@@ -15,11 +15,19 @@ import sys
 
 
 class Test(object):
-    def __init__(self):
+    def __init__(self, build_from=None):
         self.scans = []
         self.options = []
         self.compile_should_fail = False
         self.should_run = False
+        self.run_scan_regex = None
+
+        if build_from:
+            self.scans = build_from.scans
+            self.options = build_from.options
+            self.compile_should_fail = build_from.compile_should_fail
+            self.should_run = build_from.should_run
+            self.run_scan_regex = build_from.run_scan_regex
 
     def add_scan(self, regex, dumpfile, times):
         self.scans.append((regex, dumpfile, times))
@@ -34,6 +42,9 @@ class Test(object):
         filename_only = os.path.basename(os.path.normpath(filename))
         dumpfiles = glob.glob(filename_only + "*." + affix)
 
+        if len(dumpfiles) == 0:
+            raise Exception("Dumpfile specified by " + affix +
+                            " does not exist")
         if len(dumpfiles) != 1:
             raise Exception("Dumpfiles specified by affix " + affix + " are " +
                             " not unique. ")
@@ -62,12 +73,9 @@ class Test(object):
 
         # Scalop is not happy about duplicate flags. We therefore
         # only present each argument once
-        deduplicated_options = self.options
-        for option in additional_options:
-            if option not in deduplicated_options:
-                deduplicated_options.append(option)
-
+        deduplicated_options = list(set(self.options + additional_options))
         print 'with options', deduplicated_options
+
         return_value = \
             subprocess.call(executable.split(' ') + deduplicated_options +
                             [file])
@@ -149,6 +157,9 @@ def docstring():
         scanning passes needed for it.
 
         Each file should have either a 'compile' and/or a 'run' directive.
+        There may be multiple compile directives.  If a run directive
+        is specified, then the test will be run on every compilation.
+        Scans will be executed on every compile.
 
         These should be of the form:
 
@@ -196,8 +207,8 @@ def find_tests(filter=None, root='.'):
 
 
 def extract_information(filename):
-
     test_data = Test()
+    compile_directives = []
 
     with open(filename) as f:
         lines = f.readlines()
@@ -212,9 +223,7 @@ def extract_information(filename):
             # Strip the opening and closing parts of the comment.
 
             if line.startswith('t-compile:'):
-                for option in parts[1].split(' '):
-                    if option:
-                        test_data.add_option(option.strip(' '))
+                compile_directives.append(parts[1])
 
             elif line.startswith('t-run:'):
                 test_data.set_should_run(True, parts[1].strip(' '))
@@ -237,7 +246,17 @@ def extract_information(filename):
 
                 test_data.add_scan(regex, dumpfile, times)
 
-    return test_data
+    # Now generate a list of tests from the compile directives:
+    
+    tests = []
+    for compile in compile_directives:
+        test = Test(test_data)
+        for option in compile.split(' '):
+            if option:
+                test.add_option(option.strip(' '))
+        tests.append(test)
+
+    return tests
 
 
 def run_test(filename, executable, options):
@@ -245,21 +264,34 @@ def run_test(filename, executable, options):
         the information we need (arguments, scan targets),
         runs  the test and checks the arguments.  """
     name_only = os.path.basename(filename)
+    test_data = extract_information(filename)
+    failure_data = []
 
-    # Copy the test into the temp folder before executing.
-    print filename
-    shutil.copyfile('../' + filename, name_only)
+    for test in test_data:
+        # Create the execute directory
+        os.mkdir('execute')
+        os.chdir('execute')
 
-    test_data = extract_information(name_only)
+        # Copy the test into the temp folder before executing.
+        print filename
+        shutil.copyfile('../' + filename, name_only)
 
-    # Now, do the build/run and FAIL if there were any errors.
-    (failed, failure_data) = \
-        test_data.execute(executable, name_only, filename, options)
-    if failed:
-        return failure_data
+        # Now, do the build/run and FAIL if there were any errors.
+        (failed, test_data) = \
+            test.execute(executable, name_only, filename, options)
+        failure_data += test_data
+        if failed:
+            os.chdir('..')
+            # Clear the execute directory
+            shutil.rmtree('execute')
+            continue
 
-    # Then, do the scan of the dumps:
-    failure_data += test_data.run_scans('./execute',  filename)
+        # Then, do the scan of the dumps:
+        failure_data += test.run_scans('./execute',  filename)
+
+        os.chdir('..')
+        # Clear the execute directory
+        shutil.rmtree('execute')
 
     return failure_data
 
@@ -275,22 +307,14 @@ def run_all(filenames, dumpfile, executable, options):
 
     print 'dump is', dumpfile
 
-    if os.path.exists('execute'):
-        # There was probably a failure in a previous test run.
-        # Delete it.
-        shutil.rmtree('execute')
-
     for filename in filenames:
-        print 'exectuing', filename
-        # Create the execute directory
-        os.mkdir('execute')
-        os.chdir('execute')
-
+        print 'executing', filename
+        # Delete the execution folder if it exists.
+        if os.path.exists('execute'):
+            # There was probably a failure in a previous test run.
+            # Delete it.
+            shutil.rmtree('execute')
         results += run_test(filename, executable, options)
-
-        os.chdir('..')
-        # Clear the execute directory
-        shutil.rmtree('execute')
 
     dump_result_data(results, dumpfile)
 
