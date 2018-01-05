@@ -322,12 +322,16 @@ if __name__ == "__main__":
     parser.add_argument('--output', dest='output_file', action='store',
                         default='test.res', help=('Output file to dump'
                                                   ' test results into'))
-    parser.add_argument('--options', dest='options', action='append',
-                        default=[], help=('Options to set on every compilation'
-                                          ' instance. '))
+    parser.add_argument('--options', dest='options', action='store',
+                        default='', help=('Options to set on every'
+                                          ' compilation instance. '))
     args = parser.parse_args()
 
     print "Executable is", args.executable
+    if args.options:
+        additional_options = args.options.split(' ')
+    else:
+        additional_options = []
 
     tests = find_tests(args.regex_filter, args.root)
-    run_all(tests, args.output_file, args.executable, args.options)
+    run_all(tests, args.output_file, args.executable, additional_options)
