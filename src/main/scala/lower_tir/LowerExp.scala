@@ -386,7 +386,7 @@ object LowerExp {
   }
 
   def ifIntEq(ifTrue: List[JVMInstruction],
-                 ifFalse: List[JVMInstruction]) = {
+              ifFalse: List[JVMInstruction]) = {
     val trueLabel = LabelGenerator.newLabel()
     val endIf = LabelGenerator.newLabel()
     JVMIfIntCmpEq(trueLabel) ::
