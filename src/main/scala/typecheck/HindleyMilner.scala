@@ -251,7 +251,8 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
             mgu mguUnify
               (declaredFunType unify ASTFunctionType(appType, resultType))
           case other =>
-            throw new ICE("Function identifier with non-function type %s".format(other.prettyPrint))
+            throw new InferenceException("Attempting to apply non-function " +
+              "of type %s".format(other.prettyPrint))
         }
 
         // This is used for later optimizations. It is helpful
