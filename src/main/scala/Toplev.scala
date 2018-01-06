@@ -15,6 +15,8 @@ import lower_ast.LowerAST
 import lower_ast.LowerASTVerify
 import lambda_lift.LambdaLift
 import lambda_lift.LambdaLiftVerify
+import t_inline.TInline
+import t_inline.TInlineVerify
 import lower_program.LowerProgram
 import lower_program.LowerProgramVerify
 import lower_variables.LowerVariablesPass
@@ -52,11 +54,14 @@ object Toplev extends App {
                                             lambda_lifted, false)
 
   // Optimizations on the TIR
+  val inlined = TInline.optionalExecute(cli.runTInline, lambda_lifted,
+                                        cli.dumpTInline)
+  val _2 = TInlineVerify.optionalExecute(cli.runTInlineVerify, inlined, false)
 
   // Lower the TIR down into TIR+Assigns.
   val lowered_program = LowerProgram.execute(lambda_lifted,
                                              cli.dumpLowerProgram)
-  val _2 = LowerProgramVerify.optionalExecute(cli.runLowerProgramVerify,
+  val _3 = LowerProgramVerify.optionalExecute(cli.runLowerProgramVerify,
                                               lowered_program, false)
 
   // Optimizations on TIR+Assigns

@@ -13,6 +13,7 @@ class Arguments(arguments: Seq[String]) {
     val verifyAll = opt[Boolean]()
     val runLowerAstVerify = opt[Boolean]()
     val runLambdaLiftVerify = opt[Boolean]()
+    val runTInlineVerify = opt[Boolean]()
     val runLowerProgramVerify = opt[Boolean]()
 
     // A marker to state whether the compiler should dump stats about
@@ -22,6 +23,9 @@ class Arguments(arguments: Seq[String]) {
     val optimize = opt[Boolean]()
 
     // Pass by pass optimization flags:
+    val fTInline = opt[Boolean]()
+    val fnoTInline = opt[Boolean]()
+
     val fPeephole = opt[Boolean]()
     val fnoPeephole = opt[Boolean]()
 
@@ -33,6 +37,7 @@ class Arguments(arguments: Seq[String]) {
     val dumpTypecheck = opt[Boolean]()
     val dumpTir = opt[Boolean]()
     val dumpLambdaLift = opt[Boolean]()
+    val dumpTInline = opt[Boolean]()
     val dumpLowerProgram = opt[Boolean]()
     val dumpSimplify = opt[Boolean]()
     val dumpNumberedProgram = opt[Boolean]()
@@ -49,6 +54,7 @@ class Arguments(arguments: Seq[String]) {
   
   // Optional pass options:
   val runLowerAstVerify = parser.runLowerAstVerify() || parser.verifyAll()
+  val runTInlineVerify = parser.runTInlineVerify() || parser.verifyAll()
   val runLambdaLiftVerify = parser.runLambdaLiftVerify() || parser.verifyAll()
   val runLowerProgramVerify =
     parser.runLowerProgramVerify() || parser.verifyAll()
@@ -61,6 +67,8 @@ class Arguments(arguments: Seq[String]) {
     parser.optimize()
 
   // Pass run options:
+  val runTInline =
+    parser.fTInline() || (!parser.fnoTInline() && optimize)
   val runPeephole =
     !parser.fnoPeephole() || parser.fPeephole()
 
@@ -77,6 +85,8 @@ class Arguments(arguments: Seq[String]) {
     parser.dumpTir() || parser.dumpAll()
   val dumpLambdaLift =
     parser.dumpLambdaLift() || parser.dumpAll()
+  val dumpTInline =
+    parser.dumpTInline() || parser.dumpAll()
   val dumpLowerProgram =
     parser.dumpLowerProgram() || parser.dumpAll()
   val dumpSimplify =
