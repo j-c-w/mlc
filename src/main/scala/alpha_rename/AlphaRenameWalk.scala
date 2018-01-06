@@ -62,12 +62,10 @@ class AlphaRenameWalk extends TTypeEnvUnitPass {
     case TIdentTuple(elems) =>
       elems.map(mapIdents(env, _))
     case namedIdent: TNamedIdent => namedIdent match {
-      case internalIdent @ TInternalIdentVar(_) => {
-        println(internalIdent)
-      }
+      case internalIdent @ TInternalIdentVar(_) =>
+        throw new ICE("Not expecting to find internal ident in declaration")
       case namedIdent @ TIdentVar(name, identClass) => {
         renameMap(namedIdent) = VariableGenerator.newTVariable(identClass)
-        println(renameMap(namedIdent))
         env.add(renameMap(namedIdent), env.getOrFail(namedIdent), false)
       }
       case TIdentLongVar(idents, _) =>
