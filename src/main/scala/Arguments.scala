@@ -15,6 +15,7 @@ class Arguments(arguments: Seq[String]) {
     val runLambdaLiftVerify = opt[Boolean]()
     val runTInlineVerify = opt[Boolean]()
     val runLowerProgramVerify = opt[Boolean]()
+    val runPreLowerSimplify = opt[Boolean]()
 
     // A marker to state whether the compiler should dump stats about
     // the compilation.
@@ -25,6 +26,12 @@ class Arguments(arguments: Seq[String]) {
     // Pass by pass optimization flags:
     val fTInline = opt[Boolean]()
     val fnoTInline = opt[Boolean]()
+
+    val fPreLowerSimplify = opt[Boolean]()
+    val fnoPreLowerSimplify = opt[Boolean]()
+
+    val fSimplify = opt[Boolean]()
+    val fnoSimplify = opt[Boolean]()
 
     val fPeephole = opt[Boolean]()
     val fnoPeephole = opt[Boolean]()
@@ -38,6 +45,7 @@ class Arguments(arguments: Seq[String]) {
     val dumpTir = opt[Boolean]()
     val dumpLambdaLift = opt[Boolean]()
     val dumpTInline = opt[Boolean]()
+    val dumpPreLowerSimplify = opt[Boolean]()
     val dumpLowerProgram = opt[Boolean]()
     val dumpSimplify = opt[Boolean]()
     val dumpNumberedProgram = opt[Boolean]()
@@ -69,6 +77,14 @@ class Arguments(arguments: Seq[String]) {
   // Pass run options:
   val runTInline =
     parser.fTInline() || (!parser.fnoTInline() && optimize)
+  val runPreLowerSimplify =
+    // TODO -- This should be changed once Simplify is ready for
+    // more  than debugging
+    parser.fPreLowerSimplify()
+  val runSimplify =
+    // TODO -- This should be changed once Simplify is ready for
+    // more  than debugging
+    parser.fSimplify()
   val runPeephole =
     !parser.fnoPeephole() || parser.fPeephole()
 
@@ -87,6 +103,8 @@ class Arguments(arguments: Seq[String]) {
     parser.dumpLambdaLift() || parser.dumpAll()
   val dumpTInline =
     parser.dumpTInline() || parser.dumpAll()
+  val dumpPreLowerSimplify =
+    parser.dumpPreLowerSimplify() || parser.dumpAll()
   val dumpLowerProgram =
     parser.dumpLowerProgram() || parser.dumpAll()
   val dumpSimplify =

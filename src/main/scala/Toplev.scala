@@ -17,8 +17,10 @@ import lambda_lift.LambdaLift
 import lambda_lift.LambdaLiftVerify
 import t_inline.TInline
 import t_inline.TInlineVerify
+import simplify.PreLowerSimplify
 import lower_program.LowerProgram
 import lower_program.LowerProgramVerify
+import simplify.Simplify
 import lower_variables.LowerVariablesPass
 import lower_tir.LowerTIR
 import peephole.Peephole
@@ -58,6 +60,8 @@ object Toplev extends App {
                                         cli.dumpTInline)
   val _2 = TInlineVerify.optionalExecute(cli.runTInlineVerify, inlined, false)
 
+  val t_simplified = PreLowerSimplify.optionalExecute(cli.runPreLowerSimplify,
+                                                      inlined, false)
   // Lower the TIR down into TIR+Assigns.
   val lowered_program = LowerProgram.execute(lambda_lifted,
                                              cli.dumpLowerProgram)
@@ -65,6 +69,8 @@ object Toplev extends App {
                                               lowered_program, false)
 
   // Optimizations on TIR+Assigns
+  val simplified = Simplify.optionalExecute(cli.runSimplify, lowered_program,
+                                            cli.dumpSimplify)
 
   // Lower TIR+Assigns into byteR
   val numberedProgram = LowerVariablesPass.execute(lowered_program,
