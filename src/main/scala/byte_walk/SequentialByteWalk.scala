@@ -37,6 +37,9 @@ class SequentialByteWalk[T] {
   def walk(item: T, jvmType: JVMType): Unit = jvmType match {
     case JVMArrayType(subType) => walk(item, subType)
     case JVMClassType(classRef) => walk(item, classRef)
+    // None of these cases have walkable subitems.
+    case ref: JVMRefType => 
+    case primitiveType: JVMPrimitiveType =>
   }
 
   def walk(item: T, jvmLabel: JVMLabel): Unit = {

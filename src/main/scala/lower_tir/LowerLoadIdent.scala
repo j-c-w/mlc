@@ -18,6 +18,8 @@ object LowerLoadIdent {
     case ident: TNamedIdent => ident match {
       case TIdentVar(_, _) => throw new ICE("""Unexpected TIdent var during
         |lower_tir: %s""".stripMargin.format(ident.prettyPrint))
+      case TMutableIdent(_, _) => throw new ICE("""Unexpected TMutableIdent
+        |during lower_tir: %s""".stripMargin.format(ident.prettyPrint))
       case TInternalIdentVar(_) =>
         throw new ICE("Cannot lower internal ident var")
       case TIdentLongVar(names, identClass) =>

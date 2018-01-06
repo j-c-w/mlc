@@ -56,6 +56,16 @@ case class TInternalIdentVar(var name: String) extends TNamedIdent {
   }
 }
 
+/* This is the only class of identifier allowed to be assigned to multiple
+ * times.   */
+case class TMutableIdent(var name: String, var identClass: TIdentClass)
+    extends TNamedIdent {
+  def prettyPrint = "mutable_" + name
+
+  def nodeClone(env: TTypeEnv) =
+    new TMutableIdent(name, identClass.nodeClone(env))
+}
+
 case class TIdentLongVar(var name: List[String], var identClass: TIdentClass)
     extends TNamedIdent {
   def prettyPrint = name.mkString(".")

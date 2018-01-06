@@ -23,6 +23,13 @@ class NumberVariablesWalk() extends TParentSetPass[Unit] {
           variableMap(dec) = newIdent
           newIdent
         }
+        case (i, dec @ TMutableIdent(name, identClass)) => {
+          assert(identClass.isRegisterClass)
+
+          val newIdent = TNumberedIdentVar(name, i)
+          variableMap(dec) = newIdent
+          newIdent
+        }
         // We expect that the fun let only contains ident vars.
         case (_, other) =>
           throw new ICE("Unexpected ident type %s".format(other.prettyPrint))

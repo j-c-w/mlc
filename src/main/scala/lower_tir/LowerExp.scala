@@ -623,6 +623,8 @@ object LowerExp {
       JVMInvokeStaticMethod(new JVMMethodRef(new JVMFloatRef(), "valueOf",
                             List(JVMFloatPrimitiveType()),
                             new JVMFloatType()))
+    case JVMVoidPrimitiveType() =>
+      throw new ICE("Cannot box void")
   }
 
   def equals(typ: JVMType) =

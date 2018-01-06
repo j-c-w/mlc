@@ -68,6 +68,11 @@ class AlphaRenameWalk extends TTypeEnvUnitPass {
         renameMap(namedIdent) = VariableGenerator.newTVariable(identClass)
         env.add(renameMap(namedIdent), env.getOrFail(namedIdent), false)
       }
+      case mutableIdent @ TMutableIdent(name, identClass) => {
+        renameMap(namedIdent) =
+          VariableGenerator.newTMutableVariable(identClass)
+        env.add(renameMap(namedIdent), env.getOrFail(namedIdent), false)
+      }
       case TIdentLongVar(idents, _) =>
         throw new ICE("Declaration of LongIdent being alpha renamed")
       case argument: TArgumentNode =>

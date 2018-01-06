@@ -20,6 +20,8 @@ object LowerStoreIdent {
     case ident: TNamedIdent => ident match {
       case TIdentVar(_, _) => throw new ICE("""Unexpected TIdent var during
         |lower_tir: %s""".stripMargin.format(ident))
+      case TMutableIdent(_, _) => throw new ICE("""Unexpected TMutableIdent
+        |var during lower_tir: %s""".stripMargin.format(ident))
       case TIdentLongVar(names, _) => throw new ICE("""Unexpected store to a long
         |ident""".stripMargin)
       case TInternalIdentVar(_) =>

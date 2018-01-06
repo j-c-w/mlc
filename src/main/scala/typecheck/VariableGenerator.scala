@@ -36,6 +36,12 @@ object VariableGenerator {
     TTopLevelIdent(getStringFor(number), varClass)
   }
 
+  def newTMutableVariable(varClass: TIdentClass): TMutableIdent = {
+    number += 1
+
+    TMutableIdent(getStringFor(number), varClass)
+  }
+
   def getStringFor(num: Int): String = num match {
     case 0 => "%"
     case n =>  getStringFor(n / 26) + "abcdefghijklmnopqrstuvwxyz"(n % 26)

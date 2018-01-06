@@ -14,11 +14,11 @@ import tpass.TTypeEnvPass
  */
 
 class GatherLetIdentifiersWalk(parentEnv: TTypeEnv)
-    extends TTypeEnvPass[Set[TIdentVar]] {
-  def combine(s1: Set[TIdentVar], s2: Set[TIdentVar]) =
+    extends TTypeEnvPass[Set[TNamedIdent]] {
+  def combine(s1: Set[TNamedIdent], s2: Set[TNamedIdent]) =
     s1.union(s2)
 
-  def default = new HashSet[TIdentVar]()
+  def default = new HashSet[TNamedIdent]()
 
   override def apply(env: TTypeEnv, dec: TDec) = dec match {
     case (tval: TVal) => {
@@ -28,21 +28,38 @@ class GatherLetIdentifiersWalk(parentEnv: TTypeEnv)
         parentEnv.add(atomicIdent, env.getOrFail(atomicIdent), false)
       }
 
-      returnSet
+      val internalDecs = super.apply(env, tval)
+
+      combine(returnSet, internalDecs)
     }
     case other => super.apply(env, dec)
+  }
+
+  override def apply(env: TTypeEnv, exp: TExp) = exp match {
+    // Variables may also be declared in assign nodes.
+    case TExpAssign(ident, assignExp) => {
+      val thisIdent = new HashSet[TNamedIdent]
+      thisIdent += ident
+      combine(thisIdent, super.apply(env, exp))
+    }
+    case other => super.apply(env, exp)
   }
 
   /* Given some identifier that may be an identifier
    * with nested contents, return the atomic TIdentVars
    * from within it.
    */
-  def getDecsFrom(ident: TIdent): Set[TIdentVar] = ident match {
+  def getDecsFrom(ident: TIdent): Set[TNamedIdent] = ident match {
     case TIdentTuple(subIdents) =>
       combineList(subIdents.map(getDecsFrom(_)))
     case identVar @ TIdentVar(variable, identClass) => {
-      val set = new HashSet[TIdentVar]()
+      val set = new HashSet[TNamedIdent]()
       set += identVar
+      set
+    }
+    case namedIdent @ TMutableIdent(name, identClass) => {
+      val set = new HashSet[TNamedIdent]()
+      set += namedIdent
       set
     }
     case other => default

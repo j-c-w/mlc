@@ -11,6 +11,7 @@ class MergeTypeEnvsWalk(val newEnv: TTypeEnv) extends TTypeEnvPass[Unit] {
   override def apply(typeEnv: TTypeEnv, ident: TIdent) = ident match {
     case identVar : TNamedIdent => identVar match {
       case TIdentVar(_, _)
+         | TMutableIdent(_, _)
          | TTopLevelIdent(_, _)
          | TInternalIdentVar(_) =>
              if (!newEnv.hasType(identVar))
