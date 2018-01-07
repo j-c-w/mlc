@@ -7,8 +7,8 @@ import tir._
 object UniqueifyVariablesWalk {
   def uniqueify(newVariables: Map[TNamedIdent,
                                   (List[TNamedIdent], List[TType])],
-                function: TFun) = {
-    val (freeValsNamesList, freeValsTypesList) = newVariables(function.name)
+                tree: TTree, funName: TNamedIdent) = {
+    val (freeValsNamesList, freeValsTypesList) = newVariables(funName)
     assert(freeValsNamesList.length == freeValsTypesList.length)
 
     // We need to zip these with a list of TValClasses so that the
@@ -23,7 +23,7 @@ object UniqueifyVariablesWalk {
     // because the walk will replace it with the one in the pattern
     // as a first step anyways.
     ChangeIdentNames.newNamesFor((freeValsNamesList, classes,
-                                  freeValsTypesList).zipped.toList, function,
+                                  freeValsTypesList).zipped.toList, tree,
                                  new TTypeEnv(None))
   }
 

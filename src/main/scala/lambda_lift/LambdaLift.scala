@@ -8,8 +8,15 @@ object LambdaLift extends Pass[TProgram, TProgram]("lambda_lift") {
     val walk = new LambdaLiftWalk(tree)
     walk(tree.typeEnv, tree)
 
-    walk.newTopLevelFunctions.foreach(
-      UniqueifyVariablesWalk.uniqueify(walk.introducedVariables, _))
+    walk.newTopLevelFunctions.foreach{
+      case TFun(name, pats) =>
+        pats.foreach {
+          case row @ TExpMatchRow(pat, exp, env) => {
+            UniqueifyVariablesWalk.uniqueify(walk.introducedVariables,
+                                             row, name)
+          }
+        }
+    }
     tree
   }
 }

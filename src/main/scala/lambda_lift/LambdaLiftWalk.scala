@@ -321,7 +321,7 @@ class LambdaLiftWalk(val program: TProgram)
       updatedPatterns.foreach {
         case matchRow @ TExpMatchRow(pattern, exp, env) => {
           // Update the patterns appropriately here:
-          matchRow.pat = freeValsPatTuple :: matchRow.pat
+          matchRow.pat = freeValsPatTuple.nodeClone(env) :: matchRow.pat
 
           // And also update the matchRow environment:
           freeValsList.map {
