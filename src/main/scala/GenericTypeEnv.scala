@@ -18,7 +18,7 @@ abstract class GenericTypeEnv[TypeEnvClass <: GenericTypeEnv[TypeEnvClass,
                                                              From, To],
                               From <: GenericPrintable,
                               To <: GenericPrintable with GenericType[To]]
-               (val parent: Option[GenericTypeEnv[TypeEnvClass, From, To]]) {
+               (var parent: Option[GenericTypeEnv[TypeEnvClass, From, To]]) {
   def this() = this(None)
 
   // This check is to ensure correct use of the GenericTypeEnv class.
