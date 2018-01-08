@@ -24,6 +24,9 @@ class Arguments(arguments: Seq[String]) {
     val optimize = opt[Boolean]()
 
     // Pass by pass optimization flags:
+    val fTce = opt[Boolean]()
+    val fnoTce = opt[Boolean]()
+
     val fTInline = opt[Boolean]()
     val fnoTInline = opt[Boolean]()
 
@@ -43,6 +46,7 @@ class Arguments(arguments: Seq[String]) {
     val dumpChangeNames = opt[Boolean]()
     val dumpTypecheck = opt[Boolean]()
     val dumpTir = opt[Boolean]()
+    val dumpTce = opt[Boolean]()
     val dumpLambdaLift = opt[Boolean]()
     val dumpTInline = opt[Boolean]()
     val dumpPreLowerSimplify = opt[Boolean]()
@@ -75,6 +79,8 @@ class Arguments(arguments: Seq[String]) {
     parser.optimize()
 
   // Pass run options:
+  val runTce =
+    parser.fTce() || (!parser.fnoTce() && optimize)
   val runTInline =
     parser.fTInline() || (!parser.fnoTInline() && optimize)
   val runPreLowerSimplify =
@@ -101,6 +107,8 @@ class Arguments(arguments: Seq[String]) {
     parser.dumpTir() || parser.dumpAll()
   val dumpLambdaLift =
     parser.dumpLambdaLift() || parser.dumpAll()
+  val dumpTce =
+    parser.dumpTce() || parser.dumpAll()
   val dumpTInline =
     parser.dumpTInline() || parser.dumpAll()
   val dumpPreLowerSimplify =
