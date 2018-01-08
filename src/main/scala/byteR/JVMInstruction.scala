@@ -127,7 +127,7 @@ sealed trait JVMReturn extends JVMInstruction {
   // empty on a return anyway.
   //
   // This constrains the return instruction to only pop off what it  returns.
-  def stackEffect = 1
+  def stackEffect = -1
 }
 
 case class JVMVReturn() extends JVMReturn {
