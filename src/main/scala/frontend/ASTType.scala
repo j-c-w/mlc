@@ -532,11 +532,10 @@ case class ASTComparableType(val id: String) extends ASTTypeVar {
     case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
     case ASTEqualityTypeVar(name) => {
       val unifier = ASTUnifier()
+      val tyVar = TypeVariableGenerator.getIntStringCharTypeVar()
 
-      unifier.specializeNV(other,
-                           TypeVariableGenerator.getIntStringCharTypeVar())
-      unifier.specializeNV(this,
-                           TypeVariableGenerator.getIntStringCharTypeVar())
+      unifier.specializeNV(other, tyVar)
+      unifier.specializeNV(this, tyVar)
 
       unifier
     }
@@ -766,6 +765,8 @@ case class ASTCharType() extends ASTTypeVar {
 
   override def mguNoCyclicCheck(other: ASTType) = other match {
     case ASTCharType() => ASTUnifier()
+    case ASTComparableType(_) => ASTUnifier(other, this)
+    case ASTIntStringCharType(_) => ASTUnifier(other, this)
     case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
     case ASTEqualityTypeVar(name) => ASTUnifier(other, this)
     case _ => throw new UnificationError(this, other)
