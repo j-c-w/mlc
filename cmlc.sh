@@ -13,11 +13,6 @@ TEMP_DIR=$(mktemp -d)
 set -e
 set -u
 
-if [ ! -f ${@:$#} ]; then
-	echo "Expecting to compile a file, found: ${@:$#}"
-	exit 1
-fi
-
 base=${@:$#}
 # Name of the file without the extension.
 filename="${base%.*}"
