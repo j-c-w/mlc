@@ -2,6 +2,7 @@ package tpass
 
 import tir._
 import exceptions.ICE
+import scala.collection.mutable.Set
 
 /*
  * This provides a walk of the tree that can optionally
@@ -36,6 +37,16 @@ class TParentSetPass[T] {
     (old zip possiblyNew) map {
       case (old, Some(newElem)) => conversion(newElem)
       case (old, None) => old
+    }
+  }
+
+  def setNew[T](changes: Set[(T, Option[T])], current: Set[T]): Unit = {
+    changes.foreach {
+      case (old, None) => // Do nothing
+      case (old, Some(newIdent)) => {
+        current.remove(old)
+        current += newIdent
+      }
     }
   }
 
@@ -181,14 +192,6 @@ class TParentSetPass[T] {
         val newVals = valdecs.map((x: TNamedIdent) => (x, apply(item, x)))
         val newExp = apply(item, exp)
 
-        newVals.foreach {
-          case (old, None) => // Do nothing
-          case (old, Some(newIdent)) => {
-            valdecs.remove(old)
-            valdecs += newIdent.asInstanceOf[TNamedIdent]
-          }
-        }
-
         newExp.map(exp => funLet.exp = exp)
       }
       case ifStmt @ TExpIf(cond, ifTrue, ifFalse) => {
@@ -206,6 +209,13 @@ class TParentSetPass[T] {
         throwExp.throwable =
           getNew(throwExp.throwable,
                  newThrowable).asInstanceOf[TIdentThrowable]
+      }
+      case continue @ TExpContinue(id) =>
+      case ret @ TExpReturn(exp) =>
+        ret.returnValue = getNew(ret.returnValue, apply(item, ret.returnValue))
+      case whileLoop @ TExpWhile(cond, exp, id) => {
+        whileLoop.condition = getNew(cond, apply(item, cond))
+        whileLoop.body = getNew(exp, apply(item, exp))
       }
     }
     None

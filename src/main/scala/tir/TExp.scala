@@ -229,6 +229,32 @@ case class TExpIf(var cond: TExp, var ifTrue: TExp, var ifFalse: TExp)
                ifFalse.nodeClone(env))
 }
 
+case class TExpWhile(var condition: TExp, var body: TExp, var id: Int)
+    extends TExp {
+  def prettyPrint = """
+  |While{id: %s} (%s) Do
+  |%s
+  |EndWhile{id: %s}""".stripMargin.format(id, condition.prettyPrint,
+                                          body.prettyPrint, id)
+
+  def nodeClone(env: TTypeEnv) =
+    new TExpWhile(condition.nodeClone(env), body.nodeClone(env), id)
+}
+
+case class TExpReturn(var returnValue: TExp) extends TExp {
+  def prettyPrint = """Return (%s)""".format(returnValue.prettyPrint)
+
+  def nodeClone(env: TTypeEnv) =
+    new TExpReturn(returnValue.nodeClone(env))
+}
+
+case class TExpContinue(var whileLoopID: Int) extends TExp {
+  def prettyPrint = """Continute {id : %s}""".format(whileLoopID)
+
+  def nodeClone(env: TTypeEnv) =
+    new TExpContinue(whileLoopID)
+}
+
 case class TExpThrow(var throwable: TIdentThrowable) extends TExp {
   def prettyPrint = "throw (%s)".format(throwable.prettyPrint)
 

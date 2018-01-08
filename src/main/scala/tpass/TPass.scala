@@ -100,6 +100,11 @@ trait TPass[T, U] {
               apply(item, ifFalse))
     case TExpThrow(throwable) =>
       apply(item, throwable)
+    case TExpContinue(id) => default
+    case TExpReturn(returnValue) =>
+      apply(item, returnValue)
+    case TExpWhile(cond, body, id) =>
+      combine(apply(item, cond), apply(item, body))
   }
 
   def apply(item: T, p: TIdentClass) = default

@@ -351,6 +351,26 @@ object LowerExp {
       LowerExp(ifFalse, env) :::
       List(JVMLabelMark(endLabel))
     }
+    case TExpWhile(cond, body, loopID) => {
+      val label = LabelGenerator.labelFor(loopID)
+      val loopEndLabel = LabelGenerator.newLabel()
+
+      (JVMLabelMark(label) ::
+       LowerExp(cond, env)) :::
+      List(unbox(JVMBooleanType()),
+           new JVMIPush(0),
+           new JVMIfIntCmpEq(loopEndLabel)) :::
+      (LowerExp(body, env) :+
+       JVMLabelMark(loopEndLabel))
+    }
+    case TExpReturn(value) => {
+      LowerExp(value, env) :+ JVMAReturn()
+    }
+    case TExpContinue(loopID) => {
+      val label = LabelGenerator.labelFor(loopID)
+
+      List(JVMJump(label))
+    }
     case TExpThrow(throwable) =>
       LowerLoadIdent(throwable, env) :+ new JVMAThrow()
     case TExpLetIn(_, _, _) => throw new ICE("""Error: Expected the TExpLetIn
