@@ -1,8 +1,9 @@
 package tir
 
-import scala.collection.mutable.Set
+import scala.collection.mutable.{HashMap,Set}
 import toplev.GenericPrintable
 import tpass.TPass
+import typecheck.IDGenerator
 
 /* That is, we lose some type saftey for the sake
  * of flexibility (an intuitivity). Any TExp
@@ -11,6 +12,15 @@ import tpass.TPass
 
 sealed trait TExp extends TTree {
   def nodeClone(env: TTypeEnv): TExp
+}
+
+object TExp {
+  /* When while loops are node cloned, their ID's must remain unique.
+   *
+   * This map allows an ID mapping to be temporarily set up.
+   * It MUST be deleted after use.
+   */
+  val newIDMap = new HashMap[Int, Int]()
 }
 
 case class TExpConst(var const: TConst) extends TExp {
@@ -237,8 +247,16 @@ case class TExpWhile(var condition: TExp, var body: TExp, var id: Int)
   |EndWhile{id: %s}""".stripMargin.format(id, condition.prettyPrint,
                                           body.prettyPrint, id)
 
-  def nodeClone(env: TTypeEnv) =
-    new TExpWhile(condition.nodeClone(env), body.nodeClone(env), id)
+  def nodeClone(env: TTypeEnv) = {
+    // We have to keep the ID's unique.
+    TExp.newIDMap(id) = IDGenerator.newWhileLoopID
+    val newWhile =
+      new TExpWhile(condition.nodeClone(env), body.nodeClone(env),
+                    TExp.newIDMap(id))
+    // But while loop IDs are only used within the loop.
+    TExp.newIDMap.remove(id)
+    newWhile
+  }
 }
 
 case class TExpReturn(var returnValue: TExp) extends TExp {
@@ -251,8 +269,11 @@ case class TExpReturn(var returnValue: TExp) extends TExp {
 case class TExpContinue(var whileLoopID: Int) extends TExp {
   def prettyPrint = """Continute {id : %s}""".format(whileLoopID)
 
-  def nodeClone(env: TTypeEnv) =
-    new TExpContinue(whileLoopID)
+  def nodeClone(env: TTypeEnv) = {
+    // This assertion will fail if the continue is not within a while loop.
+    assert(TExp.newIDMap.contains(whileLoopID))
+    new TExpContinue(TExp.newIDMap(whileLoopID))
+  }
 }
 
 case class TExpThrow(var throwable: TIdentThrowable) extends TExp {
