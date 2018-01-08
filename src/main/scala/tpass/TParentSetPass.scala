@@ -257,7 +257,7 @@ class TParentSetPass[T] {
       case TPatWildcard() =>
       case patVar @ TPatVariable(name) => apply(item, name) match {
         case None =>
-        case Some(result) => patVar.variable = result.asInstanceOf[TIdentVar]
+        case Some(result) => patVar.variable = result.asInstanceOf[TNamedIdent]
       }
       case patIdent @ TPatIdentifier(ident) => apply(item, ident) match {
         case None =>

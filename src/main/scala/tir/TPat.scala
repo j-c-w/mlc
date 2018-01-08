@@ -13,7 +13,7 @@ case class TPatWildcard() extends TPat {
   def nodeClone(env: TTypeEnv) = new TPatWildcard()
 }
 
-case class TPatVariable(var variable: TIdentVar) extends TPat {
+case class TPatVariable(var variable: TNamedIdent) extends TPat {
   def prettyPrint = variable.prettyPrint
 
   def nodeClone(env: TTypeEnv) = new TPatVariable(variable.nodeClone(env))

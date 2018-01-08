@@ -22,7 +22,7 @@ import typecheck.VariableGenerator
 
 class RemoveLetsWalk(val replacementEnv: TTypeEnv)
     extends TParentSetPass[Unit] {
-  val accumulatedIdents: Set[TIdentVar] = new HashSet[TIdentVar]()
+  val accumulatedIdents: Set[TNamedIdent] = new HashSet[TNamedIdent]()
 
   override def apply(u: Unit, exp: TExp) = exp match {
     // IMPORTANT: Do not the the Envrionment, as it may be BS

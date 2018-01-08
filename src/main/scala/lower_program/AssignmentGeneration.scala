@@ -9,7 +9,7 @@ import typecheck.VariableGenerator
  */
 object AssignmentGeneration {
   def convertToAssignNodeDec(dec: TDec,
-                             typeEnv: TTypeEnv): (TExp, List[TIdentVar]) =
+                             typeEnv: TTypeEnv): (TExp, List[TNamedIdent]) =
     dec match {
       case TVal(ident, exp) => {
         // The idea in this case is to assign the whole expression
@@ -47,15 +47,14 @@ object AssignmentGeneration {
     }
 
   def convertToAssignNodeIdent(parentIdent: TIdent, declaration: TIdent,
-                               typeEnv: TTypeEnv): (TExp, List[TIdentVar]) =
+                               typeEnv: TTypeEnv): (TExp, List[TNamedIdent]) =
     declaration match {
       case decIdent : TNamedIdent => {
-        // If the identifier is not a TIdentVar, then it must be a
-        // Top level ident, in which case it should not be added
+        // If the identifier is a Top level ident, then it must not be added
         // to the list of identifiers
         val localIdents = decIdent match {
-          case ident @ TIdentVar(name, identClass) => List(ident)
-          case TTopLevelIdent(name, identClass) => List[TIdentVar]()
+          case TTopLevelIdent(name, identClass) => List[TNamedIdent]()
+          case ident: TNamedIdent => List(ident)
           case other => throw new ICE("""Error: Unexpected identifier
             |%s""".stripMargin.format(other.prettyPrint))
         }
@@ -87,14 +86,14 @@ object AssignmentGeneration {
    * a pattern
    */
   def convertToAssignNodePat(parentIdent: TIdent, pat: TPat,
-                             typeEnv: TTypeEnv): (TExp, List[TIdentVar]) =
+                             typeEnv: TTypeEnv): (TExp, List[TNamedIdent]) =
     pat match {
       case TPatVariable(identVar) =>
         (TExpSeq(List(TExpAssign(identVar, TExpIdent(parentIdent)),
                       TExpConst(TConstTrue()))).flatten,
          List(identVar))
-      case TPatIdentifier(TIdentVar(_, _)) => throw new ICE("""Error: A
-        |TIdentVar in a TPatIdentifier should not occur""".stripMargin)
+      case TPatIdentifier(_: TNamedIdent) => throw new ICE("""Error: A
+        |TNamedIdent in a TPatIdentifier should not occur""".stripMargin)
       case TPatIdentifier(id) => id match {
         // It is safe to simply return true when matching unit
         // as there is no other value that can pass typechecking
@@ -279,14 +278,14 @@ object AssignmentGeneration {
    * getting it out.  Returns a list of expressions and a list of new
    * introduced identifiers.  */
   def unpackList[T](elems: List[T], assignRHS: (Int) => (TExp, TType),
-                    recursiveCall: (TIdentVar, T, TTypeEnv) =>
-                       (TExp, List[TIdentVar]),
+                    recursiveCall: (TNamedIdent, T, TTypeEnv) =>
+                       (TExp, List[TNamedIdent]),
                     typeEnv: TTypeEnv) = {
     // Create a set of variables that can be used for each element.
     val intermediateIdents =
       elems.map(elem => VariableGenerator.newTVariable(TValClass()))
 
-    var subElemsIdents = List[TIdentVar]()
+    var subElemsIdents = List[TNamedIdent]()
     // Now create a list of generation expressions that assign
     // these variables and use them to assign the sub-expressions:
     val computations =
