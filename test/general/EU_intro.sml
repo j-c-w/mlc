@@ -1,4 +1,5 @@
 (* t-compile: --verify-all *)
+(* t-compile: -o --verify-all *)
 (* t-run: pass *)
 (* These are examples lifted from the University of Edinburgh's notes,
 * found here http://homepages.inf.ed.ac.uk/stg/NOTES/notes.pdf *)

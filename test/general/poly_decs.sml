@@ -1,4 +1,5 @@
 (* t-compile: *)
+(* t-compile: -o *)
 (* This was taken from PolyML's testsuite. Test087 in the suceed cases.  *)
 
 val x = let

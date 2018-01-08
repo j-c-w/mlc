@@ -1,4 +1,5 @@
 (* t-compile: --verify-all *)
+(* t-compile: -o --verify-all *)
 (* This is processed from: https://learnxinyminutes.com/docs/standard-ml/ *)
 
 val rent = 1200

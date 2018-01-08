@@ -1,4 +1,5 @@
 (* t-compile: *)
+(* t-compile: -o *)
 (* Extracted from PolyML test 169.  *)
 
 fun foldr f n [] = n
