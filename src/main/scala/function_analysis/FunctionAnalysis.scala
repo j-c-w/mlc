@@ -11,6 +11,7 @@ object FunctionAnalysis {
       app match {
         case TExpIdent(applicationName) =>
           if (applicationName == name && curriedArgs == 0) {
+            assert(exps.length == typs.length)
             Some(exps zip typs)
           } else {
             None
@@ -20,7 +21,7 @@ object FunctionAnalysis {
             None
           else {
             applicationSearch(fun, curriedArgs - 1, appExp :: exps,
-                              env.getNCurriedTypesFrom(1, typ))
+                              env.getNCurriedTypesFrom(1, typ) ::: typs)
           }
         case _ => None
       }
