@@ -54,6 +54,13 @@ class NumberVariablesWalk() extends TParentSetPass[Unit] {
         None
       }
     }
+    case ident @ TMutableIdent(name, identClass) => {
+      if (variableMap.contains(ident)) {
+        Some(variableMap(ident))
+      } else {
+        None
+      }
+    }
     case other => super.apply(u, other)
   }
 
