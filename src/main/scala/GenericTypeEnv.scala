@@ -12,6 +12,8 @@ import exceptions._
  * that since typechecking has already occured, we
  * can assume that all variables identifiers within
  * a nesting level are unique.
+ *
+ * We require that this class is an instance of TypeEnvClass.
  */
 
 abstract class GenericTypeEnv[TypeEnvClass <: GenericTypeEnv[TypeEnvClass,
@@ -20,9 +22,6 @@ abstract class GenericTypeEnv[TypeEnvClass <: GenericTypeEnv[TypeEnvClass,
                               To <: GenericPrintable with GenericType[To]]
                (var parent: Option[GenericTypeEnv[TypeEnvClass, From, To]]) {
   def this() = this(None)
-
-  // This check is to ensure correct use of the GenericTypeEnv class.
-  assert(this.isInstanceOf[TypeEnvClass])
 
   /* Every type in this map can be used either as a type quantified
    * here or a type quantified elsewhere.
