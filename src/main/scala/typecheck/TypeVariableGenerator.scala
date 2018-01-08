@@ -60,16 +60,17 @@ object TypeVariableGenerator {
     case n => getComparableTypeVar() :: getComparableTypeVars(n - 1)
   }
 
-  def getIntStringTypeVar(): ASTIntStringType = {
+  def getIntStringCharTypeVar(): ASTIntStringCharType = {
     tyVarId = tyVarId + 1
 
-    new ASTIntStringType("$" + stringFor(tyVarId))
+    new ASTIntStringCharType("$" + stringFor(tyVarId))
   }
 
-  def getIntStringTypeVars(number: Int): List[ASTIntStringType] = number match {
-    case 0 => List[ASTIntStringType]()
-    case n => getIntStringTypeVar() :: getIntStringTypeVars(n - 1)
-  }
+  def getIntStringCharTypeVars(number: Int): List[ASTIntStringCharType] =
+    number match {
+      case 0 => List[ASTIntStringCharType]()
+      case n => getIntStringCharTypeVar() :: getIntStringCharTypeVars(n - 1)
+    }
 
   def stringFor(id: Int): String = id match {
     case 0 => ""

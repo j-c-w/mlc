@@ -462,7 +462,7 @@ case class ASTNumberType(id: String) extends ASTTypeVar {
     case ASTRealType() => ASTUnifier(this, other)
     case ASTIntType() => ASTUnifier(this, other)
     case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
-    case ASTIntStringType(id) => {
+    case ASTIntStringCharType(id) => {
       val unifier = ASTUnifier()
 
       unifier.specializeNV(other, ASTIntType())
@@ -482,7 +482,7 @@ case class ASTNumberType(id: String) extends ASTTypeVar {
 }
 
 case class ASTComparableType(val id: String) extends ASTTypeVar {
-  def prettyPrint = "( " + id + ": { real, int, string })"
+  def prettyPrint = "( " + id + ": { char, real, int, string })"
 
   def containsNonAtomic(other: ASTType) = other match {
     case ASTComparableType(otherID) => otherID == id
@@ -508,10 +508,11 @@ case class ASTComparableType(val id: String) extends ASTTypeVar {
 
   override def specializeTo(other: ASTType) = other match {
     case ASTComparableType(otherID) => ASTUnifier(this, other)
+    case ASTCharType() => ASTUnifier(this, other)
     case ASTRealType() => ASTUnifier(this, other)
     case ASTIntType() => ASTUnifier(this, other)
     case ASTStringType() => ASTUnifier(this, other)
-    case ASTIntStringType(id) => ASTUnifier(this, other)
+    case ASTIntStringCharType(id) => ASTUnifier(this, other)
     case ASTNumberType(id) => ASTUnifier(this, other)
     case _ => throw new SpecializationError(this, other)
   }
@@ -522,17 +523,20 @@ case class ASTComparableType(val id: String) extends ASTTypeVar {
         ASTUnifier()
       else
         ASTUnifier(other, this)
+    case ASTCharType() => ASTUnifier(this, other)
     case ASTRealType() => ASTUnifier(this, other)
     case ASTIntType() => ASTUnifier(this, other)
     case ASTStringType() => ASTUnifier(this, other)
-    case ASTIntStringType(id) => ASTUnifier(this, other)
+    case ASTIntStringCharType(id) => ASTUnifier(this, other)
     case ASTNumberType(id) => ASTUnifier(this, other)
     case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
     case ASTEqualityTypeVar(name) => {
       val unifier = ASTUnifier()
 
-      unifier.specializeNV(other, TypeVariableGenerator.getIntStringTypeVar())
-      unifier.specializeNV(this, TypeVariableGenerator.getIntStringTypeVar())
+      unifier.specializeNV(other,
+                           TypeVariableGenerator.getIntStringCharTypeVar())
+      unifier.specializeNV(this,
+                           TypeVariableGenerator.getIntStringCharTypeVar())
 
       unifier
     }
@@ -544,11 +548,11 @@ case class ASTComparableType(val id: String) extends ASTTypeVar {
  * It is the result of unifying something we used in a comparison
  * with an equality type.
  */
-case class ASTIntStringType(val id: String) extends ASTTypeVar {
-  def prettyPrint = "( " + id + ": { int, string })"
+case class ASTIntStringCharType(val id: String) extends ASTTypeVar {
+  def prettyPrint = "( " + id + ": { int, string, char })"
 
   def containsNonAtomic(other: ASTType) = other match {
-    case ASTIntStringType(otherID) => otherID == id
+    case ASTIntStringCharType(otherID) => otherID == id
     case _ => false
   }
 
@@ -560,7 +564,7 @@ case class ASTIntStringType(val id: String) extends ASTTypeVar {
     else
       this
 
-  def atomicClone = TypeVariableGenerator.getIntStringTypeVar()
+  def atomicClone = TypeVariableGenerator.getIntStringCharTypeVar()
 
   def admitsEquality = throw new ICE("""Cannot call
     ASTComparableType.admitsEquality as that is not a well defined concept.""")
@@ -570,18 +574,20 @@ case class ASTIntStringType(val id: String) extends ASTTypeVar {
   def getTypeVars() = ASTTypeSet(this)
 
   override def specializeTo(other: ASTType) = other match {
-    case ASTIntStringType(otherID) => ASTUnifier(this, other)
+    case ASTIntStringCharType(otherID) => ASTUnifier(this, other)
+    case ASTCharType() => ASTUnifier(this, other)
     case ASTIntType() => ASTUnifier(this, other)
     case ASTStringType() => ASTUnifier(this, other)
     case _ => throw new SpecializationError(this, other)
   }
 
   override def mguNoCyclicCheck(other: ASTType) = other match {
-    case ASTIntStringType(otherID) =>
+    case ASTIntStringCharType(otherID) =>
       if (id == otherID)
         ASTUnifier()
       else
         ASTUnifier(other, this)
+    case ASTCharType() => ASTUnifier(this, other)
     case ASTIntType() => ASTUnifier(this, other)
     case ASTStringType() => ASTUnifier(this, other)
     case ASTComparableType(id) => ASTUnifier(other, this)
@@ -627,7 +633,7 @@ case class ASTIntType() extends ASTTypeVar {
   override def mguNoCyclicCheck(other: ASTType) = other match {
     case ASTNumberType(_) => ASTUnifier(other, this)
     case ASTComparableType(_) => ASTUnifier(other, this)
-    case ASTIntStringType(_) => ASTUnifier(other, this)
+    case ASTIntStringCharType(_) => ASTUnifier(other, this)
     case ASTIntType() => ASTUnifier()
     case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
     case ASTEqualityTypeVar(name) => ASTUnifier(other, this)
@@ -726,7 +732,7 @@ case class ASTStringType() extends ASTTypeVar {
 
   override def mguNoCyclicCheck(other: ASTType) = other match {
     case ASTComparableType(_) => ASTUnifier(other, this)
-    case ASTIntStringType(_) => ASTUnifier(other, this)
+    case ASTIntStringCharType(_) => ASTUnifier(other, this)
     case ASTStringType() => ASTUnifier()
     case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
     case ASTEqualityTypeVar(name) => ASTUnifier(other, this)

@@ -192,6 +192,30 @@ case class TStringCatIdent() extends BuiltinIdent {
   def nodeClone(env: TTypeEnv) = new TStringCatIdent()
 }
 
+case class TCharLEQIdent() extends BuiltinIdent {
+  def prettyPrint = " <=c "
+
+  def nodeClone(env: TTypeEnv) = new TCharLEQIdent()
+}
+
+case class TCharGEQIdent() extends BuiltinIdent {
+  def prettyPrint = " >=c "
+
+  def nodeClone(env: TTypeEnv) = new TCharGEQIdent()
+}
+
+case class TCharLTIdent() extends BuiltinIdent {
+  def prettyPrint = " <c "
+
+  def nodeClone(env: TTypeEnv) = new TCharLTIdent()
+}
+
+case class TCharGTIdent() extends BuiltinIdent {
+  def prettyPrint = " >c "
+
+  def nodeClone(env: TTypeEnv) = new TCharGTIdent()
+}
+
 case class TIntLEQIdent() extends BuiltinIdent {
   def prettyPrint = " <=i "
 
@@ -271,6 +295,12 @@ case class TGenericEqualsIdent() extends BuiltinIdent {
   def prettyPrint = " =gen "
 
   def nodeClone(env: TTypeEnv) = new TGenericEqualsIdent()
+}
+
+case class TCharEqualsIdent() extends BuiltinIdent {
+  def prettyPrint = " =c "
+
+  def nodeClone(env: TTypeEnv) = new TCharEqualsIdent()
 }
 
 case class TIntEqualsIdent() extends BuiltinIdent {

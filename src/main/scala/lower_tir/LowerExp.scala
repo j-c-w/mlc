@@ -113,6 +113,15 @@ object LowerExp {
         // return true.
         ifIntEq(List(JVMIPush(1)), List(JVMIPush(0))),
                            JVMBooleanPrimitiveType())
+    // Char comparison operations:
+    case TExpFunApp(TExpIdent(TCharLEQIdent()), application, typ) =>
+      boxedCharCmp(application, env, JVMIfIntCmpLEQ)
+    case TExpFunApp(TExpIdent(TCharGEQIdent()), application, typ) =>
+      boxedCharCmp(application, env, JVMIfIntCmpGEQ)
+    case TExpFunApp(TExpIdent(TCharLTIdent()), application, typ) =>
+      boxedCharCmp(application, env, JVMIfIntCmpLT)
+    case TExpFunApp(TExpIdent(TCharGTIdent()), application, typ) =>
+      boxedCharCmp(application, env, JVMIfIntCmpGT)
     // Int comparison operations:
     case TExpFunApp(TExpIdent(TIntLEQIdent()), application, typ) =>
       boxedIntCmp(application, env, JVMIfIntCmpLEQ)
@@ -187,6 +196,11 @@ object LowerExp {
       boxedIntegerOperation(application, 2, env,
                             ifIntEq(List(JVMIPush(1)), List(JVMIPush(0))),
                             JVMBooleanPrimitiveType())
+    case TExpFunApp(TExpIdent(TCharEqualsIdent()), application, typ) => {
+      boxedCharOperation(application, 2, env,
+                         ifIntEq(List(JVMIPush(1)), List(JVMIPush(0))),
+                         JVMBooleanPrimitiveType())
+    }
     case TExpFunApp(TExpIdent(TStringEqualsIdent()), application, typ) => {
       stringOperation(application, 2, env, List(equals(JVMStringType())),
                       JVMBooleanType()) :+
@@ -411,6 +425,12 @@ object LowerExp {
       )
   }
 
+  def boxedCharCmp(application: TExp, env: TTypeEnv,
+                   comparison: JVMLabel => JVMInstruction) = {
+    boxedCharOperation(application, 2, env, unboxedIntCmp(comparison),
+                       JVMCharPrimitiveType())
+  }
+
   def ifIntEq(ifTrue: List[JVMInstruction],
               ifFalse: List[JVMInstruction]) = {
     val trueLabel = LabelGenerator.newLabel()
@@ -497,6 +517,19 @@ object LowerExp {
                            resType: JVMPrimitiveType)
       : List[JVMInstruction] =
     boxedOperation(application, arity, env, new JVMFloatType(),
+                   resType, instructions)
+
+  def boxedCharOperation(application: TExp, arity: Int, env: TTypeEnv,
+                         instructions: List[JVMInstruction])
+      : List[JVMInstruction] =
+    boxedCharOperation(application, arity, env, instructions,
+                       new JVMCharPrimitiveType())
+
+  def boxedCharOperation(application: TExp, arity: Int, env: TTypeEnv,
+                         instructions: List[JVMInstruction],
+                         resType: JVMPrimitiveType)
+      : List[JVMInstruction] =
+    boxedOperation(application, arity, env, new JVMCharacterType(),
                    resType, instructions)
 
   def boxedBooleanOperation(application: TExp, arity: Int, env: TTypeEnv,

@@ -59,7 +59,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         case ASTNumberType(_) => true
         // Comparators also default to int.
         case ASTComparableType(_) => true
-        case ASTIntStringType(_) => true
+        case ASTIntStringCharType(_) => true
         case _ => false
       }, ASTIntType()))
     }

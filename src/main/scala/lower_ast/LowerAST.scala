@@ -149,6 +149,7 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
                 case ASTTupleType(List(ASTIntType(), _)) => TIntLEQIdent()
                 case ASTTupleType(List(ASTRealType(), _)) => TRealLEQIdent()
                 case ASTTupleType(List(ASTStringType(), _)) => TStringLEQIdent()
+                case ASTTupleType(List(ASTCharType(), _)) => TCharLEQIdent()
                 case _ => unreachable
               }
             case ASTLTIdent() =>
@@ -156,6 +157,7 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
                 case ASTTupleType(List(ASTIntType(), _)) => TIntLTIdent()
                 case ASTTupleType(List(ASTRealType(), _)) => TRealLTIdent()
                 case ASTTupleType(List(ASTStringType(), _)) => TStringLTIdent()
+                case ASTTupleType(List(ASTCharType(), _)) => TCharLTIdent()
                 case _ => unreachable
               }
             case ASTGEQIdent() =>
@@ -163,6 +165,7 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
                 case ASTTupleType(List(ASTIntType(), _)) => TIntGEQIdent()
                 case ASTTupleType(List(ASTRealType(), _)) => TRealGEQIdent()
                 case ASTTupleType(List(ASTStringType(), _)) => TStringGEQIdent()
+                case ASTTupleType(List(ASTCharType(), _)) => TCharGEQIdent()
                 case _ => unreachable
               }
             case ASTGTIdent() =>
@@ -170,6 +173,7 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
                 case ASTTupleType(List(ASTIntType(), _)) => TIntGTIdent()
                 case ASTTupleType(List(ASTRealType(), _)) => TRealGTIdent()
                 case ASTTupleType(List(ASTStringType(), _)) => TStringGTIdent()
+                case ASTTupleType(List(ASTCharType(), _)) => TCharGTIdent()
                 case _ => unreachable
               }
             case ASTEqIdent() =>
@@ -178,6 +182,7 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
                 case ASTTupleType(List(ASTRealType(), _)) => TRealEqualsIdent()
                 case ASTTupleType(List(ASTStringType(), _)) =>
                   TStringEqualsIdent()
+                case ASTTupleType(List(ASTCharType(), _)) => TCharEqualsIdent()
                 case ASTTupleType(List(ASTBoolType(), _)) => TBoolEqualsIdent()
                 case _ => TGenericEqualsIdent()
               }
