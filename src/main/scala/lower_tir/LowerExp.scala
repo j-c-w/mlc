@@ -428,7 +428,7 @@ object LowerExp {
   def boxedCharCmp(application: TExp, env: TTypeEnv,
                    comparison: JVMLabel => JVMInstruction) = {
     boxedCharOperation(application, 2, env, unboxedIntCmp(comparison),
-                       JVMCharPrimitiveType())
+                       JVMBooleanPrimitiveType())
   }
 
   def ifIntEq(ifTrue: List[JVMInstruction],
