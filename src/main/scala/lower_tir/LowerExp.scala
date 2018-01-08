@@ -360,16 +360,22 @@ object LowerExp {
       List(unbox(JVMBooleanType()),
            new JVMIPush(0),
            new JVMIfIntCmpEq(loopEndLabel)) :::
-      (LowerExp(body, env) :+
-       JVMLabelMark(loopEndLabel))
+      (LowerExp(body, env) :+ JVMPop() :+
+       JVMLabelMark(loopEndLabel)) :::
+      // Push a unit to keep stack sizes consistent.
+      LowerExp(TExpIdent(TUnitIdent()), env)
     }
     case TExpReturn(value) => {
-      LowerExp(value, env) :+ JVMAReturn()
+      // Push the unit on the end to keep the stack sizes
+      // correct.
+      (LowerExp(value, env) :+ JVMAReturn()) :::
+       LowerExp(TExpIdent(TUnitIdent()), env)
+      // ::: LowerExp(TExpIdent(TUnitIdent()), env)
     }
     case TExpContinue(loopID) => {
       val label = LabelGenerator.labelFor(loopID)
 
-      List(JVMJump(label))
+      List(JVMJump(label)) ::: LowerExp(TExpIdent(TUnitIdent()), env)
     }
     case TExpThrow(throwable) =>
       LowerLoadIdent(throwable, env) :+ new JVMAThrow()
