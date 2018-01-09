@@ -10,25 +10,6 @@ import toplev.GenericPrintable
  * on the Nth instruction) so that they can be used quickly over
  * some sequence of instructions.
  *
- * Active bugs:
- *
- *  - This could be cleaned up a /lot/.  It was originally designed to also
- *    do code movement.  That has been scrapped, but this is still inefficient.
- *
- *  - My new view is that there should be code motion that changes things like:
- *
- *      if_cmpeq L1
- *      ...
- *      box_instruction
- *      goto L2:
- *      L1:
- *      ...
- *      box_instruction
- *      L2:
- *      ...
- *
- *    By removing the duplicate instruction, these peepholes will be able
- *    to function as required.
  */
 class PeepholeSet[PeepholeInstruction <: GenericPrintable]
     (val peepholes: Array[PeepholeInstance[PeepholeInstruction]]) {
@@ -38,7 +19,7 @@ class PeepholeSet[PeepholeInstruction <: GenericPrintable]
   }
 
   def walk(startIndex: Int, endIndex: Int)
-          (seqFor: PeepholeRange => List[Set[PeepholeInstruction]])
+          (seqFor: PeepholeRange => List[PeepholeInstruction])
           (onUpdate: InstructionSeqUpdate[PeepholeInstruction] => Unit) = {
     // Walk each size of peephole over the list:
     peepholeSizes.foreach {
@@ -54,7 +35,7 @@ class PeepholeSet[PeepholeInstruction <: GenericPrintable]
     }
   }
 
-  def matchPeepholes(instructionSeq: List[Set[PeepholeInstruction]]) = {
+  def matchPeepholes(instructionSeq: List[PeepholeInstruction]) = {
     val results = peepholes.map ({
       case peephole => {
         if (peephole.getSize == instructionSeq.length)
@@ -70,7 +51,6 @@ class PeepholeSet[PeepholeInstruction <: GenericPrintable]
       results(0)
     else
       throw new ICE("""Multiple peepholes matched the sequence (%s)""".
-        format(instructionSeq.map(_.map(_.prettyPrint)).mkString("|")
-          .mkString(", ")))
+        format(instructionSeq.map(_.prettyPrint).mkString(", ")))
   }
 }
