@@ -33,6 +33,9 @@ class Arguments(arguments: Seq[String]) {
     val fPreLowerSimplify = opt[Boolean]()
     val fnoPreLowerSimplify = opt[Boolean]()
 
+    val fPostLowerSimplify = opt[Boolean]()
+    val fnoPostLowerSimplify = opt[Boolean]()
+
     val fSimplify = opt[Boolean]()
     val fnoSimplify = opt[Boolean]()
 
@@ -83,14 +86,20 @@ class Arguments(arguments: Seq[String]) {
     parser.fTce() || (!parser.fnoTce() && optimize)
   val runTInline =
     parser.fTInline() || (!parser.fnoTInline() && optimize)
-  val runPreLowerSimplify =
-    // TODO -- This should be changed once Simplify is ready for
-    // more  than debugging
-    parser.fPreLowerSimplify()
   val runSimplify =
     // TODO -- This should be changed once Simplify is ready for
     // more  than debugging
     parser.fSimplify()
+  val runPreLowerSimplify =
+    // TODO -- This should be changed once Simplify is ready for
+    // more  than debugging
+    parser.fPreLowerSimplify() ||
+    (runSimplify && !parser.fnoPreLowerSimplify())
+  val runPostLowerSimplify =
+    // TODO -- This should be changed once Simplify is ready for
+    // more  than debugging
+    parser.fPostLowerSimplify() ||
+    (runSimplify && !parser.fnoPostLowerSimplify())
   val runPeephole =
     !parser.fnoPeephole() || parser.fPeephole()
 

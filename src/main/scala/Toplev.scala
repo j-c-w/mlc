@@ -74,7 +74,8 @@ object Toplev extends App {
                                               lowered_program, false)
 
   // Optimizations on TIR+Assigns
-  val simplified = Simplify.optionalExecute(cli.runSimplify, lowered_program,
+  val simplified = Simplify.optionalExecute(cli.runPostLowerSimplify,
+                                            lowered_program,
                                             cli.dumpSimplify)
 
   // Lower TIR+Assigns into byteR
