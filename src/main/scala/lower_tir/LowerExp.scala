@@ -394,8 +394,7 @@ object LowerExp {
       List(JVMJump(label))
     }
     case TExpThrow(throwable) =>
-      (LowerLoadIdent(throwable, env) :+ new JVMAThrow()) :::
-      LowerExp(TExpIdent(TUnitIdent()), env)
+      LowerLoadIdent(throwable, env) :+ new JVMAThrow()
     case TExpLetIn(_, _, _) => throw new ICE("""Error: Expected the TExpLetIn
       |to have been remvoved. It was not""".stripMargin)
     case TExpFn(_, _) => throw new ICE("""Error: Expected TExpFn to have
