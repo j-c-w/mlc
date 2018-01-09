@@ -29,7 +29,7 @@ abstract class ExpressionResultWalk extends TParentSetTailPass {
         returnExp(app)
       else
         None
-    case (_: TExpReturn | _: TExpContinue | _: TExpThrow) =>
+    case (_: TExpBreak | _: TExpContinue | _: TExpThrow) =>
       // Hmm. Another hard case that doesn't matter for  the current
       // implementation.  Say these are false is correct I think.  There is
       // no recursion that has to be done here.

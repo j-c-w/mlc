@@ -211,8 +211,9 @@ class TParentSetPass[T] {
                  newThrowable).asInstanceOf[TIdentThrowable]
       }
       case continue @ TExpContinue(id) =>
-      case ret @ TExpReturn(exp) =>
-        ret.returnValue = getNew(ret.returnValue, apply(item, ret.returnValue))
+      case break @ TExpBreak(exp, loopID) =>
+        break.returnValue =
+          getNew(break.returnValue, apply(item, break.returnValue))
       case whileLoop @ TExpWhile(cond, exp, id) => {
         whileLoop.condition = getNew(cond, apply(item, cond))
         whileLoop.body = getNew(exp, apply(item, exp))

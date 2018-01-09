@@ -13,7 +13,7 @@ abstract class TParentSetTailPass extends TParentSetPass[Boolean] {
     case TExpFunApp(_, _, _) | TExpList(_) | TExpTuple(_) | TExpFn(_, _)
        | TExpAssign(_, _) | TExpListHead(_, _) | TExpListTail(_)
        | TExpTupleExtract(_, _, _, _) | TExpListExtract(_, _, _)
-       | TExpListLength(_) | TExpThrow(_) | TExpReturn(_) =>
+       | TExpListLength(_) | TExpThrow(_) | TExpBreak(_, _) =>
       super.apply(false, exp)
     case let @ TExpLetIn(decs, letExp, env) => {
       let.decs = getNew(let.decs, decs.map(apply(false, _)))
@@ -21,8 +21,10 @@ abstract class TParentSetTailPass extends TParentSetPass[Boolean] {
       None
     }
     case whileLoop @ TExpWhile(cond, body, id) => {
-      whileLoop.condition = getNew(cond, apply(false, cond))
-      whileLoop.body = getNew(body, apply(false, body))
+      whileLoop.condition = getNew(cond, apply(isTail, cond))
+      // In the current structure of while loops, the body could
+      // indeed be the tail.
+      whileLoop.body = getNew(body, apply(isTail, body))
       None
     }
     case exp @ TExpCase(caseExp, cases, appType) => {

@@ -259,11 +259,12 @@ case class TExpWhile(var condition: TExp, var body: TExp, var id: Int)
   }
 }
 
-case class TExpReturn(var returnValue: TExp) extends TExp {
-  def prettyPrint = """Return (%s)""".format(returnValue.prettyPrint)
+case class TExpBreak(var returnValue: TExp, var loopID: Int) extends TExp {
+  def prettyPrint =
+    """Break {id : %s} (%s)""".format(loopID, returnValue.prettyPrint)
 
   def nodeClone(env: TTypeEnv) =
-    new TExpReturn(returnValue.nodeClone(env))
+    new TExpBreak(returnValue.nodeClone(env), TExp.newIDMap(loopID))
 }
 
 case class TExpContinue(var whileLoopID: Int) extends TExp {

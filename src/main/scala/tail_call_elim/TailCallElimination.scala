@@ -92,7 +92,7 @@ object TailCallElimination extends OptionalPass[TProgram]("tail_elim") {
       // Replace the results in this with return statements.  Note that this
       // must be done after the ReplaceTailCallWalk has been run to avoid
       // inserting returns around tail calls.
-      val replaceResultWalk = new ReplaceResultWalk()
+      val replaceResultWalk = new ReplaceResultWalk(whileID)
       replaceResultWalk.apply(true, caseStatement)
 
 

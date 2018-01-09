@@ -101,7 +101,7 @@ trait TPass[T, U] {
     case TExpThrow(throwable) =>
       apply(item, throwable)
     case TExpContinue(id) => default
-    case TExpReturn(returnValue) =>
+    case TExpBreak(returnValue, loopID) =>
       apply(item, returnValue)
     case TExpWhile(cond, body, id) =>
       combine(apply(item, cond), apply(item, body))
