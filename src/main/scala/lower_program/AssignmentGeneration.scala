@@ -1,8 +1,8 @@
 package lower_program
 
 import exceptions.ICE
+import generators.VariableGenerator
 import tir._
-import typecheck.VariableGenerator
 
 /* This is an object that provides helper methods for lowering
  * the program.

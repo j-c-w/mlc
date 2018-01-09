@@ -3,11 +3,11 @@ package t_inline
 import alpha_rename.AlphaRename
 import def_finder.DefFinder
 import exceptions.ICE
+import generators.VariableGenerator
 import scala.collection.mutable.{HashMap,Map}
 import t_typecheck.TTypecheck
 import tir._
 import tpass.TTypeEnvUpdateParentPass
-import typecheck.VariableGenerator
 
 class InlineWalk(program: TProgram,
                  inlineMap: Map[TInternalIdentVar, InlineReason],

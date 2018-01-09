@@ -1,9 +1,9 @@
 package frontend
 
 import exceptions.ICE
+import generators.TypeVariableGenerator
 import stdlib.StandardLibraries
 import toplev.GenericTypeEnv
-import typecheck.TypeVariableGenerator
 
 class ASTTypeEnv(parent: Option[ASTTypeEnv])
     extends GenericTypeEnv[ASTTypeEnv, ASTIdent, ASTType](parent) {

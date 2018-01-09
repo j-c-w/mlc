@@ -1,4 +1,4 @@
-package typecheck
+package generators
 
 object IDGenerator {
   private var id = 0

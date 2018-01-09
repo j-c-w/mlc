@@ -1,11 +1,11 @@
 package lower_program
 
 import exceptions.ICE
+import generators.VariableGenerator
 import scala.collection.mutable.{HashSet,Set}
 import tir._
 import toplev.Pass
 import tpass.TPass
-import typecheck.VariableGenerator
 
 object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
   def generateMain(vals: List[TVal], parentEnv: TTypeEnv) = {

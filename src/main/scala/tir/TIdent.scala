@@ -1,7 +1,7 @@
 package tir
 
+import generators.VariableGenerator
 import scala.collection.mutable.HashSet
-import typecheck.VariableGenerator
 
 sealed trait TIdent extends TTree {
   def nodeClone(env: TTypeEnv): TIdent

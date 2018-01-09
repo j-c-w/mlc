@@ -1,10 +1,10 @@
 package alpha_rename
 
 import exceptions.ICE
+import generators.VariableGenerator
 import scala.collection.mutable.HashMap
 import tir._
 import tpass.TTypeEnvUnitPass
-import typecheck.VariableGenerator
 
 /* Note that this walk does not mandate reaching the definition before the
  * use of a variable.  This is achieved with two walks of the tree.

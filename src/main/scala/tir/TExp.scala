@@ -1,9 +1,9 @@
 package tir
 
+import generators.IDGenerator
 import scala.collection.mutable.{HashMap,Set}
 import toplev.GenericPrintable
 import tpass.TPass
-import typecheck.IDGenerator
 
 /* That is, we lose some type saftey for the sake
  * of flexibility (an intuitivity). Any TExp

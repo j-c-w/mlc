@@ -1,10 +1,10 @@
 package frontend
 
 import exceptions._
+import generators.TypeVariableGenerator
 import toplev.GenericPrintable
 import toplev.GenericType
 import toplev.GenericTypeSet
-import typecheck.TypeVariableGenerator
 
 import scala.collection.mutable.{HashMap,Map}
 

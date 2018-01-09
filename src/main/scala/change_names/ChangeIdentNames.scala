@@ -1,9 +1,9 @@
 package change_names
 
+import generators.VariableGenerator
 import scala.collection.mutable.{HashMap,Map}
 import tir._
 import tpass.TTypeEnvUnitPass
-import typecheck.VariableGenerator
 
 /* This is a class that provides utilities for changing names.
  *

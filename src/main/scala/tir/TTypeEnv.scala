@@ -1,9 +1,9 @@
 package tir
 
 import exceptions.ICE
+import generators.TypeVariableGenerator
 import toplev.GenericTypeEnv
 import tpass.TPass
-import typecheck.TypeVariableGenerator
 
 /*
  * This is a type environment for the TIR representation.

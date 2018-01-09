@@ -1,4 +1,4 @@
-package typecheck
+package generators
 
 import frontend._
 import tir._

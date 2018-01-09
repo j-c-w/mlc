@@ -1,10 +1,10 @@
 package lower_program
 
 import exceptions.ICE
+import generators.VariableGenerator
 import scala.collection.mutable.{HashSet,Set}
 import tir._
 import tpass.TParentSetPass
-import typecheck.VariableGenerator
 
 /* This pass should be run AFTER the GatherLetDeclarations pass
  * has run.

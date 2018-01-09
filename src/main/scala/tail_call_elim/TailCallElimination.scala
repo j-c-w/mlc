@@ -1,10 +1,10 @@
 package tail_call_elim
 
+import generators.{IDGenerator,VariableGenerator}
 import recursion_analysis.RecursionAnalysis
 import tir._
-import toplev.OptionalPass
 import tir_utils.PatConverter
-import typecheck.{IDGenerator,VariableGenerator}
+import toplev.OptionalPass
 
 /* This class elimiates tail recursive calls.  */
 

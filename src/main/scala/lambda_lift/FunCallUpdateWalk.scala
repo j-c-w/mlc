@@ -1,9 +1,9 @@
 package lambda_lift
 
 import exceptions.ICE
+import generators.VariableGenerator
 import tir._
 import tpass.TPass
-import typecheck.VariableGenerator
 
 /*  This class is used to walk to the tree after a function has been lifted.
  *

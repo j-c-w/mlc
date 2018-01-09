@@ -1,13 +1,13 @@
 package lower_ast
 
-import exceptions.{BadIntException,ICE}
 import environment_soundness.EnvironmentSoundnessWalk
-import scala.collection.mutable.HashMap
-import toplev.Pass
+import exceptions.{BadIntException,ICE}
+import generators.VariableGenerator
 import java.math.BigInteger
+import scala.collection.mutable.HashMap
 import toplev.GenericTypeEnv
+import toplev.Pass
 import toplev.Shared
-import typecheck.VariableGenerator
 
 import frontend._
 import tir._

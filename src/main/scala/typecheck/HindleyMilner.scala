@@ -2,6 +2,7 @@ package typecheck
 
 import exceptions._
 import frontend._
+import generators._
 import scala.collection.mutable.HashMap
 import toplev.Pass
 import toplev.Shared

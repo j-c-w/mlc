@@ -3,10 +3,10 @@ package lambda_lift
 import ast_change_names.FunctionNameGenerator
 import change_names.ChangeIdentNames
 import exceptions.ICE
+import generators.VariableGenerator
 import scala.collection.mutable.{HashMap,HashSet}
 import tir._
 import tpass.TTypeEnvUpdateParentPass
-import typecheck.VariableGenerator
 
 class LambdaLiftWalk(val program: TProgram)
     extends TTypeEnvUpdateParentPass {
