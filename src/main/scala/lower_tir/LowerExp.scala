@@ -372,8 +372,6 @@ object LowerExp {
       // ever terminates the loop.
       val intermediateEndLabel = LabelGenerator.newLabel
       val (label, loopEndLabel) = LabelGenerator.labelFor(loopID)
-      println("End is " + loopEndLabel)
-      println("Intermediate is " + intermediateEndLabel)
 
       JVMLabelMark(label) ::
       LowerExp(cond, env) :::
