@@ -14,6 +14,8 @@ class StackDepthWalk(val instrs: List[JVMInstruction]) {
   // This pass also acts as a verification that each instruction has the same
   // depth on all paths to it.
   private val instructionDepths = new HashMap[Int, Int]()
+  // println("New instructions")
+  // println(instrs.mkString("\n"))
   private lazy val followSet: HashMap[Int, List[(Int, JVMInstruction)]] =
     BWalk.walk(instrs)
 
