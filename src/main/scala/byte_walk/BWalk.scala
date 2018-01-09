@@ -57,6 +57,14 @@ object BWalk {
     val followSet =
       new HashMap[Int, List[(Int, JVMInstruction)]]()
     (instructions zip (0 until instructions.length)).map {
+      case (ret: JVMReturn, index) =>
+        // A return brings control out of the function immediately.
+        followSet(index) = List()
+      case (athrow: JVMAThrow, index) =>
+        // According to the JVM specification, this will clear stack.
+        // The soundness of this is asserted via assertions in the
+        // StackDepthWalk handlers.
+        followSet(index) = List()
       case (instruction, index) => {
         followSet(index) = List()
 
