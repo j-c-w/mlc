@@ -366,33 +366,38 @@ object LowerExp {
       List(JVMLabelMark(endLabel))
     }
     case TExpWhile(cond, body, loopID) => {
-      val label = LabelGenerator.labelFor(loopID)
-      val loopEndLabel = LabelGenerator.newLabel()
+      // Insert an intermediateEndLabel to allow the generation
+      // of a dummy value to keep the stack  heights sensible.
+      // It is the result value of the loop if the condition
+      // ever terminates the loop.
+      val intermediateEndLabel = LabelGenerator.newLabel
+      val (label, loopEndLabel) = LabelGenerator.labelFor(loopID)
+      println("End is " + loopEndLabel)
+      println("Intermediate is " + intermediateEndLabel)
 
-      (JVMLabelMark(label) ::
-       LowerExp(cond, env)) :::
+      JVMLabelMark(label) ::
+      LowerExp(cond, env) :::
       List(unbox(JVMBooleanType()),
            new JVMIPush(0),
-           new JVMIfIntCmpEq(loopEndLabel)) :::
-      (LowerExp(body, env) :+ JVMPop() :+
-       JVMLabelMark(loopEndLabel)) :::
-      // Push a unit to keep stack sizes consistent.
-      LowerExp(TExpIdent(TUnitIdent()), env)
+           new JVMIfIntCmpEq(intermediateEndLabel)) :::
+      (LowerExp(body, env) :+
+       JVMLabelMark(intermediateEndLabel)) :::
+      (LowerExp(TExpIdent(TUnitIdent()), env) :+
+       JVMLabelMark(loopEndLabel))
     }
-    case TExpReturn(value) => {
-      // Push the unit on the end to keep the stack sizes
-      // correct.
-      (LowerExp(value, env) :+ JVMAReturn()) :::
-       LowerExp(TExpIdent(TUnitIdent()), env)
-      // ::: LowerExp(TExpIdent(TUnitIdent()), env)
+    case TExpBreak(value, loopID) => {
+      val (_, endLabel) = LabelGenerator.labelFor(loopID)
+
+      (LowerExp(value, env)) :+ JVMJump(endLabel)
     }
     case TExpContinue(loopID) => {
-      val label = LabelGenerator.labelFor(loopID)
+      val (label, _) = LabelGenerator.labelFor(loopID)
 
-      List(JVMJump(label)) ::: LowerExp(TExpIdent(TUnitIdent()), env)
+      List(JVMJump(label))
     }
     case TExpThrow(throwable) =>
-      LowerLoadIdent(throwable, env) :+ new JVMAThrow()
+      (LowerLoadIdent(throwable, env) :+ new JVMAThrow()) :::
+      LowerExp(TExpIdent(TUnitIdent()), env)
     case TExpLetIn(_, _, _) => throw new ICE("""Error: Expected the TExpLetIn
       |to have been remvoved. It was not""".stripMargin)
     case TExpFn(_, _) => throw new ICE("""Error: Expected TExpFn to have

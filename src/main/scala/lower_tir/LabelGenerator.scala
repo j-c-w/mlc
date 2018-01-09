@@ -5,7 +5,7 @@ import scala.collection.mutable.HashMap
 
 object LabelGenerator {
   var id: Int = 0
-  var loopLabelMap = new HashMap[Int, JVMLabel]()
+  var loopLabelMap = new HashMap[Int, (JVMLabel, JVMLabel)]()
 
   def newLabel(): JVMLabel = {
     id += 1
@@ -14,7 +14,7 @@ object LabelGenerator {
 
   def labelFor(loopID: Int) = {
     if (!loopLabelMap.contains(loopID)) {
-      loopLabelMap(loopID) = newLabel
+      loopLabelMap(loopID) = (newLabel, newLabel)
     }
 
     loopLabelMap(loopID)
