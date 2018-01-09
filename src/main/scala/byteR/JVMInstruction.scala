@@ -157,7 +157,7 @@ case class JVMAThrow() extends JVMInstruction {
   // itself, there 'would' be something here. So, the sum is:
   // -1 for the throw, +1 for the imaginary unit that gets put on the
   // stack
-  def stackEffect = 0
+  def stackEffect = -1
 }
 
 case class JVMJump(var dest: JVMLabel) extends JVMLabelInstruction
