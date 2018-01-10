@@ -14,4 +14,4 @@ val x =
 
 val _ = if x(1) = 2 then print "pass" else print "fail"
 
-(* t-scan-times-4: val : lambda_lift *)
+(* t-scan-times-3: val : lambda_lift *)

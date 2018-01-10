@@ -80,28 +80,37 @@ class LambdaLiftWalk(val program: TProgram)
             insertFunctionFor(newName, Some(oldName), fun.patterns,
                               letEnv, oldName) match {
               case Some((freeValsTuple, freeValsType)) => {
-                // create a new valdec name:
-                val valdecName = VariableGenerator.newTVariable(TValClass())
-
-                // we must add the call type to the top level environment here.
-                val callType = TFunctionType(freeValsType, oldFunctionType)
-                val callTypeIdent = VariableGenerator.newTInternalVariable()
-
-                letEnv.addTopLevel(callTypeIdent, callType, false)
-                letEnv.add(valdecName, oldFunctionType, false)
-
                 // We need to update the function itself, which is the only
                 // other place this could be used.
                 //
                 // The uses of the function are updated below.
                 fun.name = newName
+                //  Note that this is a latent bug I don't have time to fix
+                //  right now.  I suspect it is inserted elsewhere too.
+                //  For  something like:
+                //
+                //  val y  = 1
+                //  fun f x = y; x
+                //
+                //  f (1)
+                //
+                //  The call type after lambda lifting becomes:
+                //
+                //  f y (1)
+                //
+                //  ((f y): int -> 'a -> 'a): int -> int
+                //
+                // Which makes little sense obviously...  This should be
+                // fixed by augmenting the type updater to use the types
+                // it encouters.  Perhaps a callback is suitable.
+                val callType = TFunctionType(freeValsType, oldFunctionType)
 
                 // There are two sections to the update:
                 //    - First, we do the update of other functions.  These will
-                //      be lifted, so need to refer to the top level fundec.
+                //      be lifted.
                 //
                 //    - Second, we do the valdecs and the expression of the
-                //      let.  These refer to the new valdec.
+                //      let.
                 //
                 //  Fist part:
                 // Before we replace any recursive applications, we need to
@@ -150,48 +159,18 @@ class LambdaLiftWalk(val program: TProgram)
                 }
 
                 // Second part (replace names within the valdecs):
-                val newVal =
-                  TVal(valdecName,
-                       TExpFunApp(TExpIdent(fun.name),
-                                  freeValsTuple.nodeClone(letEnv),
-                                  callTypeIdent))
-
                 // replace all uses of the function with uses of the new
-                // valdec.
-                val functionReplacementMap =
-                  new HashMap[TNamedIdent, (TNamedIdent, TType)]()
-                functionReplacementMap(oldName) =
-                  (valdecName, oldFunctionType)
-
-                // Update the let structure so that the changes
-                // propagate back into it. (Resolving a previous bug
-                // with:
-                // let val x = 1; fun f () = x
-                // in f end)
-                //
-                // Note that the ordering of addition to the valdecs is
-                // extremely important here.  The idea is that we should insert
-                // the new function at the first  point after all the
-                // prerequisites for the function have been declared.  This can
-                // be done by keeping track of the variables we need and
-                // removing them as we come across the decs.
-                val freeIdentsList = freeValsTuple match {
-                  case TExpTuple(elems) => elems map {
-                    case TExpIdent(ident: TNamedIdent) => ident
-                    case _ => throw new ICE("Expected a TNamedIdent")
-                  }
-                  case TExpIdent(ident: TNamedIdent) => List(ident)
-                  case other => throw new ICE("""Expected a TNamedIdent,
-                    |instead found %s""".stripMargin.format(other.prettyPrint))
-                }
-                valdecs = insertIntoList(valdecs, newVal, freeIdentsList)
+                // lifted function.  We may use the same map as above.
 
                 // Further, it is important that we do not walk the fundecs at
                 // this point.
                 val tempLet = TExpLetIn(valdecs, let.exp, letEnv)
 
-                ChangeIdentNames.newNamesFor(functionReplacementMap, let,
-                                             letEnv)
+                ChangeIdentNames.newNamesFor(nameUpdaterMap, tempLet, letEnv)
+                // And update the calls.
+                callUpdater((), tempLet)
+
+                let.exp = tempLet.exp
               }
               case None => {
                 // In this case, there were no free variables to introduce,
@@ -261,7 +240,7 @@ class LambdaLiftWalk(val program: TProgram)
    */
   def insertFunctionFor(newName: TNamedIdent, oldName: Option[TNamedIdent],
                         patterns: List[TExpMatchRow], innerEnv: TTypeEnv,
-                        typeEnvName: TIdent) = {
+                        typeEnvName: TNamedIdent) = {
     // First, walk the patterns to see if they have anything that needs
     // to be lambda lifted.
     val newPatterns = patterns.map(apply(innerEnv, _))
