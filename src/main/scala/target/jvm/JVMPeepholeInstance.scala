@@ -87,7 +87,7 @@ object BranchBoxUnbox extends JVMPeepholeInstance {
   def getSize = 9
 
   def matches(input: List[JVMInstruction]) = {
-    assert(input.length == 5)
+    assert(input.length == 9)
 
     input match {
       case List(cond: JVMConditionalJumpInstruction,
@@ -110,6 +110,7 @@ object BranchBoxUnbox extends JVMPeepholeInstance {
         else
           None
       }
+      case _ => None
     }
   }
 }

@@ -7,7 +7,8 @@ object JVMPeephole {
   lazy val peepholes: Array[PeepholeInstance[JVMInstruction]] = Array(
     UnitPop,
     BoxUnbox,
-    IntPushPop
+    IntPushPop,
+    BranchBoxUnbox
   )
 
   def getSet =
