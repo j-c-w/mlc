@@ -206,7 +206,7 @@ def find_tests(filter=None, root='.'):
     return matches
 
 
-def extract_information(filename):
+def extract_information(filename, include_flags, include_scan):
     test_data = Test()
     compile_directives = []
 
@@ -223,23 +223,26 @@ def extract_information(filename):
             # Strip the opening and closing parts of the comment.
 
             if line.startswith('t-compile:'):
-                compile_directives.append(parts[1])
+                if include_flags:
+                    compile_directives.append(parts[1])
+                else:
+                    compile_directives.append('')
 
-            elif line.startswith('t-run:'):
+            elif include_scan and line.startswith('t-run:'):
                 test_data.set_should_run(True, parts[1].strip(' '))
             elif line.startswith('t-fail'):
                 test_data.set_compile_should_fail(True)
-            elif line.startswith('t-scan:'):
+            elif include_scan and line.startswith('t-scan:'):
                 dumpfile = parts[2].strip(' ')
                 regex = parts[1].strip(' ')
 
                 test_data.add_scan(regex, dumpfile, -1)
-            elif line.startswith('t-scan-not:'):
+            elif include_scan and line.startswith('t-scan-not:'):
                 dumpfile = parts[2].strip(' ')
                 regex = parts[1].strip(' ')
 
                 test_data.add_scan(regex, dumpfile, 0)
-            elif line.startswith('t-scan-times-'):
+            elif include_scan and line.startswith('t-scan-times-'):
                 times = int(parts[0].split('-')[3].strip(' '))
                 dumpfile = parts[2].strip(' ')
                 regex = parts[1].strip(' ')
@@ -259,12 +262,12 @@ def extract_information(filename):
     return tests
 
 
-def run_test(filename, executable, options):
+def run_test(filename, executable, options, include_flags, include_scan):
     """ Given filename as some tests, this extracts
         the information we need (arguments, scan targets),
         runs  the test and checks the arguments.  """
     name_only = os.path.basename(filename)
-    test_data = extract_information(filename)
+    test_data = extract_information(filename, include_flags, include_scan)
     failure_data = []
 
     for test in test_data:
@@ -302,7 +305,7 @@ def dump_result_data(results, dumpfile):
             f.write(line + '\n')
 
 
-def run_all(filenames, dumpfile, executable, options):
+def run_all(filenames, dumpfile, executable, options, use_flags, run_scans):
     results = []
 
     print 'dump is', dumpfile
@@ -314,7 +317,8 @@ def run_all(filenames, dumpfile, executable, options):
             # There was probably a failure in a previous test run.
             # Delete it.
             shutil.rmtree('execute')
-        results += run_test(filename, executable, options)
+        results += \
+            run_test(filename, executable, options, use_flags, run_scans)
 
     dump_result_data(results, dumpfile)
 
@@ -349,6 +353,17 @@ if __name__ == "__main__":
     parser.add_argument('--options', dest='options', action='store',
                         default='', help=('Options to set on every'
                                           ' compilation instance. '))
+    parser.add_argument('--no-flags', dest='no_flags', action='store_true',
+                        default=False, help=('Ignore flags specified by tests.'
+                                             ' For running the testsuite with'
+                                             ' other compilers.  See'
+                                             ' --no-build-scan.  Many tests'
+                                             ' will likely fail if it is not'
+                                             ' specified in addition.'))
+    parser.add_argument('--no-scan', dest='no_scan', action='store_true',
+                        default=False, help=('Do not scan dumpfiles. '
+                                             'Usually used in conjunction '
+                                             ' with --no-flags.'))
     args = parser.parse_args()
 
     print "Executable is", args.executable
@@ -358,4 +373,5 @@ if __name__ == "__main__":
         additional_options = []
 
     tests = find_tests(args.regex_filter, args.root)
-    run_all(tests, args.output_file, args.executable, additional_options)
+    run_all(tests, args.output_file, args.executable, additional_options,
+            not args.no_flags, not args.no_scan)
