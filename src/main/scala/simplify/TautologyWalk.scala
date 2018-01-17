@@ -199,10 +199,16 @@ object TautologyWalk extends TParentSetPass[Unit] {
         case TExpSeq(seq) =>
           // Remove any 'useless' things, like loading constants
           // in the middle of expression sequences.
-          Some(TExpSeq((seq.init.filter {
+          val newList = (seq.init.filter {
             case TExpConst(_) => false
             case _ => true
-          }).toList ++ List(seq.last)))
+          }).toList ++ List(seq.last)
+
+          if (newList.length == 1) {
+            Some(newList(0))
+          } else {
+            Some(TExpSeq(newList))
+          }
         case other => Some(other)
       }
     }
