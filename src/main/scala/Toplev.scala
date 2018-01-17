@@ -66,7 +66,8 @@ object Toplev extends App {
   val _2 = TInlineVerify.optionalExecute(cli.runTInlineVerify, inlined, false)
 
   val t_simplified = PreLowerSimplify.optionalExecute(cli.runPreLowerSimplify,
-                                                      inlined, false)
+                                                      inlined,
+                                                      cli.dumpSimplify)
   // Lower the TIR down into TIR+Assigns.
   val lowered_program = LowerProgram.execute(lambda_lifted,
                                              cli.dumpLowerProgram)

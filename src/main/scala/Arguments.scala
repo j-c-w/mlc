@@ -87,19 +87,13 @@ class Arguments(arguments: Seq[String]) {
   val runTInline =
     parser.fTInline() || (!parser.fnoTInline() && optimize)
   val runSimplify =
-    // TODO -- This should be changed once Simplify is ready for
-    // more  than debugging
-    parser.fSimplify()
+    (optimize && !parser.fnoSimplify()) || parser.fSimplify()
   val runPreLowerSimplify =
-    // TODO -- This should be changed once Simplify is ready for
-    // more  than debugging
-    parser.fPreLowerSimplify() ||
-    (runSimplify && !parser.fnoPreLowerSimplify())
+    ((optimize || runSimplify) && !parser.fnoPreLowerSimplify()) ||
+    parser.fPreLowerSimplify()
   val runPostLowerSimplify =
-    // TODO -- This should be changed once Simplify is ready for
-    // more  than debugging
-    parser.fPostLowerSimplify() ||
-    (runSimplify && !parser.fnoPostLowerSimplify())
+    ((optimize || runSimplify) && !parser.fnoPostLowerSimplify()) ||
+    parser.fPostLowerSimplify()
   val runPeephole =
     !parser.fnoPeephole() || parser.fPeephole()
 
