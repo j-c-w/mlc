@@ -49,8 +49,7 @@ object CaseWalk extends TParentSetPass[Unit] {
         if (isSimplePattern(pat(0))) {
           val newExp = TExpLetIn(List(TVal(convertToValPat(pat(0)), caseExp)),
                                  patExp, env)
-          super.apply((), newExp)
-          Some(newExp)
+          Some(apply((), newExp).getOrElse(newExp))
         } else {
           None
         }
