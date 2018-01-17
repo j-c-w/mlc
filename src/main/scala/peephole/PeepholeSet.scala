@@ -23,7 +23,7 @@ class PeepholeSet[PeepholeInstruction <: GenericPrintable]
           (onUpdate: InstructionSeqUpdate[PeepholeInstruction] => Unit) = {
     // Walk each size of peephole over the list:
     peepholeSizes.foreach {
-      case size => (startIndex until endIndex - size) foreach {
+      case size => (startIndex to endIndex - size) foreach {
         case index => {
           val peepholeSequence = seqFor(SequenceRequest(index, size))
           matchPeepholes(peepholeSequence).map {
