@@ -15,15 +15,20 @@ sealed trait JVMBinaryInstruction extends JVMInstruction {
   def stackEffect = -1
 }
 
-sealed trait JVMStoreInstruction extends JVMInstruction {
-  def stackEffect = -1
-}
-
 sealed trait JVMPushInstruction extends JVMInstruction {
   def stackEffect = 1
 }
 
 sealed trait JVMLabelInstruction extends JVMInstruction
+
+/* This trait is for all loads from variables that can be treated
+ * as variables for the sake of optimizations.  */
+sealed trait JVMLoadInstruction extends JVMPushInstruction
+
+/* Likewise for stores.  */
+sealed trait JVMStoreInstruction extends JVMInstruction {
+  def stackEffect = -1
+}
 
 sealed trait JVMJumpInstruction extends JVMInstruction {
   def getTarget: JVMLabel
@@ -87,7 +92,7 @@ case class JVMInvokeStaticMethod(method: JVMMethodRef) extends JVMInstruction
 }
 
 case class JVMGetField(jvmClass: JVMClassRef, name: String, typ: JVMType)
-    extends JVMPushInstruction with JVMParentInstruction {
+    extends JVMParentInstruction with JVMLoadInstruction {
   def prettyPrint = "getfield Field " + jvmClass.prettyPrint + " " +
     name + " " + typ.prettyPrint
 
@@ -105,7 +110,7 @@ case class JVMPutField(jvmClass: JVMClassRef, name: String, typ: JVMType)
 }
 
 case class JVMGetStaticField(jvmClass: JVMClassRef, name: String, typ: JVMType)
-    extends JVMPushInstruction with JVMParentInstruction {
+    extends JVMParentInstruction with JVMLoadInstruction {
   def prettyPrint = "getstatic Field " + jvmClass.prettyPrint + " " +
     name + " " + typ.prettyPrint
 }
@@ -229,12 +234,12 @@ case class JVMLocalAStore(n: Int) extends JVMStoreInstruction {
 }
 
 /* This is only for use in static methods.  In instance methods,
- * it will overwrie the pointer.  */
+ * it will overwrite the pointer.  */
 case class JVMSelfStore() extends JVMStoreInstruction {
   def prettyPrint = "astore_0"
 }
 
-case class JVMLocalALoad(n: Int) extends JVMPushInstruction {
+case class JVMLocalALoad(n: Int) extends JVMLoadInstruction {
   // N = 0 is the 'this' pointer.  Use JVMSelfLoad() for that.
   assert(n > 0)
   def prettyPrint = n match {
@@ -245,7 +250,7 @@ case class JVMLocalALoad(n: Int) extends JVMPushInstruction {
   }
 }
 
-case class JVMSelfLoad() extends JVMPushInstruction {
+case class JVMSelfLoad() extends JVMLoadInstruction {
   def prettyPrint = "aload_0"
 }
 
