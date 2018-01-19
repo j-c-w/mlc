@@ -23,11 +23,15 @@ sealed trait JVMLabelInstruction extends JVMInstruction
 
 /* This trait is for all loads from variables that can be treated
  * as variables for the sake of optimizations.  */
-sealed trait JVMLoadInstruction extends JVMPushInstruction
+sealed trait JVMLoadInstruction extends JVMPushInstruction {
+  def getVariable: JVMVariable
+}
 
 /* Likewise for stores.  */
 sealed trait JVMStoreInstruction extends JVMInstruction {
   def stackEffect = -1
+
+  def getVariable: JVMVariable
 }
 
 sealed trait JVMJumpInstruction extends JVMInstruction {
@@ -96,6 +100,9 @@ case class JVMGetField(jvmClass: JVMClassRef, name: String, typ: JVMType)
   def prettyPrint = "getfield Field " + jvmClass.prettyPrint + " " +
     name + " " + typ.prettyPrint
 
+  def getVariable =
+    new JVMMemberVariable(jvmClass.prettyPrint + "." + name)
+
   // In exchange for getting a value, this eats a reference.
   override def stackEffect = 0
 }
@@ -105,6 +112,9 @@ case class JVMPutField(jvmClass: JVMClassRef, name: String, typ: JVMType)
   def prettyPrint = "putfield Field " + jvmClass.prettyPrint + " " +
     name + " " + typ.prettyPrint
 
+  def getVariable =
+    new JVMMemberVariable(jvmClass.prettyPrint + "." + name)
+
   // In addition to the value, this eats a reference.
   override def stackEffect = -2
 }
@@ -113,12 +123,18 @@ case class JVMGetStaticField(jvmClass: JVMClassRef, name: String, typ: JVMType)
     extends JVMParentInstruction with JVMLoadInstruction {
   def prettyPrint = "getstatic Field " + jvmClass.prettyPrint + " " +
     name + " " + typ.prettyPrint
+
+  def getVariable =
+    new JVMMemberVariable(jvmClass.prettyPrint + "." + name)
 }
 
 case class JVMPutStaticField(jvmClass: JVMClassRef, name: String, typ: JVMType)
     extends JVMStoreInstruction with JVMParentInstruction {
   def prettyPrint = "putstatic Field " + jvmClass.prettyPrint + " " +
     name + " " + typ.prettyPrint
+
+  def getVariable =
+    new JVMStaticVariable(jvmClass.prettyPrint + "." + name)
 }
 
 case class JVMNew(var jvmClass: JVMClassRef) extends JVMPushInstruction
@@ -225,6 +241,9 @@ case class JVMLocalAStore(n: Int) extends JVMStoreInstruction {
   // N = 0 is the 'this' pointer. Do not overwrite that.
   assert(n > 0)
 
+  def getVariable =
+    new JVMLocalVariable(n)
+
   def prettyPrint = n match {
     case 1 => "astore_1"
     case 2 => "astore_2"
@@ -237,21 +256,28 @@ case class JVMLocalAStore(n: Int) extends JVMStoreInstruction {
  * it will overwrite the pointer.  */
 case class JVMSelfStore() extends JVMStoreInstruction {
   def prettyPrint = "astore_0"
+
+  def getVariable = new JVMLocalVariable(0)
 }
 
 case class JVMLocalALoad(n: Int) extends JVMLoadInstruction {
   // N = 0 is the 'this' pointer.  Use JVMSelfLoad() for that.
   assert(n > 0)
+
   def prettyPrint = n match {
     case 1 => "aload_1"
     case 2 => "aload_2"
     case 3 => "aload_3"
     case n => "aload " + n.toString
   }
+
+  def getVariable = new JVMLocalVariable(n)
 }
 
 case class JVMSelfLoad() extends JVMLoadInstruction {
   def prettyPrint = "aload_0"
+
+  def getVariable = new JVMLocalVariable(0)
 }
 
 case class JVMFNeg() extends JVMUnaryInstruction {
