@@ -4,13 +4,64 @@ import byteR._
 import scala.collection.mutable.HashMap
 
 /* This creates a hash table that, given an instruction, returns a list
- * of instructions that follow  immediately.
+ * of instructions that follow immediately.
  *
  * Rather than hashing instructions, this hashes the instruction index
  * to keep everything unique.
  */
 
 object BWalk {
+  /* This method returns an array of the instructions that push the operands
+   * for 'index'.  It does not handle complex control flow that may be
+   * required for these instructions.  To do that, an implementation with
+   * the walk result or with a CFG is needed.  This is sufficient for
+   * most DCE.  */
+  def getPushInstructionsFor(index: Int,
+                             instructions: List[JVMInstruction]) = {
+    val instructionsArray = instructions.toArray
+    val targetInstruction = instructionsArray(index)
+
+    // Get the stack effect.
+    val targetStackEffect = targetInstruction.stackEffect
+    assert(targetStackEffect < 0)
+
+    // Range start may be None if the access is not supported.
+    val rangeStart =
+      internalPushFor(index - 1, instructionsArray, targetStackEffect)
+    // -1 as we should not include the use instruction.
+    rangeStart.map(instructionsArray.slice(_, index))
+  }
+
+  /* This keeps going backwards until the net stack effect needed
+   * has been found.  */
+  @scala.annotation.tailrec
+  private def internalPushFor(index: Int, instructions: Array[JVMInstruction],
+                              stackEffect: Int): Option[Int] =
+    stackEffect match {
+      // Note that this has a delayed effect in reaching zero.
+      // We add one to make up for this.
+      case 0 => Some(index + 1)
+      case n => {
+        // N > 0 implies that one instruction pushed many things on...
+        // Not right for this situation.
+        assert(n < 0)
+        val thisInstruction = instructions(index)
+        val thisStackEffect = thisInstruction.stackEffect
+
+        // If the instruction is a label, then there can be multiple
+        // preceeding instructions.  This case is currently not handled.
+        // Really, any DCE that is hidden behind control flow should be
+        // dealt with in TIR.
+        thisInstruction match {
+          case labelInstruction: JVMLabelInstruction =>
+            None
+          case otherInstruction =>
+            internalPushFor(index - 1, instructions,
+                            stackEffect + thisStackEffect)
+        }
+      }
+    }
+
   def walk(instructions: List[JVMInstruction]) = {
     // The idea is to use these sets to build up the information we need to
     // build the final set.  The internal set keeps track of int to int
