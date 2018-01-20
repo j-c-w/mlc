@@ -39,6 +39,9 @@ class Arguments(arguments: Seq[String]) {
     val fSimplify = opt[Boolean]()
     val fnoSimplify = opt[Boolean]()
 
+    val fByteDce = opt[Boolean]()
+    val fnoByteDce = opt[Boolean]()
+
     val fPeephole = opt[Boolean]()
     val fnoPeephole = opt[Boolean]()
 
@@ -57,6 +60,7 @@ class Arguments(arguments: Seq[String]) {
     val dumpSimplify = opt[Boolean]()
     val dumpNumberedProgram = opt[Boolean]()
     val dumpLowerTir = opt[Boolean]()
+    val dumpByteDce = opt[Boolean]()
     val dumpPeephole = opt[Boolean]()
 
     verify()
@@ -94,6 +98,8 @@ class Arguments(arguments: Seq[String]) {
   val runPostLowerSimplify =
     ((optimize || runSimplify) && !parser.fnoPostLowerSimplify()) ||
     parser.fPostLowerSimplify()
+  val runByteDce =
+    (optimize && !parser.fnoByteDce()) || parser.fByteDce()
   val runPeephole =
     !parser.fnoPeephole() || parser.fPeephole()
 
@@ -124,6 +130,8 @@ class Arguments(arguments: Seq[String]) {
     parser.dumpNumberedProgram() || parser.dumpAll()
   val dumpLowerTir =
     parser.dumpLowerTir() || parser.dumpAll()
+  val dumpByteDce =
+    parser.dumpByteDce() || parser.dumpAll()
   val dumpPeephole =
     parser.dumpPeephole() || parser.dumpAll()
 }

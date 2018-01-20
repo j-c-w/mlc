@@ -22,6 +22,7 @@ import lower_program.LowerProgramVerify
 import simplify.Simplify
 import lower_variables.LowerVariablesPass
 import lower_tir.LowerTIR
+import byte_dce.ByteDCE
 import peephole.Peephole
 import io.Output
 
@@ -85,8 +86,10 @@ object Toplev extends App {
 
   val byteR = LowerTIR.execute(numberedProgram, cli.dumpLowerTir)
 
+  val postDCE = ByteDCE.optionalExecute(cli.runByteDce, byteR, cli.dumpByteDce)
+
   // Optimizations on byteR
-  val postPeephole = Peephole.optionalExecute(cli.runPeephole, byteR,
+  val postPeephole = Peephole.optionalExecute(cli.runPeephole, postDCE,
                                               cli.dumpPeephole)
   
   // Output byteR
