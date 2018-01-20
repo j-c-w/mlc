@@ -17,9 +17,17 @@ object Pass {
 
 abstract class Pass[InputType, OutputType <: GenericPrintable]
     (val passName: String) {
+  // This can be set to true if specified in the arguments to execute.
+  var dumpEnabled = false
+
   protected def run(tree: InputType): OutputType
   def execute(tree: InputType, shouldDump: Boolean): OutputType = {
+    dumpEnabled = shouldDump
     val result = run(tree)
+
+    // Keep dump enabled as false between passes.
+    dumpEnabled = false
+
     if (shouldDump) {
       dump(result)
     }
