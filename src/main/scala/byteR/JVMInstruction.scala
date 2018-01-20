@@ -125,7 +125,7 @@ case class JVMGetStaticField(jvmClass: JVMClassRef, name: String, typ: JVMType)
     name + " " + typ.prettyPrint
 
   def getVariable =
-    new JVMMemberVariable(jvmClass.prettyPrint + "." + name)
+    new JVMStaticVariable(jvmClass.prettyPrint + "." + name)
 }
 
 case class JVMPutStaticField(jvmClass: JVMClassRef, name: String, typ: JVMType)
