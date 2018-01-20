@@ -23,7 +23,15 @@ abstract class Pass[InputType, OutputType <: GenericPrintable]
   protected def run(tree: InputType): OutputType
   def execute(tree: InputType, shouldDump: Boolean): OutputType = {
     dumpEnabled = shouldDump
+    
+    val startTime = System.currentTimeMillis()
     val result = run(tree)
+    val totalTime = System.currentTimeMillis() - startTime
+
+    if (Shared.compileStats) {
+      println("Time for pass '" + passName + "." + Pass.passNumber + "' = " +
+              totalTime + "ms")
+    }
 
     // Keep dump enabled as false between passes.
     dumpEnabled = false

@@ -1,12 +1,13 @@
 package lexer
 
 import exceptions.LexException
+import io.InputString
 import java.math.{BigDecimal,BigInteger}
 import scala.util.parsing.combinator._
 import scala.util.parsing.input._
 import toplev.Pass
 
-object Lexer extends Pass[String, LexemeSeq]("lex")
+object Lexer extends Pass[InputString, LexemeSeq]("lex")
     with Parsers with RegexParsers {
   override val skipWhitespace = false
 
@@ -248,8 +249,8 @@ object Lexer extends Pass[String, LexemeSeq]("lex")
       | vBar
     ))
 
-  def run(input: String) = {
-    val lexemes = parse(tokens, input)
+  def run(input: InputString) = {
+    val lexemes = parse(tokens, input.str)
 
     lexemes match {
       case Failure(msg, remaining) => {

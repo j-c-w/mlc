@@ -1,12 +1,10 @@
 package toplev
 
 import java.io.File
-import java.nio.charset.StandardCharsets
-
-import utils.FileUtils
 import target.JVMConfig
 
 // These passes are imported in the order they are used.
+import io.Input
 import lexer.Lexer
 import frontend.GLLParser
 import ast_change_names.ASTChangeNames
@@ -25,6 +23,7 @@ import simplify.Simplify
 import lower_variables.LowerVariablesPass
 import lower_tir.LowerTIR
 import peephole.Peephole
+import io.Output
 
 object Toplev extends App {
   val startTime = System.currentTimeMillis()
@@ -39,9 +38,10 @@ object Toplev extends App {
   Shared.filename = file.toString
   Shared.debug = cli.debug
   Shared.targetConfig = JVMConfig
+  Shared.compileStats = cli.compileStats
 
   // Frontend
-  val code = FileUtils.readFileToString(file, StandardCharsets.UTF_8)
+  val code = Input.execute(file, false)
   val lexemes = Lexer.execute(code, cli.dumpLex)
   val tree = GLLParser.execute(lexemes, cli.dumpAst)
   val uniqueified = ASTChangeNames.execute(tree, cli.dumpChangeNames)
@@ -90,8 +90,7 @@ object Toplev extends App {
                                               cli.dumpPeephole)
   
   // Output byteR
-  val outputFileName = Shared.filename.replaceAll("\\.[^.]*$", "") + ".j"
-  FileUtils.writeStringToFile(outputFileName, postPeephole.prettyPrint)
+  Output.execute(postPeephole, false)
 
   if (cli.compileStats) {
     val endTime = System.currentTimeMillis()
