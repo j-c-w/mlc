@@ -24,6 +24,7 @@ object CFGWalk {
     // Do a DFS of the BB's.  At each BB, keep track of the live variables
     // set.
     var bbList = List(BBStart(0))
+    bbPreds(BBStart(0)) = new BBPred(List())
 
     // Stop the while loop from running forever.
     var loopCount = 0
