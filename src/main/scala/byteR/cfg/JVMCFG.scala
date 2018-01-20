@@ -16,6 +16,16 @@ import toplev.GenericPrintable
 class JVMCFG(val jumpSet: HashMap[BBStart, (BBEnd, BBPred, BBSucc)],
              val instructions: Array[JVMInstruction])
     extends GenericPrintable {
+  def bbToString(from: BBStart) = {
+    val (to, preds, next) = jumpSet(from)
+
+    "\nBB Number " + from + "\n" +
+    "BB Range " + from + "-" + to + "\n" +
+    "Predecessors: " + preds.prettyPrint + "\n\n" +
+    getBB(from, to).map(_.prettyPrint).mkString("\n") +
+    "\n\nSuccessors BBs: " + next.prettyPrint
+  }
+
   def getBB(from: BBStart): Array[JVMInstruction] = {
     val (end, _, _) = jumpSet(from)
     getBB(from, end)
@@ -60,7 +70,7 @@ class JVMCFG(val jumpSet: HashMap[BBStart, (BBEnd, BBPred, BBSucc)],
     }
 
   /* See description for the helper method.  */
-  def walkWhileChanges(bbFun:  (BBStart, BBEnd,
+  def walkWhileChanges(bbFun: (BBStart, BBEnd,
                                BBPred, BBSucc) => Boolean): Unit =
    walkWhileChanges(bbFun, 0)
 
@@ -72,13 +82,13 @@ class JVMCFG(val jumpSet: HashMap[BBStart, (BBEnd, BBPred, BBSucc)],
    * if there was no change in that BB, walk the list of BBs
    * until no no new changes are reported.
    *
-   * Terminate if there are more than 100,000 iterations of this function.
+   * Terminate if there are more than 1,000,000 iterations of this function.
    */
   @scala.annotation.tailrec
   private def walkWhileChanges(bbFun: (BBStart, BBEnd,
                                        BBPred, BBSucc) => Boolean,
                                n: Int): Unit = {
-    if (n == 100000) {
+    if (n == 1000000) {
       throw new ICE("BB Walk appears to be non-terminating")
     }
 
@@ -94,11 +104,6 @@ class JVMCFG(val jumpSet: HashMap[BBStart, (BBEnd, BBPred, BBSucc)],
 
   |%s
   """.stripMargin.format(jumpSet.map {
-    case (from, (to, preds, next)) =>
-      "\nBB Number " + from + "\n" +
-      "BB Range " + from + "-" + to + "\n" +
-      "Predecessors: " + preds.prettyPrint + "\n\n" +
-      getBB(from, to).map(_.prettyPrint).mkString("\n") +
-      "\n\nSuccessors BBs: " + next.prettyPrint
+    case (from, (to, preds, next)) => bbToString(from)
   }.mkString("\n\n---- BB Divide ----\n"))
 }
