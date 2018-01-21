@@ -17,14 +17,14 @@ object StoreDeletion {
         val instruction = method.body(index)
         if (instruction.isInstanceOf[JVMLocalAStore]
             || instruction.isInstanceOf[JVMSelfStore]) {
-          val pushInstructions = BWalk.getPushInstructionsFor(index, method.body)
+          val pushInstructions =
+            BWalk.getPushInstructionsFor(index, method.body)
 
           pushInstructions match {
             case Some(instructions) => {
               if (dumpEnabled) {
                 dumpFunction("Detected dead store at index " + index + "\n")
-                dumpFunction("Instructions " +
-                             instructions.toList + "\n")
+                dumpFunction("Instructions " + instructions.toList + "\n")
               }
 
               if (instructions.forall(!_.hasSideEffect)) {
@@ -38,11 +38,15 @@ object StoreDeletion {
                             index + 1)
                 numberEliminated += 1
               } else {
-                // Has side effects.  We could replace the store with a pop if
-                // that is deemed to be better.
+                // Has side effects.  Since the store is dead, we can replace
+                // it with a pop.  This makes it easier for future passes
+                // to remove it if needed.
                 if (dumpEnabled) {
-                  dumpFunction(" had side-effects.  Did not delete store \n")
+                  dumpFunction(" had side-effects.  Replaced store with pop\n")
                 }
+
+                val (before, after) = method.body.splitAt(index)
+                method.body = before ++ (JVMPop() :: after.tail)
               }
             }
             case None =>
@@ -60,7 +64,7 @@ object StoreDeletion {
           if (dumpEnabled) {
             dumpFunction("Store at index " + index + "\n")
             dumpFunction("Is not to a local variable \n")
-            dumpFunction("So is not safe to eliminate.\n")
+            dumpFunction("So may not be safe to eliminate.\n")
           }
         }
       }
