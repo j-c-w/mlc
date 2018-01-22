@@ -33,4 +33,15 @@ object FunctionCostWalk
     }
     case other => super.apply(internalApp, exp)
   }
+
+  override def apply(internalApp: HashMap[TInternalIdentVar, InlineReason],
+                     dec: TDec) = dec match {
+    case TFun(name, List(TExpMatchRow(pats, exp, env))) =>
+      // This is a function with a single pattern.
+      // The pattern can almost certainly later be simplified, so
+      // we do not count the cost of the match part:
+      apply(internalApp, exp)
+    case other =>
+      super.apply(internalApp, other)
+  }
 }
