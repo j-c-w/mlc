@@ -42,7 +42,7 @@ object Toplev extends App {
   Shared.compileStats = cli.compileStats
 
   // Frontend
-  val code = Input.execute(file, false)
+  val code = Input.execute(file, cli.dumpInput)
   val lexemes = Lexer.execute(code, cli.dumpLex)
   val tree = GLLParser.execute(lexemes, cli.dumpAst)
   val uniqueified = ASTChangeNames.execute(tree, cli.dumpChangeNames)
@@ -93,7 +93,7 @@ object Toplev extends App {
                                               cli.dumpPeephole)
   
   // Output byteR
-  Output.execute(postPeephole, false)
+  Output.execute(postPeephole, cli.dumpOutput)
 
   if (cli.compileStats) {
     val endTime = System.currentTimeMillis()

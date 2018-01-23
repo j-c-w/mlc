@@ -47,6 +47,7 @@ class Arguments(arguments: Seq[String]) {
 
     // Dump options:
     val dumpAll = opt[Boolean]()
+    val dumpInput = opt[Boolean]()
     val dumpLex = opt[Boolean]()
     val dumpAst = opt[Boolean]()
     val dumpChangeNames = opt[Boolean]()
@@ -62,6 +63,7 @@ class Arguments(arguments: Seq[String]) {
     val dumpLowerTir = opt[Boolean]()
     val dumpByteDce = opt[Boolean]()
     val dumpPeephole = opt[Boolean]()
+    val dumpOutput = opt[Boolean]()
 
     verify()
   }
@@ -104,6 +106,8 @@ class Arguments(arguments: Seq[String]) {
     !parser.fnoPeephole() || parser.fPeephole()
 
   // Dump options:
+  val dumpInput =
+    parser.dumpInput() || parser.dumpAll()
   val dumpLex =
     parser.dumpLex() || parser.dumpAll()
   val dumpAst =
@@ -134,4 +138,6 @@ class Arguments(arguments: Seq[String]) {
     parser.dumpByteDce() || parser.dumpAll()
   val dumpPeephole =
     parser.dumpPeephole() || parser.dumpAll()
+  val dumpOutput =
+    parser.dumpOutput() || parser.dumpAll()
 }
