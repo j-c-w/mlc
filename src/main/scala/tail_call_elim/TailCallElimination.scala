@@ -127,6 +127,8 @@ object TailCallElimination extends OptionalPass[TProgram]("tail_elim") {
 
     // Go through and eliminate the tail recursion:
     tailFunctions.foreach(eliminateRecursionFrom(tree.typeEnv, _))
+
+    dumpString("Number of functions replaced = %s".format(numberProcessed))
     tree
   }
 }
