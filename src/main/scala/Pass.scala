@@ -19,10 +19,16 @@ abstract class Pass[InputType, OutputType <: GenericPrintable]
     (val passName: String) {
   // This can be set to true if specified in the arguments to execute.
   var dumpEnabled = false
+  var dumpBuilder = new StringBuilder("")
+
+  def dumpString(string: String) = {
+    dumpBuilder.append(string)
+  }
 
   protected def run(tree: InputType): OutputType
   def execute(tree: InputType, shouldDump: Boolean): OutputType = {
     dumpEnabled = shouldDump
+    dumpBuilder = new StringBuilder("")
     
     val startTime = System.currentTimeMillis()
     val result = run(tree)
@@ -50,7 +56,8 @@ abstract class Pass[InputType, OutputType <: GenericPrintable]
 
   def dump(tree: OutputType) = {
     FileUtils.writeStringToFile(Shared.filename + "." +
-      Pass.passNumber.toString + "." + passName, treeToString(tree))
+      Pass.passNumber.toString + "." + passName,
+      dumpBuilder.toString + "\n\n\n" + treeToString(tree))
   }
 
   def unreachable =
