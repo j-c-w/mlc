@@ -22,7 +22,9 @@ abstract class Pass[InputType, OutputType <: GenericPrintable]
   var dumpBuilder = new StringBuilder("")
 
   def dumpString(string: String) = {
-    dumpBuilder.append(string)
+    if (dumpEnabled) {
+      dumpBuilder.append(string)
+    }
   }
 
   protected def run(tree: InputType): OutputType
