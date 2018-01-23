@@ -6,7 +6,7 @@ import scala.collection.mutable.Map
 
 object StoreDeletion {
   def apply(storeStatusMap: Map[Int, StoreStatus], method: JVMMethod,
-            dumpEnabled: Boolean, dumpFunction: String => Unit) = {
+            dumpFunction: String => Unit) = {
     // Note that we walk through the stores backwards so as to avoid
     // influencing the indices.
     var numberEliminated = 0
@@ -22,16 +22,12 @@ object StoreDeletion {
 
           pushInstructions match {
             case Some(instructions) => {
-              if (dumpEnabled) {
-                dumpFunction("Detected dead store at index " + index + "\n")
-                dumpFunction("Instructions " + instructions.toList + "\n")
-              }
+              dumpFunction("Detected dead store at index " + index + "\n")
+              dumpFunction("Instructions " + instructions.toList + "\n")
 
               if (instructions.forall(!_.hasSideEffect)) {
                 // No side effects, so delete the whole lot.
-                if (dumpEnabled) {
-                  dumpFunction(" were side-effectless.  Deleted store. \n")
-                }
+                dumpFunction(" were side-effectless.  Deleted store. \n")
 
                 method.body =
                   spliceOut(method.body, index - instructions.length,
@@ -41,31 +37,25 @@ object StoreDeletion {
                 // Has side effects.  Since the store is dead, we can replace
                 // it with a pop.  This makes it easier for future passes
                 // to remove it if needed.
-                if (dumpEnabled) {
-                  dumpFunction(" had side-effects.  Replaced store with pop\n")
-                }
+                dumpFunction(" had side-effects.  Replaced store with pop\n")
 
                 val (before, after) = method.body.splitAt(index)
                 method.body = before ++ (JVMPop() :: after.tail)
               }
             }
             case None =>
-              if (dumpEnabled) {
-                dumpFunction("Store at index " + index + "\n")
-                dumpFunction("Was too complicated to analyze the push for. \n")
-                dumpFunction("It is dead, but not deleted.")
-              }
+              dumpFunction("Store at index " + index + "\n")
+              dumpFunction("Was too complicated to analyze the push for. \n")
+              dumpFunction("It is dead, but not deleted.")
           }
         } else {
           // We do not consider stores to member variables and static variables
           // as dead.  They might appear dead in a function, but are really not
           // dead.  They are picked up by the DCE because it is trivial to do
           // so.
-          if (dumpEnabled) {
-            dumpFunction("Store at index " + index + "\n")
-            dumpFunction("Is not to a local variable \n")
-            dumpFunction("So may not be safe to eliminate.\n")
-          }
+          dumpFunction("Store at index " + index + "\n")
+          dumpFunction("Is not to a local variable \n")
+          dumpFunction("So may not be safe to eliminate.\n")
         }
       }
     }
