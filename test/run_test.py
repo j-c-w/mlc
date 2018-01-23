@@ -23,11 +23,18 @@ class Test(object):
         self.run_scan_regex = None
 
         if build_from:
-            self.scans = build_from.scans
-            self.options = build_from.options
+            self.scans = list(build_from.scans)
+            self.options = list(build_from.options)
             self.compile_should_fail = build_from.compile_should_fail
             self.should_run = build_from.should_run
-            self.run_scan_regex = build_from.run_scan_regex
+            self.run_scan_regex = str(build_from.run_scan_regex)
+
+    def __str__(self):
+        return "scans = " + str(self.scans) + "\n" + \
+            "options = " + str(self.options) + "\n" + \
+            "compile_should_fail = " + str(self.compile_should_fail) + "\n" + \
+            "should_run = " + str(self.should_run) + "\n" + \
+            "run_scan_regex = " + str(self.run_scan_regex) + "\n"
 
     def add_scan(self, regex, dumpfile, times):
         self.scans.append((regex, dumpfile, times))
