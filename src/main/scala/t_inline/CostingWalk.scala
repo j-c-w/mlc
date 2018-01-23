@@ -156,7 +156,8 @@ class CostingWalk(programEnv: TTypeEnv, program: TProgram)
     if (functionNamesMap.contains(functionName))
       Some(functionNamesMap(functionName))
     else {
-      val (env, fun) = DefFinder(programEnv, program, functionName).get
+      val (env, fun) =
+        DefFinder.getSingleDefOrFail(programEnv, program, functionName)
       // We cannot inline a val.
       fun match {
         case fun : TFun => {

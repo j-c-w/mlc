@@ -7,8 +7,7 @@ import tir._
 object RecursionIdentifier {
   def hasRecursion(env: TTypeEnv, program: TProgram,
                    name: TNamedIdent): Boolean = {
-    val (_, funDef) = DefFinder(env, program, name).getOrElse(
-      throw new ICE("Requested identifier " + name + " does not exist"))
+    val (_, funDef) = DefFinder.getSingleDefOrFail(env, program, name)
     hasRecursion(name, funDef)
   }
   def hasRecursion(name: TNamedIdent, dec: TDec): Boolean =
