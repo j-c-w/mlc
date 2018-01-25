@@ -201,6 +201,7 @@ object TautologyWalk extends TParentSetPass[Unit] {
           // in the middle of expression sequences.
           val newList = (seq.init.filter {
             case TExpConst(_) => false
+            case TExpIdent(TUnitIdent()) => false
             case _ => true
           }).toList ++ List(seq.last)
 
