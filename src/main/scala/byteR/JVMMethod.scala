@@ -38,6 +38,30 @@ case class JVMMethod(var name: String, var arguments: List[JVMType],
 case class JVMMethodRef(var classRef: JVMClassRef, var name: String,
                         var argType: List[JVMType],
                         var resType: JVMType) extends GenericPrintable {
+  def canSideEffect =
+    (classRef, name) match {
+      case (boxedRef: JVMBoxedRef, "valueOf") => false
+      case (boxedRef: JVMBoxedRef, value) =>
+        value.endsWith("Value")
+      // Not all STD lib references are immutable.
+      case (libRef: JVMCMLCLibRef, funCall) => libRef match {
+        case JVMLinkedListRef() => false
+        case JVMLinkedListNilRef() => false
+        case JVMUnitRef() => false
+        case JVMMatchExceptionRef() => false
+        case JVMTupleRef() =>
+          funCall match {
+            case "get" => false
+            case "equals" => false
+            case "set" => true
+            case _ => true
+          }
+        case JVMFunctionRef() => true
+      }
+        false
+      case _ => true
+    }
+
   def prettyPrint =
     " %s %s (%s)%s".format(classRef.prettyPrint, name,
                            argType.map(_.prettyPrint).mkString(""),

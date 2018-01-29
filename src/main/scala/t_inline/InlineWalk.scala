@@ -30,7 +30,7 @@ class InlineWalk(program: TProgram,
     functionDefs.get(name) match {
       case Some(fun) => fun
       case None => {// Use the DefFinder to get the function.
-        val funDef = DefFinder(program.typeEnv, program, name)
+        val funDef = DefFinder.getSingleDef(program.typeEnv, program, name)
 
         funDef match {
           case Some((env, fun @ TFun(funName, patterns))) => {

@@ -15,7 +15,6 @@ class Arguments(arguments: Seq[String]) {
     val runLambdaLiftVerify = opt[Boolean]()
     val runTInlineVerify = opt[Boolean]()
     val runLowerProgramVerify = opt[Boolean]()
-    val runPreLowerSimplify = opt[Boolean]()
 
     // A marker to state whether the compiler should dump stats about
     // the compilation.
@@ -39,6 +38,9 @@ class Arguments(arguments: Seq[String]) {
     val fSimplify = opt[Boolean]()
     val fnoSimplify = opt[Boolean]()
 
+    val fCopyProp = opt[Boolean]()
+    val fnoCopyProp = opt[Boolean]()
+
     val fByteDce = opt[Boolean]()
     val fnoByteDce = opt[Boolean]()
 
@@ -47,6 +49,7 @@ class Arguments(arguments: Seq[String]) {
 
     // Dump options:
     val dumpAll = opt[Boolean]()
+    val dumpInput = opt[Boolean]()
     val dumpLex = opt[Boolean]()
     val dumpAst = opt[Boolean]()
     val dumpChangeNames = opt[Boolean]()
@@ -58,10 +61,12 @@ class Arguments(arguments: Seq[String]) {
     val dumpPreLowerSimplify = opt[Boolean]()
     val dumpLowerProgram = opt[Boolean]()
     val dumpSimplify = opt[Boolean]()
+    val dumpCopyProp = opt[Boolean]()
     val dumpNumberedProgram = opt[Boolean]()
     val dumpLowerTir = opt[Boolean]()
     val dumpByteDce = opt[Boolean]()
     val dumpPeephole = opt[Boolean]()
+    val dumpOutput = opt[Boolean]()
 
     verify()
   }
@@ -98,12 +103,16 @@ class Arguments(arguments: Seq[String]) {
   val runPostLowerSimplify =
     ((optimize || runSimplify) && !parser.fnoPostLowerSimplify()) ||
     parser.fPostLowerSimplify()
+  val runTCopyProp =
+    (optimize && !parser.fnoCopyProp()) || parser.fCopyProp()
   val runByteDce =
     (optimize && !parser.fnoByteDce()) || parser.fByteDce()
   val runPeephole =
     !parser.fnoPeephole() || parser.fPeephole()
 
   // Dump options:
+  val dumpInput =
+    parser.dumpInput() || parser.dumpAll()
   val dumpLex =
     parser.dumpLex() || parser.dumpAll()
   val dumpAst =
@@ -126,6 +135,8 @@ class Arguments(arguments: Seq[String]) {
     parser.dumpLowerProgram() || parser.dumpAll()
   val dumpSimplify =
     parser.dumpSimplify() || parser.dumpAll()
+  val dumpCopyProp =
+    parser.dumpCopyProp() || parser.dumpAll()
   val dumpNumberedProgram =
     parser.dumpNumberedProgram() || parser.dumpAll()
   val dumpLowerTir =
@@ -134,4 +145,6 @@ class Arguments(arguments: Seq[String]) {
     parser.dumpByteDce() || parser.dumpAll()
   val dumpPeephole =
     parser.dumpPeephole() || parser.dumpAll()
+  val dumpOutput =
+    parser.dumpOutput() || parser.dumpAll()
 }

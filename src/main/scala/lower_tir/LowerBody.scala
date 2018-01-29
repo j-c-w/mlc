@@ -24,7 +24,7 @@ object LowerBody {
     val otherInstrs = LowerExp(exp, env)
     // Now that we have the instructions, do an instruction walk to
     // see how deep the stack can get:
-    val maxDepth = (new StackDepthWalk(otherInstrs)).findDepth
+    val maxDepth = (new StackDepthWalk(otherInstrs)).findDepth + 1
     // If we want to insert a .linenumbertable
     // directive for mapping instructions to line numbers
     // in the source (for better exceptions), then this is

@@ -9,10 +9,7 @@ import toplev.OptionalPass
 /* This class elimiates tail recursive calls.  */
 
 object TailCallElimination extends OptionalPass[TProgram]("tail_elim") {
-  var dumpContents = new StringBuilder("")
   var numberProcessed = 0
-
-  def dumpData(data: String) = dumpContents.append(data)
 
   /* The idea is the replace a function that looks like this:
    *   fun f x y z = e1
@@ -32,7 +29,8 @@ object TailCallElimination extends OptionalPass[TProgram]("tail_elim") {
    * is replaced with an explcit return call.  */
   def eliminateRecursionFrom(programEnv: TTypeEnv, fun: TFun) = fun match {
     case TFun(name, patterns) => {
-      dumpData("Eliminating tail recusion from %s\n".format(name.prettyPrint))
+      dumpString(
+        "Eliminating tail recusion from %s\n".format(name.prettyPrint))
       numberProcessed += 1
 
       assert(patterns.length > 0)
@@ -120,16 +118,7 @@ object TailCallElimination extends OptionalPass[TProgram]("tail_elim") {
     }
   }
 
-  override def treeToString(tree: TProgram) = """
-    |%s
-    |Number of functions replaced = %s
-
-    |%s
-    """.stripMargin.format(dumpContents.toString, numberProcessed,
-                           tree.prettyPrint)
-
   override def run(tree: TProgram) = {
-    dumpContents = new StringBuilder("")
     numberProcessed = 0
 
     // First get all the tail recursive function calls:
@@ -138,6 +127,8 @@ object TailCallElimination extends OptionalPass[TProgram]("tail_elim") {
 
     // Go through and eliminate the tail recursion:
     tailFunctions.foreach(eliminateRecursionFrom(tree.typeEnv, _))
+
+    dumpString("Number of functions replaced = %s".format(numberProcessed))
     tree
   }
 }

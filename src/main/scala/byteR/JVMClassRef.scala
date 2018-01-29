@@ -12,6 +12,8 @@ sealed trait JVMClassRef extends GenericPrintable
 
 sealed trait JVMBoxedRef extends JVMClassRef
 
+sealed trait JVMCMLCLibRef extends JVMClassRef
+
 case class JVMCustomClassRef(var name: String) extends JVMClassRef {
   def prettyPrint = name
 }
@@ -44,27 +46,27 @@ case class JVMCharacterRef() extends JVMBoxedRef {
   def prettyPrint = "java/lang/Character"
 }
 
-case class JVMFunctionRef() extends JVMClassRef {
+case class JVMFunctionRef() extends JVMCMLCLibRef {
   def prettyPrint = "cmlc/Function"
 }
 
-case class JVMUnitRef() extends JVMClassRef {
+case class JVMUnitRef() extends JVMCMLCLibRef {
   def prettyPrint = "cmlc/Unit"
 }
 
-case class JVMLinkedListRef() extends JVMClassRef {
+case class JVMLinkedListRef() extends JVMCMLCLibRef {
   def prettyPrint = "cmlc/LinkedList"
 }
 
-case class JVMLinkedListNilRef() extends JVMClassRef {
+case class JVMLinkedListNilRef() extends JVMCMLCLibRef {
   def prettyPrint = "cmlc/Nil"
 }
 
-case class JVMMatchExceptionRef() extends JVMClassRef {
+case class JVMMatchExceptionRef() extends JVMCMLCLibRef {
   def prettyPrint = "cmlc/MatchError"
 }
 
-case class JVMTupleRef() extends JVMClassRef {
+case class JVMTupleRef() extends JVMCMLCLibRef {
   def prettyPrint = "cmlc/Tuple"
 }
 

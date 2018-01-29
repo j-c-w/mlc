@@ -62,7 +62,7 @@ class FreeValsWalk(val program: TProgram,
           case TFunClass() => {
             if (!visited.contains(identVar)) {
               val foundDef =
-                DefFinder(program.typeEnv, program, identVar)
+                DefFinder.getSingleDef(program.typeEnv, program, identVar)
               foundDef match {
                 case Some((otherEnv, identDef : TFun)) => {
                   val recursiveWalk =
