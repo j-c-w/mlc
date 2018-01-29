@@ -1,6 +1,6 @@
-(* t-compile: --dump-copy-prop --verify-all *)
+(* t-compile: --f-copy-prop --dump-copy-prop --verify-all *)
 (* t-run: pass *)
-(* t-scan: Number of copy propagations is 3: copy_prop *)
+(* t-scan: Number of copy propagations is 5: copy_prop *)
 
 val x = 10
 val y = x
