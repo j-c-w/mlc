@@ -1,4 +1,4 @@
-(* t-compile: -o --verify-all *)
+(* t-compile: -O --verify-all *)
 (* Regression: This test case is a case of a case expression generating
 *  a function as a result.  *)
 

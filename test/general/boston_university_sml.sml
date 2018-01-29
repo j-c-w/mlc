@@ -1,5 +1,5 @@
 (* t-compile: *)
-(* t-compile: -o *)
+(* t-compile: -O *)
 (* Lifted from https://www.cs.bu.edu/~hwxi/academic/courses/CS520/Fall02/notes/SMLintro.pdf *)
 
 fun zero_finder (f: int -> int) =

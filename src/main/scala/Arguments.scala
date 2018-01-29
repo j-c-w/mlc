@@ -20,7 +20,7 @@ class Arguments(arguments: Seq[String]) {
     // the compilation.
     val compileStats = opt[Boolean]()
 
-    val optimize = opt[Boolean]()
+    val optimize = opt[Boolean]("optimize", 'O')
 
     // Pass by pass optimization flags:
     val fTce = opt[Boolean]()

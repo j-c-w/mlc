@@ -1,5 +1,5 @@
 (* t-compile: --verify-all *)
-(* t-compile: -o *)
+(* t-compile: -O *)
 (* It is sufficient to make sure we got a single line right *)
 (* t-run: [\s\S]*______________________222222222___1111111111111111111111111111________________[\s\S]* *)
 (* The prettiest test I have :) *)

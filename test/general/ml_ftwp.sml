@@ -1,5 +1,5 @@
 (* t-compile: --verify-all *)
-(* t-compile: -o --verify-all *)
+(* t-compile: -O --verify-all *)
 
 (**** ML Programs from Chapter 3 of
   ML for the Working Programmer, 2nd edition
