@@ -20,6 +20,7 @@ import simplify.PreLowerSimplify
 import lower_program.LowerProgram
 import lower_program.LowerProgramVerify
 import simplify.Simplify
+import copy_prop.TCopyPropagation
 import lower_variables.LowerVariablesPass
 import lower_tir.LowerTIR
 import byte_dce.ByteDCE
@@ -76,12 +77,15 @@ object Toplev extends App {
                                               lowered_program, false)
 
   // Optimizations on TIR+Assigns
+  val copy_proped = TCopyPropagation.optionalExecute(cli.runTCopyProp,
+                                                     lowered_program,
+                                                     cli.dumpCopyProp)
   val simplified = Simplify.optionalExecute(cli.runPostLowerSimplify,
-                                            lowered_program,
+                                            copy_proped,
                                             cli.dumpSimplify)
 
   // Lower TIR+Assigns into byteR
-  val numberedProgram = LowerVariablesPass.execute(lowered_program,
+  val numberedProgram = LowerVariablesPass.execute(simplified,
                                                    cli.dumpNumberedProgram)
 
   val byteR = LowerTIR.execute(numberedProgram, cli.dumpLowerTir)
