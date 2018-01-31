@@ -1,13 +1,13 @@
 package toplev
 
 import exceptions._
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.OpenHashMap
 
 /* This is a class that contains a generic unifier.  */
 
 abstract class GenericUnifier[TypeVariable <: GenericPrintable
                                               with GenericType[TypeVariable]] {
-  private val map = new HashMap[TypeVariable, TypeVariable]()
+  private val map = new OpenHashMap[TypeVariable, TypeVariable](512)
 
   /* This function MODIFIES THIS UNIFIER!
    * The unifier returned is a new unifier
