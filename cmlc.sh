@@ -18,7 +18,8 @@ base=${@:$#}
 filename="${base%.*}"
 
 # Build program into a .j file:
-java -jar "$JAR" "$@"
+# We request a bigger stack for the recursion.
+java -Xss32m -jar "$JAR" "$@"
 # Then pass on to the assembler: (Note that the last argument is the file
 # name).  Output of Krakatau thrown away becase we don't want the screen filled
 # with millions of classes.
