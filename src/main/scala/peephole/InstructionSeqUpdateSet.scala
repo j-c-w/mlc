@@ -32,6 +32,7 @@ class InstructionSeqUpdateSet[Inst] {
   }
 
   def apply(instructions: List[Inst]): List[Inst] = {
+    val instructionsLength = instructions.length
     // Assert that the updates are in the right order:
     if (updates.length > 0) {
       var oldUpdate = updates.head
@@ -41,7 +42,7 @@ class InstructionSeqUpdateSet[Inst] {
         oldUpdate = update
       }
     }
-    if (instructions.length == 0 || updates.length == 0)
+    if (instructionsLength == 0 || updates.length == 0)
       return instructions
 
     var skipLength = 0
@@ -53,7 +54,7 @@ class InstructionSeqUpdateSet[Inst] {
     var substitutionHead = updates.head
     var substitutionTail = updates.tail
 
-    for (i <- (0 until instructions.length)) {
+    for (i <- (0 until instructionsLength)) {
       if (skipLength > 0) {
         skipLength -= 1
       } else {
@@ -79,7 +80,7 @@ class InstructionSeqUpdateSet[Inst] {
 
       // Since this is done at the end of the loop, it would be done too many
       // times if we let it happen for the last index.
-      if (i != instructions.length - 1) {
+      if (i != instructionsLength - 1) {
         currentHead = currentTail.head
         currentTail = currentTail.tail
       }

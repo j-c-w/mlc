@@ -13,6 +13,7 @@ import scala.collection.mutable.{HashMap,HashSet,Map,MutableList,Set}
  * cases to cover are those of jumps and labels.
  */
 class PeepholeWalk(val instructions: List[JVMInstruction]) {
+  val instructionsArray = instructions.toArray
   // This returns a new list of instructions using the peepholes
   // specified.
   def walk(peepholes: PeepholeSet[JVMInstruction]): List[JVMInstruction] = {
@@ -38,6 +39,6 @@ class PeepholeWalk(val instructions: List[JVMInstruction]) {
     locations map (getInstructionFrom(_))
 
   private def getInstructionFrom(location: Int) =
-    if (location < 0 || location >= instructions.length) JVMNoInstruction
-    else instructions(location)
+    if (location < 0 || location >= instructionsArray.length) JVMNoInstruction
+    else instructionsArray(location)
 }
