@@ -109,7 +109,7 @@ def median(elems, narrowing_function=None):
 
 
 def save_to(plot, filename):
-    plot.savefic(filename, format='eps', dpi=1000)
+    plot.savefig(filename, format='eps', dpi=1000)
 
 
 if __name__ == "__main__":

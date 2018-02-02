@@ -59,6 +59,8 @@ parser = \
 
 parser.add_argument('input_file', help=("Input JSON file as created by the "
                                         "benchmarking scripts"))
+parser.add_argument('--nohold', action='store_true', default=False,
+                    help="Don't display the figure on the screen.")
 
 args = parser.parse_args()
 
@@ -131,5 +133,8 @@ for benchmark in data:
     fig.show()
     fig.legend(handles, ["Time spent in AST Representation",
                          "Time spent in TIR Representation",
-                         "Time spent in ByteR Representation"])
-    pyplot.show(True)
+                         "Time spent in ByteR Representation"],
+               loc='upper center')
+    graph.save_to(fig, benchmark + '_compile_time.eps')
+    if not args.nohold:
+        pyplot.show(True)
