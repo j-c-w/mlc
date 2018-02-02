@@ -1,0 +1,12 @@
+#!/usr/bin/python
+
+if __name__ == "__main__":
+    count = 100
+
+    for i in range(count):
+        with open(str(i) + '.sml', 'w') as f:
+            f.write("fun f x y = x + y\n")
+
+            for j in range(i):
+                f.write("val x" + str(j) + " = f " + str(j) + " " + 
+                        str(j * 2) + "\n")
