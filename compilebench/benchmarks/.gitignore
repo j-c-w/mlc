@@ -1,0 +1,5 @@
+*.sml
+*/a.out
+*/*.jar
+*.ui
+*.uo

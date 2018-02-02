@@ -1,0 +1,13 @@
+#!/usr/bin/python
+
+if __name__ == "__main__":
+    for fileno in range(20):
+        filename = str(fileno) + ".sml"
+
+        with open(filename, 'w') as f:
+            f.write("fun p0 x = (x, x)\n")
+
+            for i in range(1, fileno + 1):
+                f.write("fun p" + str(i) +
+                        " x = (p" + str(i - 1) + " x, p" + str(i - 1) +
+                        " x)\n")

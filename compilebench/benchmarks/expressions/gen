@@ -1,0 +1,14 @@
+#!/usr/bin/python
+
+# This generates files with between 1 and 10,000 expressions.
+
+if __name__ == "__main__":
+    COUNT = 100
+
+    for i in range(COUNT):
+        with open(str(i) + ".sml", "w") as f:
+            f.write("fun f x = 1 + 1")
+
+            for j in range(i):
+                j_str = str(j)
+                f.write(("+ " + j_str + " ") * 10)

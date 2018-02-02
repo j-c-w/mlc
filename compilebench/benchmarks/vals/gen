@@ -1,0 +1,9 @@
+#!/usr/bin/python
+
+if __name__ == "__main__":
+    COUNT = 100
+
+    for i in range(COUNT):
+        with open(str(i) + '.sml', 'w') as f:
+            for j in range(i):
+                f.write("val x" + str(j) + " = \"" + str(j) + "\"\n")
