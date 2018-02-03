@@ -28,44 +28,45 @@ class CMLC(Compiler):
     def __init__(self, executable):
         self.executable = executable
 
-    def compile(self, filename, options, runs):
+    def compile(self, filename, options, times):
+        """ This takes a filename to compile and options to compile it with.
+            'times' is a results dictionary that is used to store the times.
+            If times have already been entered on a previous run, then they
+            can be added to.  """
         print "Compiling", filename
         deduplicated_options = options + ['--compile-stats']
         # TODO -- actually deduplicate these options.
         deduplicated_options = [x for x in deduplicated_options if x]
         commands = [self.executable] + deduplicated_options + [filename]
-        times = {}
+        output = subprocess.check_output(commands)
 
-        for i in range(runs):
-            output = subprocess.check_output(commands)
+        for line in output.split('\n'):
+            # 'line' is of the form:
+            #       "Time for pass 'pass_name' = XXXms"
+            # and the last line is of the form:
+            #       "Compile time: XXXms
+            if line.startswith("Time for pass '"):
+                line = line[len("Time for pass '"):]
 
-            for line in output.split('\n'):
-                # 'line' is of the form:
-                #       "Time for pass 'pass_name' = XXXms"
-                # and the last line is of the form:
-                #       "Compile time: XXXms
-                if line.startswith("Time for pass '"):
-                    line = line[len("Time for pass '"):]
+                # Extract the pass name:
+                passname = line[:line.find("'")]
+                # And the time:
+                time = line[line.find("=") + 1:].strip()[:-2]
 
-                    # Extract the pass name:
-                    passname = line[:line.find("'")]
-                    # And the time:
-                    time = line[line.find("=") + 1:].strip()[:-2]
+                time_number = int(time)
 
-                    time_number = int(time)
+                if passname in times:
+                    times[passname].append(time_number)
+                else:
+                    times[passname] = [time_number]
+            elif line.startswith("Compile time: "):
+                time = int(line[len("Compile time: "):-2])
 
-                    if passname in times:
-                        times[passname].append(time_number)
-                    else:
-                        times[passname] = [time_number]
-                elif line.startswith("Compile time: "):
-                    time = int(line[len("Compile time: "):-2])
-
-                    if 'total' in times:
-                        times['total'].append(time)
-                    else:
-                        times['total'] = [time]
-                    print "Total time ", time
+                if 'total' in times:
+                    times['total'].append(time)
+                else:
+                    times['total'] = [time]
+                print "Total time ", time
 
         return times
 
@@ -103,9 +104,18 @@ def execute_test(name, options, runs, compiler):
     results = {}
     results['number'] = len(files)
     results['runs'] = runs
+    results['name'] = ''
 
-    for file in files:
-        results[file] = compiler.compile(file, options, runs)
+    if "-O" in options or "--optimize" in options:
+        results['name'] = 'optimize'
+
+    for run in range(runs):
+        for file in files:
+            if file in results:
+                already_gathered = results[file]
+            else:
+                already_gathered = {}
+            results[file] = compiler.compile(file, options, already_gathered)
 
     # Go back out
     os.chdir('../..')
