@@ -53,31 +53,27 @@ def sum_byteR_times_from(data, runs):
     return sum_times_between(data, runs, 'lower_tir', 'output')
 
 
-# Given an input file as an argument, output all the expented graphs.
-parser = \
-    argparse.ArgumentParser("A tool for drawing compilation time benchmarks")
+def gen_title_for(compile_pass, benchmark):
+    # TODO -- Expect to insert custom titles here.
+    return "Time taken to execute pass " + compile_pass + \
+            " against number of " + benchmark
 
-parser.add_argument('input_file', help=("Input JSON file as created by the "
-                                        "benchmarking scripts"))
-parser.add_argument('--nohold', action='store_true', default=False,
-                    help="Don't display the figure on the screen.")
 
-args = parser.parse_args()
+def gen_x_label_for(compile_pass, benchmark):
+    # Expect to insert custom x-labels here.
+    if benchmark == 'vals':
+        return "Number of 'val' declarations"
+    raise Exception("Need to insert a name for benchmark " + benchmark)
 
-# Load in the JSON file:
-with open(args.input_file) as f:
-    data = json.load(f)
 
-# Draw graphs:
-for benchmark in data:
-    print "Drawing graph for benchmark", benchmark
-    run_data = data[benchmark]
+def gen_legend_string(compile_pass, benchmark):
+    return compile_pass
 
-    # Get the data out:
-    runs = run_data['runs']
-    # This is the number of times we will divide the data.
+
+def generic_compile_time_graph(axis_size, run_data):
+    # For this graph, split into TIR, byteR and AST.
     number = 3
-    axis_size = run_data['number']
+    runs = run_data['runs']
     x_data = []
     y_data = []
     errors = []
@@ -102,7 +98,7 @@ for benchmark in data:
             # Do the min max selection by overall time.
             def select(x):
                 return x[2]
-            
+
             def averager(tuple):
                 s0 = 0.0
                 s1 = 0.0
@@ -119,22 +115,76 @@ for benchmark in data:
             (min_err, max_err, selected_tuple) = \
                 graph.generate_min_max_median(tuples,
                                               narrowing_function=select,
-                                              averaging_function=averager)
+                                              averaging_function=averager,
+                                              delete_min_max=True)
             errors.append((min_err, max_err))
 
         y_data.append(selected_tuple)
 
-    handles, fig = graph.draw_stacked_line(number, x_data, y_data, errors,
-                                           y_label="Compile Time (ms)",
-                                           x_label=("Number of 'val' "
-                                                    "declarations"),
-                                           title=("Compile Times for " +
-                                                  benchmark))
+    fig = graph.draw_stacked_line(number, x_data, y_data, errors,
+                                  y_label="Compile Time (ms)",
+                                  x_label=gen_x_label_for(None, benchmark),
+                                  title=("Compile Times for " + benchmark),
+                                  legend=["Time spent in AST Representation",
+                                          "Time spent in TIR Representation",
+                                          "Time spent in ByteR " +
+                                          "Representation"])
     fig.show()
-    fig.legend(handles, ["Time spent in AST Representation",
-                         "Time spent in TIR Representation",
-                         "Time spent in ByteR Representation"],
-               loc='upper center')
-    graph.save_to(fig, benchmark + '_compile_time.eps')
+    graph.save_to(fig, benchmark + run_data['name'] + '_compile_time.eps')
+
+
+# Given an input file as an argument, output all the expented graphs.
+parser = \
+    argparse.ArgumentParser("A tool for drawing compilation time benchmarks")
+
+parser.add_argument('input_file', help=("Input JSON file as created by the "
+                                        "benchmarking scripts"))
+parser.add_argument('--nohold', action='store_true', default=False,
+                    help="Don't display the figure on the screen.")
+
+args = parser.parse_args()
+
+# Load in the JSON file:
+with open(args.input_file) as f:
+    data = json.load(f)
+
+# Draw graphs:
+for benchmark in data:
+    print "Drawing graph for benchmark", benchmark
+    run_data = data[benchmark]
+
+    # This is the number of times we will divide the data.
+    axis_size = run_data['number']
+    generic_compile_time_graph(axis_size, run_data)
+
+    # Also plot a graph for each specific pass.
+
+    for compile_pass in run_data['0.sml']:
+        errors = []
+        y_data = []
+        x_data = []
+
+        for i in range(axis_size):
+            # Get the data for the ith file:
+            ith = run_data[str(i) + '.sml']
+
+            (min_err, max_err, value) = \
+                graph.generate_min_max_median(ith[compile_pass],
+                                              delete_min_max=True)
+
+            errors.append((min_err, max_err))
+            y_data.append(value)
+            x_data.append(i)
+
+        fig = graph.draw_line(x_data, y_data, error_bars=errors,
+                              x_label=gen_x_label_for(compile_pass, benchmark),
+                              y_label="Time (ms)",
+                              title=gen_title_for(compile_pass, benchmark),
+                              legend=[gen_legend_string(compile_pass,
+                                                        benchmark)])
+
+        graph.save_to(fig, benchmark + run_data['name'] + '_' +
+                      compile_pass + '.eps')
+
     if not args.nohold:
         pyplot.show(True)
