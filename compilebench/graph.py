@@ -9,8 +9,42 @@ import numpy as np
 import random
 
 
+def draw_line(x_data, y_data, error_bars=None,
+              x_label=None, y_label=None, title=None,
+              legend=None):
+    figure = plt.figure()
+
+    axis = figure.add_subplot(111)
+    handles = []
+
+    if x_label:
+        axis.set_xlabel(x_label)
+
+    if y_label:
+        axis.set_ylabel(y_label)
+
+    if title:
+        axis.set_title(title)
+
+    handle, = axis.plot(x_data, y_data)
+    handles.append(handle)
+
+    # Put error bars on the last one of these.
+    if error_bars:
+        error_min = [x[0] for x in error_bars]
+        error_max = [x[1] for x in error_bars]
+
+        axis.errorbar(x_data, y_data, [error_min, error_max], color='blue')
+
+    if legend:
+        axis.legend(legend, loc=2)
+
+    return figure
+
+
 def draw_stacked_line(number_of_points, x_data, y_data, error_bars=None,
-                      colors=None, x_label=None, y_label=None, title=None):
+                      colors=None, x_label=None, y_label=None, title=None,
+                      legend=None):
     """ This takes y_data, error_bars as a list of tuples.  Each tuple
         element corresponds to a stacked line in the graph.  Colors
         are passed as a list and are generated if not specified.
@@ -55,9 +89,12 @@ def draw_stacked_line(number_of_points, x_data, y_data, error_bars=None,
         error_min = [x[0] for x in error_bars]
         error_max = [x[1] for x in error_bars]
 
-        axis.errorbar(x_data, y_idata, [error_min, error_max])
+        axis.errorbar(x_data, y_idata, [error_min, error_max], color='blue')
 
-    return (handles, figure)
+    if legend:
+        axis.legend(legend, loc=2)
+
+    return figure
 
 
 def generate_min_max_median(data, narrowing_function=None,
@@ -79,10 +116,19 @@ def generate_min_max_median(data, narrowing_function=None,
     else:
         averaged_median = sum(selected_medians) / len(selected_medians)
 
-    top_vals = [x[2] for x in temp_list]
+    if narrowing_function:
+        top_vals = [narrowing_function(x) for x in temp_list]
+    else:
+        top_vals = temp_list
+
+    if narrowing_function:
+        averaged_median_val = narrowing_function(averaged_median)
+    else:
+        averaged_median_val = averaged_median
+
     # Return the error bars and the new data.
-    return (averaged_median[2] - min(top_vals),
-            max(top_vals) - averaged_median[2], averaged_median)
+    return (averaged_median_val - min(top_vals),
+            max(top_vals) - averaged_median_val, averaged_median)
 
 
 # This returns the list of elements that are medians of
