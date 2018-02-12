@@ -29,7 +29,7 @@ object LowerLoadIdent {
           JVMGetField(
             JVMClassRef.classRefFor(LowerShared.functionAccessMap(funName)),
                                     "arg" + number,
-                                    LowerType(env.getOrFail(ident)))
+                                    LowerType(env.getOrFail(ident), env))
         )
       // Add 1 since 0 is reserved for the self reference.
       case TNumberedIdentVar(_, number) => List(JVMLocalALoad(number + 1))
@@ -46,9 +46,17 @@ object LowerLoadIdent {
                  new JVMMethodRef(
                    JVMClassRef.classRefFor(LowerName("Fun0" + name)),
                    "<init>", List(), JVMVoidPrimitiveType())))
+        case TDataTypeClass() =>
+          List(JVMNew(JVMClassRef.classRefFor(
+                  LowerName("DatatypeClass" + LowerName(name)))),
+               JVMDup(),
+               JVMInvokeSpecialMethod(
+                 new JVMMethodRef(
+                   JVMClassRef.classRefFor(LowerName("DatatypeClass" + name)),
+                   "<init>", List(), JVMVoidPrimitiveType())))
         case TValClass() =>
           List(JVMGetStaticField(JVMMainClassRef(), LowerName(name),
-                                 LowerType(env.getOrFail(ident))))
+                                 LowerType(env.getOrFail(ident), env)))
       }
     }
     case TUnitIdent() =>
@@ -62,13 +70,23 @@ object LowerLoadIdent {
            new JVMDup(),
            new JVMInvokeSpecialMethod(
              new JVMMethodRef(new JVMMatchExceptionRef(), "<init>",
-                              List(), JVMVoidPrimitiveType())))
+                              List(), JVMVoidPrimitiveType())),
+           new JVMCheckCast(JVMExceptionClassRef()))
     case TEmptyListIdent() => List(
     JVMNew(JVMLinkedListNilRef()),
     JVMDup(),
     JVMInvokeSpecialMethod(
       new JVMMethodRef(new JVMLinkedListNilRef(), "<init>",
                        List(), JVMVoidPrimitiveType())))
+    case TCaughtExceptionIdent() =>
+      // The exception is sitting on top of the stack.  However, CMLC works
+      // on the internal exception classes which are not what is thrown.
+      // Cast this (which is a RuntimeException) into a JVMThrowableClassRef
+      // and then pass it.
+      List(JVMCheckCast(JVMThrowableClassRef()),
+           JVMInvokeVirtualMethod(
+             new JVMMethodRef(new JVMThrowableClassRef(), "get", List(),
+                              new JVMExceptionType())))
     case other => throw new ICE("Cannot load ident " + other.prettyPrint)
   }
 }

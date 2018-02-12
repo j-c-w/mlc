@@ -40,7 +40,7 @@ object LowerStoreIdent {
         // that we can put directly into a variable
         assert(identClass.isRegisterClass)
         List(JVMPutStaticField(JVMMainClassRef(), LowerName(name),
-                               LowerType(env.getOrFail(ident))))
+                               LowerType(env.getOrFail(ident), env)))
       }
     }
     case other =>

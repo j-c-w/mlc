@@ -2,7 +2,7 @@ package lower_tir
 
 import byteR._
 import exceptions.ICE
-import scala.collection.mutable.Set
+import scala.collection.mutable.{HashMap,Map,Set}
 import tir._
 import toplev.Pass
 
@@ -39,7 +39,7 @@ object LowerTIR extends Pass[TJavaProgram, JVMProgram]("lower_tir") {
         // a value type that can go into a field.
         assert(identClass.isRegisterClass)
 
-        JVMField(LowerName(name), LowerType(env.getOrFail(ident)), true)
+        JVMField(LowerName(name), LowerType(env.getOrFail(ident), env), true)
       }
     }.toList
   }
@@ -92,7 +92,7 @@ object LowerTIR extends Pass[TJavaProgram, JVMProgram]("lower_tir") {
     // through the name "Fun'number'Name".
     val funName = "Fun" + number + LowerName(name.name)
     val thisClassRef = JVMClassRef.classRefFor(LowerName(funName))
-    val loweredArgType = LowerType(argType)
+    val loweredArgType = LowerType(argType, env)
 
     // If there are no local applciations left (e.g. this is the last currying)
     // then add this to the LowerShared map so that local variables know  what
@@ -216,11 +216,68 @@ object LowerTIR extends Pass[TJavaProgram, JVMProgram]("lower_tir") {
                            0, List(), fun.name,
                            fun.env.getOrFail(fun.name), fun.env)
 
+  def lowerDataClasses(decs: List[TDataTypeDec]) = {
+    val defMap = new HashMap[TType, JVMClassRef]()
+    var newClasses = List[JVMClass]()
+
+    // Also add a mapping from exceptions:
+    defMap(TExceptionType()) = JVMExceptionClassRef()
+
+    decs.foreach {
+      case TDataTypeDec(name, typs, typeClass) => {
+        if (!defMap.contains(typeClass)) {
+          // Create a class to represent the datatype:
+          val newClass = JVMClass("DatatypeClass" +
+                                  typeClass.asInstanceOf[TDataType].name,
+                                  Some(JVMDataTypeClassRef()),
+                                  List(), List())
+
+          defMap(typeClass) =
+            JVMClassRef.classRefFor("DatatypeClass" +
+                                    typeClass.asInstanceOf[TDataType].name)
+          newClasses = newClass :: newClasses
+        }
+      }
+    }
+
+    (newClasses, defMap)
+  }
+
+  /* This takes a datatype constructor and a map that returns a reference
+   * to the parent type.  It returns a class representing the datatype.  */
+  def lowerDatatype(dataType: TDataTypeDec,
+                    typeClassMap: Map[TType, JVMClassRef],
+                    env: TTypeEnv): JVMClass =
+    dataType match {
+      case TDataTypeDec(name, constructorTypes, typeClass) => {
+        val argTypes = constructorTypes.map(LowerType(_, env))
+        val initInstructions =
+          List(LocalsLimitDirective(1), StackLimitDirective(1),
+               // call init:
+               JVMSelfLoad(),
+               JVMInvokeSpecialMethod(
+                 new JVMMethodRef(typeClassMap(typeClass), "<init>",
+                                  List(), JVMVoidPrimitiveType())))
+        val initFunction =
+          JVMMethod("<init>", List(), JVMVoidPrimitiveType(),
+                    initInstructions, false)
+        JVMClass("DatatypeClass" +
+                 LowerName(name.asInstanceOf[TTopLevelIdent].name),
+                 Some(typeClassMap(typeClass)),
+                 List(), List(initFunction))
+      }
+                 
+    }
+
   def run(tree: TJavaProgram) = {
     // Create a new Java program:
     val main = lowerMain(tree.main, tree.topLevelVariables)
     val functions = tree.functions.map(lowerFunction(_)).flatten
+    // We need to lower the data type classes:
+    val (dataTypes, dataMap) = lowerDataClasses(tree.dataTypeDecs)
+    val dataTypeConstructors =
+      tree.dataTypeDecs.map(lowerDatatype(_, dataMap, tree.typeEnv))
 
-    new JVMProgram(main :: functions)
+    new JVMProgram(main :: functions ::: dataTypes ::: dataTypeConstructors)
   }
 }

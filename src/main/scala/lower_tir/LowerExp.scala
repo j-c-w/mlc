@@ -244,7 +244,7 @@ object LowerExp {
       val applicationInstrs = apply(application, env)
 
       val resultType = env.getOrFail(typ) match {
-        case TFunctionType(from, to) => LowerType(to)
+        case TFunctionType(from, to) => LowerType(to, env)
         case _ => throw new ICE("""A function application must have a function
           |type. Instead found %s""".stripMargin.format(typ.prettyPrint))
       }
@@ -312,7 +312,7 @@ object LowerExp {
         new JVMMethodRef(new JVMLinkedListRef(), "head",
                          List(), JVMObjectType())) :+
       // And cast it
-      JVMCheckCast(LowerType(env.getOrFail(typ)).getRefFor)
+      JVMCheckCast(LowerType(env.getOrFail(typ), env).getRefFor)
     case TExpListTail(listExp) =>
       LowerExp(listExp, env) :+
       new JVMInvokeVirtualMethod(
@@ -331,7 +331,7 @@ object LowerExp {
                          List(new JVMIntPrimitiveType()),
                          new JVMObjectType())) :+
       // Then, we have to case the result object to the right type.
-      new JVMCheckCast(LowerType(env.getOrFail(typ)).getRefFor)
+      new JVMCheckCast(LowerType(env.getOrFail(typ), env).getRefFor)
     }
     case TExpListExtract(listExp, index, typ) => {
       // Compile the list:
@@ -343,7 +343,20 @@ object LowerExp {
         new JVMMethodRef(new JVMLinkedListRef(), "at",
                          List(JVMIntPrimitiveType()), JVMObjectType())) :+
       // Cast the object:
-      JVMCheckCast(LowerType(env.getOrFail(typ)).getRefFor)
+      JVMCheckCast(LowerType(env.getOrFail(typ), env).getRefFor)
+    }
+    case TExpUnapply(exp, internalType) => {
+      val resultType = env.getOrFail(internalType) match {
+        case TFunctionType(_, to) => to
+        case other =>
+          throw new ICE("Unexpected unapply with non function type")
+      }
+
+      LowerExp(exp, env) :+
+      JVMInvokeVirtualMethod(
+        new JVMMethodRef(new JVMDataTypeClassRef(), "unapply",
+                         List(), JVMObjectType())) :+
+      JVMCheckCast(LowerType(resultType, env).getRefFor)
     }
     case TExpListLength(listExp) => {
       // Compile the list
@@ -351,6 +364,11 @@ object LowerExp {
       // Invoke the mehtod
       JVMGetField(new JVMLinkedListRef(), "length", JVMIntPrimitiveType()) :+
       box(JVMIntPrimitiveType())
+    }
+    case TExpIsType(exp, typ) => {
+      LowerExp(exp, env) :+
+      JVMInstanceOf(LowerType(typ, env).getRefFor) :+
+      box(JVMBooleanPrimitiveType())
     }
     case TExpIf(cond, ifTrue, ifFalse) => {
       val falseLabel = LabelGenerator.newLabel()
@@ -393,18 +411,44 @@ object LowerExp {
 
       List(JVMJump(label))
     }
-    case TExpThrow(throwable) =>
-      LowerLoadIdent(throwable, env) :+ new JVMAThrow()
+    case TExpTry(expression, tryVariable, cases) => {
+      // The re-throw logic was inserted by lower_program.
+      val beforeLabel = LabelGenerator.newLabel()
+      val afterLabel = LabelGenerator.newLabel()
+
+      val handleLabel = LabelGenerator.newLabel()
+      val afterHandleLabel = LabelGenerator.newLabel()
+
+      HandleDirective(JVMRuntimeExceptionRef(), beforeLabel, afterLabel,
+                      handleLabel) ::
+      JVMLabelMark(beforeLabel) ::
+      (LowerExp(expression, env) :+
+       JVMLabelMark(afterLabel) :+
+       JVMJump(afterHandleLabel) :+
+       JVMStackPushDirective(JVMRuntimeExceptionRef()) :+
+       JVMHandleMark(handleLabel)) :::
+      (LowerExp(cases, env) :+
+       JVMLabelMark(afterHandleLabel))
+    }
+    case TExpRaise(throwable) =>
+      LowerExp(throwable, env) :+
+      JVMInvokeVirtualMethod(new JVMMethodRef(JVMExceptionClassRef(),
+                                              "getThrowable",
+                                              List(),
+                                              JVMThrowableType())) :+
+      new JVMAThrow()
+    case TExpHandle(_, _, _) => throw new ICE("""Error: Expected
+      the TExpHandle to have been removed.  It was not""".stripMargin)
     case TExpLetIn(_, _, _) => throw new ICE("""Error: Expected the TExpLetIn
-      |to have been remvoved. It was not""".stripMargin)
+      |to have been remvoved.  It was not""".stripMargin)
     case TExpFn(_, _) => throw new ICE("""Error: Expected TExpFn to have
-      |been removed. It was not""".stripMargin)
+      |been removed.  It was not""".stripMargin)
     case TExpFunLet(_, _) => throw new ICE("""Error: LowerExp cannot
       |lower FunLets""".stripMargin)
     case TExpCase(_, _, _) => throw new ICE("""Error: Expected case statments
-      |to have been replaced""".stripMargin)
+      |to have been replaced.  It was not""".stripMargin)
     case TExpMatchRow(_, _, _) => throw new ICE("""Error: Excpected match
-      |rows to have been removed""".stripMargin)
+      |rows to have been removed.  It was not.""".stripMargin)
   }
 
   def boxedIntCmp(application: TExp, env: TTypeEnv,
