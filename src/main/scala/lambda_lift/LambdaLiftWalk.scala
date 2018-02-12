@@ -186,6 +186,9 @@ class LambdaLiftWalk(val program: TProgram)
             }
           }
           case TVal(_, _) => // Do nothing
+          case TDataTypeDec(_, _, _) =>
+            throw new ICE("""Error: Found a nested data  type dec after
+              |data type declarations have been lifted.""".stripMargin)
           case TJavaFun(_, _, _, _) =>
             throw new ICE("""TJavaFun encountered before they are allowed to be
               |introduced""".stripMargin)
