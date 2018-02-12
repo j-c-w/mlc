@@ -47,3 +47,17 @@ case class TVal(var ident: TIdent, var exp: TExp) extends TDec {
   def nodeClone(env: TTypeEnv) =
     new TVal(ident.nodeClone(env), exp.nodeClone(env))
 }
+
+case class TDataTypeDec(var name: TNamedIdent,
+                        var constructorTypes: Option[TType],
+                        var typeClass: TType) extends TDec {
+  def prettyPrint = """
+  |datatype %s of %s: %s
+  """.stripMargin.format(name.prettyPrint, constructorTypes.map(_.prettyPrint),
+                         typeClass.prettyPrint)
+
+  def nodeClone(env: TTypeEnv) =
+    new TDataTypeDec(name.nodeClone(env),
+                     constructorTypes.map(_.nodeClone(env)),
+                     typeClass.nodeClone(env))
+}

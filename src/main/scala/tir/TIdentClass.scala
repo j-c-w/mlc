@@ -26,3 +26,11 @@ case class TFunClass() extends TIdentClass {
 
   def nodeClone(env: TTypeEnv) = new TFunClass()
 }
+
+case class TDataTypeClass() extends TIdentClass {
+  def prettyPrint = "_datatype"
+
+  def isRegisterClass = false
+
+  def nodeClone(env: TTypeEnv) = new TDataTypeClass()
+}

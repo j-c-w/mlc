@@ -102,6 +102,16 @@ case class TNumberedIdentVar(var name: String, var number: Int)
     new TNumberedIdentVar(new String(name), number)
 }
 
+/* This is provided so that exceptions can be represented in a target
+ * independent manner.  When an exception is caught, this is needed
+ * to get it out.  This MUST NOT be copy propagated.
+ */
+case class TCaughtExceptionIdent() extends BuiltinIdent {
+  def prettyPrint = "<caught exception>"
+
+  def nodeClone(env: TTypeEnv) = new TCaughtExceptionIdent()
+}
+
 case class TUnderscoreIdent() extends BuiltinIdent {
   def prettyPrint = "_"
 

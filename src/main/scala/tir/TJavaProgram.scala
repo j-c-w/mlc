@@ -10,6 +10,7 @@ import toplev.GenericPrintable
 
 case class TJavaProgram(var typeEnv: TTypeEnv, var main: TJavaFun,
                         var topLevelVariables: Set[TTopLevelIdent],
+                        var dataTypeDecs: List[TDataTypeDec],
                         var functions: List[TJavaFun])
     extends TTree {
   def prettyPrint = """
@@ -23,5 +24,6 @@ Main: %s
 
   def nodeClone(env: TTypeEnv): TJavaProgram =
     new TJavaProgram(typeEnv, main.nodeClone(typeEnv), topLevelVariables,
+                     dataTypeDecs.map(_.nodeClone(typeEnv)),
                      functions.map(_.nodeClone(typeEnv)))
 }

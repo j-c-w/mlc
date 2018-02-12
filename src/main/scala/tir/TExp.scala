@@ -182,6 +182,15 @@ case class TExpListTail(var list: TExp) extends TExp {
     new TExpListTail(list.nodeClone(env))
 }
 
+case class TExpUnapply(var dataType: TExp, var internalType: TInternalIdentVar)
+    extends TExp {
+  def prettyPrint =
+    "Unapply(%s)".format(dataType.prettyPrint)
+
+  def nodeClone(env: TTypeEnv) =
+    new TExpUnapply(dataType.nodeClone(env), internalType.nodeClone(env))
+}
+
 case class TExpTupleExtract(var tuple: TExp, var tupleSize: Int,
                             var index: Int, var tyVar: TInternalIdentVar)
     extends TExp {
@@ -210,6 +219,14 @@ case class TExpListLength(var list: TExp) extends TExp {
 
   def nodeClone(env: TTypeEnv) =
     new TExpListLength(list.nodeClone(env))
+}
+
+case class TExpIsType(var exp: TExp, var typ: TType) extends TExp {
+  def prettyPrint =
+    "Type of (%s) is (%s)".format(exp.prettyPrint, typ.prettyPrint)
+
+  def nodeClone(env: TTypeEnv) =
+    new TExpIsType(exp.nodeClone(env), typ.nodeClone(env))
 }
 
 case class TExpFunLet(var valdecs: Set[TNamedIdent], var exp: TExp)
@@ -268,7 +285,7 @@ case class TExpBreak(var returnValue: TExp, var loopID: Int) extends TExp {
 }
 
 case class TExpContinue(var whileLoopID: Int) extends TExp {
-  def prettyPrint = """Continute {id : %s}""".format(whileLoopID)
+  def prettyPrint = "Continute {id : %s}".format(whileLoopID)
 
   def nodeClone(env: TTypeEnv) = {
     // This assertion will fail if the continue is not within a while loop.
@@ -277,9 +294,33 @@ case class TExpContinue(var whileLoopID: Int) extends TExp {
   }
 }
 
-case class TExpThrow(var throwable: TIdentThrowable) extends TExp {
+case class TExpHandle(var expression: TExp, var cases: List[TExpMatchRow],
+                      var applicationType: TInternalIdentVar)
+    extends TExp {
+  def prettyPrint =
+    "(%s) handle (%s)".format(expression.prettyPrint, cases.map(_.prettyPrint))
+
+  def nodeClone(env: TTypeEnv) =
+    new TExpHandle(expression.nodeClone(env), cases.map(_.nodeClone(env)),
+                   applicationType.nodeClone(env))
+}
+
+/* This differes from Exp Handle because it is a lower level construct.
+ * This maps closely onto the JVM.  */
+case class TExpTry(var exp: TExp, var catchVar: TNamedIdent,
+                   var catchExp: TExp) extends TExp {
+  def prettyPrint =
+    "try (%s) catch in %s as (%s)".format(exp.prettyPrint, catchVar.prettyPrint,
+                                          catchExp.prettyPrint)
+
+  def nodeClone(env: TTypeEnv) =
+    new TExpTry(exp.nodeClone(env), catchVar.nodeClone(env),
+                catchExp.nodeClone(env))
+}
+
+case class TExpRaise(var throwable: TExp) extends TExp {
   def prettyPrint = "throw (%s)".format(throwable.prettyPrint)
 
   def nodeClone(env: TTypeEnv) =
-    new TExpThrow(throwable.nodeClone(env))
+    new TExpRaise(throwable.nodeClone(env))
 }
