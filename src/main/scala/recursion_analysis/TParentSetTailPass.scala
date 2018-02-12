@@ -13,7 +13,8 @@ abstract class TParentSetTailPass extends TParentSetPass[Boolean] {
     case TExpFunApp(_, _, _) | TExpList(_) | TExpTuple(_) | TExpFn(_, _)
        | TExpAssign(_, _) | TExpListHead(_, _) | TExpListTail(_)
        | TExpTupleExtract(_, _, _, _) | TExpListExtract(_, _, _)
-       | TExpListLength(_) | TExpThrow(_) | TExpBreak(_, _) =>
+       | TExpListLength(_) | TExpRaise(_) | TExpBreak(_, _) | TExpIsType(_, _)
+       | TExpUnapply(_, _) =>
       super.apply(false, exp)
     case let @ TExpLetIn(decs, letExp, env) => {
       let.decs = getNew(let.decs, decs.map(apply(false, _)))
@@ -55,6 +56,30 @@ abstract class TParentSetTailPass extends TParentSetPass[Boolean] {
 
       setNew(newVals, valdecs)
       funLet.exp = getNew(funLet.exp, apply(isTail, funLet.exp))
+      None
+    }
+    case handle @ TExpHandle(exp, cases, appType) => {
+      // The expression and the cases can both be tail calls.
+      // If the last expression is a throw, we can still handle it.
+      val newCases =
+        handle.cases.map((x: TExpMatchRow) =>
+                         (apply(isTail, x).map(_.asInstanceOf[TExpMatchRow])))
+
+      handle.expression =
+        getNew(handle.expression, apply(isTail, handle.expression))
+      handle.cases = getNew(handle.cases, newCases)
+      handle.applicationType =
+        getNew(appType,
+               apply(false, appType).asInstanceOf[Option[TInternalIdentVar]])
+      None
+    }
+    case tryExp @ TExpTry(exp, handleVar, handleExp) => {
+      tryExp.exp = getNew(exp, apply(isTail, exp))
+      tryExp.catchVar =
+        getNew(handleVar,
+               apply(false, handleVar).asInstanceOf[Option[TInternalIdentVar]])
+      tryExp.catchExp = getNew(handleExp, apply(isTail, handleExp))
+
       None
     }
     case ifStmt @ TExpIf(cond, ifTrue, ifFalse) => {

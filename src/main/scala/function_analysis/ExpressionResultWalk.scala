@@ -24,15 +24,19 @@ abstract class ExpressionResultWalk extends TParentSetTailPass {
     case app @ (_: TExpFunApp | _: TExpConst | _: TExpIdent | _: TExpTuple
                 | _: TExpList | _: TExpFn | _: TExpAssign | _: TExpListHead
                 | _: TExpListTail | _: TExpTupleExtract | _: TExpListExtract
-                | _: TExpListLength) =>
+                | _: TExpListLength | _: TExpIsType | _: TExpUnapply) =>
       if (isTail)
         returnExp(app)
       else
         None
-    case (_: TExpBreak | _: TExpContinue | _: TExpThrow) =>
+    case (_: TExpBreak | _: TExpContinue) =>
       // Hmm. Another hard case that doesn't matter for  the current
       // implementation.  Say these are false is correct I think.  There is
       // no recursion that has to be done here.
+      None
+    case _: TExpRaise =>
+      // Expressions that are thrown do not return values in a traditional
+      // sense.
       None
     case whileLoop: TExpWhile =>
       // The difficulty with while loops is that they don't really represent
@@ -41,7 +45,7 @@ abstract class ExpressionResultWalk extends TParentSetTailPass {
       // just walked normally.  This is what is implemented here.
       None
     case exp @ (_: TExpCase | _: TExpFunLet | _: TExpIf | _: TExpLetIn
-                | _: TExpMatchRow | _: TExpSeq) =>
+                | _: TExpMatchRow | _: TExpSeq | _: TExpHandle | _: TExpTry) =>
       super.apply(isTail, exp)
   }
 }

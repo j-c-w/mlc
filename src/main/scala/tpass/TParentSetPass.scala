@@ -183,10 +183,19 @@ class TParentSetPass[T] {
         listExtract.tyVar =
           getNew(typ, newTyp.map(_.asInstanceOf[TInternalIdentVar]))
       }
+      case unapply @ TExpUnapply(exp, typ) => {
+        unapply.dataType = getNew(exp, apply(item, exp))
+        unapply.internalType =
+          getNew(typ, apply(item, typ).asInstanceOf[Option[TInternalIdentVar]])
+      }
       case listLength @ TExpListLength(list) => {
         val newList = apply(item, list)
 
         listLength.list = getNew(listLength.list, newList)
+      }
+      case isType @ TExpIsType(exp, typ) => {
+        isType.exp = getNew(exp, apply(item, exp))
+        isType.typ = getNew(typ, apply(item, typ))
       }
       case funLet @ TExpFunLet(valdecs, exp) => {
         val newVals = valdecs.map((x: TNamedIdent) => (x, apply(item, x)))
@@ -203,12 +212,29 @@ class TParentSetPass[T] {
         ifStmt.ifTrue = getNew(ifStmt.ifTrue, newTrue)
         ifStmt.ifFalse = getNew(ifStmt.ifFalse, newFalse)
       }
-      case throwExp @ TExpThrow(throwable) => {
+      case tryExp @ TExpTry(expression, catchVar, catchExp) => {
+        tryExp.exp = getNew(expression, apply(item, expression))
+        tryExp.catchVar =
+          getNew(catchVar,
+                 apply(item, catchVar).asInstanceOf[Option[TNamedIdent]])
+        tryExp.catchExp = getNew(catchExp, apply(item, catchExp))
+      }
+      case handle @ TExpHandle(exp, cases, internalIdent) => {
+        handle.expression = getNew(handle.expression, apply(item, exp))
+        val newMatchRows =
+          cases.map(apply(item, _).asInstanceOf[Option[TExpMatchRow]])
+
+        handle.cases = getNew(cases, newMatchRows)
+        handle.applicationType =
+          getNew(internalIdent,
+                 apply(item,
+                       internalIdent).asInstanceOf[Option[TInternalIdentVar]])
+      }
+      case throwExp @ TExpRaise(throwable) => {
         val newThrowable = apply(item, throwable)
 
         throwExp.throwable =
-          getNew(throwExp.throwable,
-                 newThrowable).asInstanceOf[TIdentThrowable]
+          getNew(throwExp.throwable, newThrowable)
       }
       case continue @ TExpContinue(id) =>
       case break @ TExpBreak(exp, loopID) =>
@@ -282,6 +308,13 @@ class TParentSetPass[T] {
           case None =>
           case Some(newConst) => constPat.const = newConst
         }
+      case patConstructor @ TPatConstructor(name, args) => {
+        patConstructor.typeName = getNew(name, apply(item, name))
+        patConstructor.typeArgs =
+          patConstructor.typeArgs.map {
+            case args => getNew(args, apply(item, args))
+          }
+      }
       case patCons @ TPatCons(head, tail) => {
         val headResult = apply(item, head)
         val tailResult = apply(item, tail)
@@ -359,32 +392,49 @@ class TParentSetPass[T] {
                  curriedArgsResults,
                  (x: TIdent) => (x.asInstanceOf[TInternalIdentVar]))
       }
+      case dataTypeDec @ TDataTypeDec(name, typs, typeClass) => {
+        dataTypeDec.name =
+          getNew(name, apply(item, name).map(_.asInstanceOf[TNamedIdent]))
+        dataTypeDec.constructorTypes =
+          dataTypeDec.constructorTypes.map(x => getNew(x, apply(item, x)))
+        dataTypeDec.typeClass = getNew(typeClass, apply(item, typeClass))
+      }
     }
     None
   }
 
-  def apply(item: T, p: TProgram): Unit = {
-    val funsRes = p.funs.map(apply(item, _))
-    val valsRes = p.vals.map(apply(item, _))
+  def apply(item: T, p: TProgram): Unit = p match {
+    case TProgram(typeEnv, dataTypeDecs, funs, vals) => {
+      val funsRes = funs.map(apply(item, _))
+      val valsRes = vals.map(apply(item, _))
+      val dataTypesRes = dataTypeDecs.map(apply(item, _))
 
-    p.funs = getNew(p.funs, funsRes, (x: TDec) => x.asInstanceOf[TFun])
-
-    p.vals = getNew(p.vals, valsRes, (x: TDec) => x.asInstanceOf[TVal])
+      p.dataTypeDecs = getNew(dataTypeDecs, dataTypesRes,
+                              (x: TDec) => x.asInstanceOf[TDataTypeDec])
+      p.funs = getNew(funs, funsRes, (x: TDec) => x.asInstanceOf[TFun])
+      p.vals = getNew(vals, valsRes, (x: TDec) => x.asInstanceOf[TVal])
+    }
   }
 
-  def apply(item: T, p: TJavaProgram): Unit = {
-    val mainRes = apply(item, p.main)
-    val funRes = p.functions.map(apply(item, _))
-    val identsResults = p.topLevelVariables.map(x => (x, apply(item, x)))
+  def apply(item: T, p: TJavaProgram): Unit = p match {
+    case TJavaProgram(typeEnv, main, topLevelVariables, dataTypeDecs,
+                      functions) => {
+      val mainRes = apply(item, p.main)
+      val dataTypesRes = dataTypeDecs.map(apply(item, _))
+      val funRes = p.functions.map(apply(item, _))
+      val identsResults = p.topLevelVariables.map(x => (x, apply(item, x)))
 
-    mainRes.map(main => p.main = main.asInstanceOf[TJavaFun])
-    p.functions = getNew(p.functions, funRes,
-                         (x: TDec) => x.asInstanceOf[TJavaFun])
-    identsResults.foreach {
-      case (old, None) => // Do nothing
-      case (old, Some(newIdent)) => {
-        p.topLevelVariables.remove(old)
-        p.topLevelVariables += newIdent.asInstanceOf[TTopLevelIdent]
+      mainRes.map(main => p.main = main.asInstanceOf[TJavaFun])
+      p.dataTypeDecs = getNew(p.dataTypeDecs, dataTypesRes,
+                              (x: TDec) => x.asInstanceOf[TDataTypeDec])
+      p.functions = getNew(p.functions, funRes,
+                           (x: TDec) => x.asInstanceOf[TJavaFun])
+      identsResults.foreach {
+        case (old, None) => // Do nothing
+        case (old, Some(newIdent)) => {
+          p.topLevelVariables.remove(old)
+          p.topLevelVariables += newIdent.asInstanceOf[TTopLevelIdent]
+        }
       }
     }
   }

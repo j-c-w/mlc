@@ -89,8 +89,16 @@ trait TPass[T, U] {
       combine(apply(item, tuple), apply(item, typ))
     case TExpListExtract(list, index, typ) =>
       combine(apply(item, list), apply(item, typ))
+    case TExpUnapply(exp, typ) => {
+      apply(item, exp)
+      apply(item, typ)
+    }
     case TExpListLength(list) =>
       apply(item, list)
+    case TExpIsType(exp, typ) => {
+      apply(item, exp)
+      apply(item, typ)
+    }
     case TExpFunLet(idents, expression) =>
       combine(combineList(idents.map(apply(item, _)).toList),
               apply(item, expression))
@@ -98,7 +106,14 @@ trait TPass[T, U] {
       combine(combine(apply(item, cond),
                       apply(item, ifTrue)),
               apply(item, ifFalse))
-    case TExpThrow(throwable) =>
+    case TExpHandle(exp, handleCases, handleType) =>
+      combine(combine(apply(item, exp),
+                      combineList(handleCases.map(apply(item, _)))),
+              apply(item, handleType))
+    case TExpTry(exp, exceptionIdent, handleExp) =>
+      combine(combine(apply(item, exp), apply(item, exceptionIdent)),
+              apply(item, handleExp))
+    case TExpRaise(throwable) =>
       apply(item, throwable)
     case TExpContinue(id) => default
     case TExpBreak(returnValue, loopID) =>
@@ -124,6 +139,10 @@ trait TPass[T, U] {
     case TPatIdentifier(ident) => apply(item, ident)
     case TPatSeq(seqs) => combineList(seqs.map(apply(item, _)))
     case TListPat(items) => combineList(items.map(apply(item, _)))
+    case TPatConstructor(name, args) => args match {
+      case None => apply(item, name)
+      case Some(args) => combine(apply(item, name), apply(item, args))
+    }
     case TPatConst(const) => apply(item, const)
     case TPatCons(head, tail) => combine(apply(item, head), apply(item, tail))
   }
@@ -134,6 +153,11 @@ trait TPass[T, U] {
     case TTupleType(subTypes) =>
       combineList(subTypes.map(apply(item, _)))
     case TListType(subType) => apply(item, subType)
+    // case TConstructorType(name, from, to) =>
+    //   from.map(apply(item, _)) match {
+    //     case None => apply(item, to)
+    //     case Some(value) => combine(value, apply(item, to))
+    //   }
     case other => default
   }
 
@@ -152,21 +176,40 @@ trait TPass[T, U] {
 
       combine(combine(casesRes, identRes), combineList(curriedArgsRes))
     }
+    case TDataTypeDec(name, constructorTypes, dataType) => {
+      val constRes = constructorTypes.map(apply(item, _))
+      val dataTypeRes = apply(item, dataType)
+
+      constRes match {
+        case None => dataTypeRes
+        case Some(constRes) => combine(dataTypeRes, constRes)
+      }
+    }
   }
 
-  def apply(item: T, p: TProgram): U = {
-    val funsRes = p.funs.map(apply(item, _))
-    val valsRes = p.vals.map(apply(item, _))
+  def apply(item: T, p: TProgram): U = p match {
+    case TProgram(env, dataTypes, funs, vals) => {
+      val funsRes = p.funs.map(apply(item, _))
+      val valsRes = p.vals.map(apply(item, _))
+      val dataTypeRes = dataTypes.map(apply(item, _))
 
-    combine(combineList(funsRes), combineList(valsRes))
+      combine(combine(combineList(funsRes), combineList(valsRes)),
+              combineList(dataTypeRes))
+    }
   }
 
-  def apply(item: T, p: TJavaProgram): U = {
-    val mainRes = apply(item, p.main)
-    val funsRes = p.functions.map(apply(item, _))
-    val identsRes = p.topLevelVariables.toList.map(apply(item, _))
+  def apply(item: T, p: TJavaProgram): U = p match {
+    case TJavaProgram(typeEnv, main, topLevelVariables, dataTypeDecs,
+                      functions) => {
+      val mainRes = apply(item, p.main)
+      val funsRes = p.functions.map(apply(item, _))
+      val identsRes = p.topLevelVariables.toList.map(apply(item, _))
+      val dataTypesRes = dataTypeDecs.map(apply(item, _))
 
-    combine(combine(combineList(funsRes), mainRes), combineList(identsRes))
+      combine(combineList(dataTypesRes),
+              combine(combine(combineList(funsRes), mainRes),
+                      combineList(identsRes)))
+    }
   }
 
   def combineList(list: List[U]): U = 
