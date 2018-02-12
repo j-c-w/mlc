@@ -33,12 +33,18 @@ object ASTChangeNames
 
           val newNameEnv = new ASTNameEnvironment(map)
           val newPattern = changeNamesInsert(newNameEnv, patterns)
-          // Types need not be renamed.
           val newExpression = changeNames(newNameEnv, expression)
+          val newTypes = types.map(changeNames(map, _))
 
-          (newIdents, newPattern, types, newExpression)
+          (newIdents, newPattern, newTypes, newExpression)
         }
       })
+    }
+    case ASTExceptionBind(name, typs) => {
+      changeNamesInsert(map, name)
+      // Declaration of this exception is left unchanged.  Exceptions
+      // may not appear in the types of an exception.
+      ASTExceptionBind(changeNames(map, name), typs.map(changeNames(map, _)))
     }
     case ASTDataType(_, _) =>
       throw new UnimplementedException("Datatypes are not implemented.")
@@ -75,7 +81,7 @@ object ASTChangeNames
     case ASTExpSeq(seqs) =>
       ASTExpSeq(seqs.map(changeNames(map, _)))
     case ASTExpTyped(exp, typ) =>
-      ASTExpTyped(changeNames(map, exp), typ)
+      ASTExpTyped(changeNames(map, exp), changeNames(map, typ))
     case ASTExpMatchRow(pats, exp) => {
       val newMap = new ASTNameEnvironment(map)
 
@@ -84,6 +90,11 @@ object ASTChangeNames
 
       ASTExpMatchRow(newPats, newExp)
     }
+    case ASTExpRaise(exception) =>
+      ASTExpRaise(changeNames(map, exception))
+    case ASTExpHandle(exp, cases) =>
+      ASTExpHandle(changeNames(map, exp),
+                   cases.map(changeNamesMatchRow(map, _)))
     case ASTExpFn(body) =>
       ASTExpFn(body.map(changeNamesMatchRow(map, _)))
     case ASTExpIfThenElse(cond, t, f) =>
@@ -93,8 +104,8 @@ object ASTChangeNames
       ASTExpCase(changeNames(map, exp), cases.map(changeNamesMatchRow(map, _)))
   }
 
-  /* If this compiler were to be expanded to a larger subset, this
-   * pass would have to be rewritten. */
+  /* If this compiler were to be expanded to a larger subset including
+   * infix declarations, this pass would have to be rewritten. */
   def changeNamesUnOp(map: ASTNameEnvironment, ident: ASTUnOp) =
     ident
 
@@ -147,14 +158,42 @@ object ASTChangeNames
   def changeNamesInsert(map: ASTNameEnvironment, pattern: ASTPat): ASTPat =
     pattern match {
       case ASTPatVariable(variable, typ) =>
-        ASTPatVariable(changeNamesInsertNoDuplicate(map, variable), typ)
+        ASTPatVariable(changeNamesInsertNoDuplicate(map, variable),
+                       changeNames(map, typ))
       case ASTPatSeq(pats, typs) =>
-        ASTPatSeq(pats.map(changeNamesInsert(map, _)), typs)
+        ASTPatSeq(pats.map(changeNamesInsert(map, _)), changeNames(map, typs))
       case ASTListPat(list, typs) =>
-        ASTListPat(list.map(changeNamesInsert(map, _)), typs)
+        ASTListPat(list.map(changeNamesInsert(map, _)), changeNames(map, typs))
+      case ASTPatConstructor(name, args, typs) => {
+        val newName = changeNames(map, name)
+
+        ASTPatConstructor(newName,
+                          args.map(changeNamesInsert(map, _)
+                            .asInstanceOf[ASTPatSeq]),
+                          changeNames(map, typs))
+      }
       case ASTPatCons(head, tail, typs) =>
         ASTPatCons(changeNamesInsert(map, head),
-                   changeNamesInsert(map, tail), typs)
+                   changeNamesInsert(map, tail),
+                   changeNames(map, typs))
+      case other => other
+    }
+
+  def changeNames(map: ASTNameEnvironment,
+                        typList: List[ASTType]): List[ASTType] =
+    typList.map(changeNames(map, _))
+
+  def changeNames(map: ASTNameEnvironment, typ: ASTType): ASTType =
+    typ match {
+      case ASTDataTypeName(name) =>
+        ASTDataTypeName(changeNames(map, name))
+      case ASTFunctionType(from, to) =>
+        ASTFunctionType(changeNames(map, from),
+                        changeNames(map, to))
+      case ASTTupleType(elems) =>
+        ASTTupleType(elems.map(changeNames(map, _)))
+      case ASTListType(subTyp) =>
+        ASTListType(changeNames(map, subTyp))
       case other => other
     }
 
