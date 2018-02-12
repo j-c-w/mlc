@@ -49,6 +49,9 @@ case class JVMMethodRef(var classRef: JVMClassRef, var name: String,
         case JVMLinkedListNilRef() => false
         case JVMUnitRef() => false
         case JVMMatchExceptionRef() => false
+        case JVMDataTypeClassRef() => true
+        case JVMExceptionClassRef() => true
+        case JVMThrowableClassRef() => false
         case JVMTupleRef() =>
           funCall match {
             case "get" => false

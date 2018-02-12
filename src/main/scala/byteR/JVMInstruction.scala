@@ -66,9 +66,18 @@ case object JVMNoInstruction extends JVMInstruction {
 
 case class JVMCheckCast(to: JVMClassRef) extends JVMUnaryInstruction 
     with JVMParentInstruction {
+  // We may assume that there is no side effect as check cash
+  // <should> not throw. (i.e. all casts should be typesafe).
   def hasSideEffect = false
 
   def prettyPrint = "checkcast " + to.prettyPrint
+}
+
+case class JVMInstanceOf(typ: JVMClassRef) extends JVMUnaryInstruction
+    with JVMParentInstruction {
+  def hasSideEffect = false
+
+  def prettyPrint = "instanceof " + typ.prettyPrint
 }
 
 case class JVMInvokeSpecialMethod(method: JVMMethodRef)
@@ -236,6 +245,18 @@ case class JVMLabelMark(var label: JVMLabel) extends JVMLabelInstruction
   def prettyPrint = label.prettyPrint + ":"
 
   def stackEffect = 0
+}
+
+/* Handling exceptions automatically pushes an exception onto the
+ * stack.  To model this, we need a special instruction with the appropriate
+ * effect.  */
+case class JVMHandleMark(val label: JVMLabel) extends JVMLabelInstruction
+    with JVMParentInstruction {
+  def hasSideEffect = false
+
+  def prettyPrint = label.prettyPrint + ": ; Catch block."
+
+  def stackEffect = 1
 }
 
 case class JVMIPush(var value: Int) extends JVMPushInstruction {
@@ -534,4 +555,21 @@ case class StackPopDirective(var lim: String) extends JVMDirective {
   def hasSideEffect = false
 
   def prettyPrint = ".stack " + lim
+}
+
+case class HandleDirective(var exceptionType: JVMClassRef, var from: JVMLabel,
+                           var to: JVMLabel, var withLabel: JVMLabel)
+    extends JVMDirective with JVMLabelInstruction {
+  def hasSideEffect = true
+
+  def prettyPrint = ".catch " + exceptionType.prettyPrint + " from " +
+    from.prettyPrint + " to "  + to.prettyPrint + " using " +
+    withLabel.prettyPrint
+}
+
+case class JVMStackPushDirective(var objectTyp: JVMClassRef)
+    extends JVMDirective {
+  def hasSideEffect = false
+
+  def prettyPrint = ".stack stack_1 Object " + objectTyp.prettyPrint
 }

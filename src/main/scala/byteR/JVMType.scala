@@ -90,6 +90,18 @@ case class JVMTupleType() extends JVMRefType {
   def getRefFor = new JVMTupleRef()
 }
 
+case class JVMExceptionType() extends JVMRefType {
+  def prettyPrint = "Lcmlc/CMLCException;"
+
+  def getRefFor = new JVMExceptionClassRef()
+}
+
+case class JVMDataTypeType(var name: JVMClassRef) extends JVMRefType {
+  def prettyPrint = "L" + name.prettyPrint + ";"
+
+  def getRefFor = name
+}
+
 case class JVMClassType(var name: JVMClassRef) extends JVMRefType {
   def prettyPrint = "L" + name.prettyPrint + ";"
 
@@ -124,6 +136,18 @@ case class JVMLinkedListType() extends JVMRefType {
   def prettyPrint = "Lcmlc/LinkedList;"
 
   def getRefFor = new JVMLinkedListRef()
+}
+
+case class JVMThrowableType() extends JVMRefType {
+  def prettyPrint = "Lcmlc/CMLCThrowable;"
+
+  def getRefFor = new JVMThrowableClassRef()
+}
+
+case class JVMDataTypeClass() extends JVMRefType {
+  def prettyPrint = "Lcmlc/Datatype"
+
+  def getRefFor = new JVMDataTypeClassRef()
 }
 
 // These are here because we treat some things (such as "print") as builtins.

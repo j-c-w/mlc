@@ -62,6 +62,18 @@ case class JVMLinkedListNilRef() extends JVMCMLCLibRef {
   def prettyPrint = "cmlc/Nil"
 }
 
+case class JVMDataTypeClassRef() extends JVMCMLCLibRef {
+  def prettyPrint = "cmlc/Datatype"
+}
+
+case class JVMExceptionClassRef() extends JVMCMLCLibRef {
+  def prettyPrint = "cmlc/CMLCException"
+}
+
+case class JVMThrowableClassRef() extends JVMCMLCLibRef {
+  def prettyPrint = "cmlc/CMLCThrowable"
+}
+
 case class JVMMatchExceptionRef() extends JVMCMLCLibRef {
   def prettyPrint = "cmlc/MatchError"
 }
@@ -82,4 +94,8 @@ case class JVMPrintStreamRef() extends JVMClassRef {
 
 case class JVMStringBuilderRef() extends JVMClassRef {
   def prettyPrint = "java/lang/StringBuilder"
+}
+
+case class JVMRuntimeExceptionRef() extends JVMClassRef {
+  def prettyPrint = "java/lang/RuntimeException"
 }
