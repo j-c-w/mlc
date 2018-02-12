@@ -125,6 +125,19 @@ case class ASTExpIfThenElse(val cond: ASTExp, val taken: ASTExp,
   """.format(cond.prettyPrint, taken.prettyPrint, notTaken.prettyPrint)
 }
 
+case class ASTExpRaise(val exn: ASTExp) extends ASTExp {
+  def prettyPrint = "raise (%s)".format(exn.prettyPrint)
+}
+
+case class ASTExpHandle(val exp: ASTExp, val handleCases: List[ASTExpMatchRow])
+    extends ASTExp {
+  var applicationType: Option[ASTInternalIdent] = None
+
+  def prettyPrint =
+    "%s handle %s".format(exp.prettyPrint,
+                          handleCases.map(_.prettyPrint).mkString("| "))
+}
+
 case class ASTExpCase(val exp: ASTExp, val caseList: List[ASTExpMatchRow])
     extends ASTExp {
   // This stores the type of the case expression as if it were a function.

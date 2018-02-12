@@ -57,3 +57,16 @@ case class ASTPatCons(val head: ASTPat, val tail: ASTPat,
   def appendTypes(typs: List[ASTType]) =
     ASTPatCons(head, tail, typ ::: typs)
 }
+
+case class ASTPatConstructor(val constructor: ASTIdent,
+                             val args: Option[ASTPatSeq],
+                             val typ: List[ASTType]) extends ASTPat {
+  def prettyPrint = args match {
+    case Some(args) =>
+      "%s(%s)".format(constructor.prettyPrint, args.prettyPrint)
+    case None => constructor.prettyPrint
+  }
+
+  def appendTypes(typs: List[ASTType]) =
+    ASTPatConstructor(constructor, args, typ ::: typs)
+}

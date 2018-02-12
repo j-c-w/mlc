@@ -48,6 +48,20 @@ case class ASTFunBind(val cases: List[(ASTIdent, List[ASTPat],
   }
 }
 
+case class ASTExceptionBind(val ident: ASTIdent, val typ: Option[ASTType])
+    extends ASTDeclaration {
+  def prettyPrint = 
+    typ match {
+      case Some(typ) => """
+        |exception %s of (%s)
+        |""".stripMargin.format(ident.prettyPrint, typ.prettyPrint)
+      case None => "\nexception %s\n".format(ident.prettyPrint)
+    }
+
+  def getIdent = ident
+
+}
+
 // Datatype definitions
 sealed trait ASTDataConstructor {
   def prettyPrint: String
@@ -55,7 +69,7 @@ sealed trait ASTDataConstructor {
 
 case class ASTDataType(val ident: ASTIdent,
                        val classes: List[ASTDataConstructor])
-                       extends ASTDeclaration {
+    extends ASTDeclaration {
   def prettyPrint = """
 
   datatype %s = %s
@@ -74,7 +88,7 @@ case class ASTDataConstructorDefinition(val ident: ASTIdent)
 
 case class ASTDataConstructorDefinitionWithType(val ident: ASTIdent,
                                                 val classType: ASTType)
-                                                extends ASTDataConstructor {
+    extends ASTDataConstructor {
   def prettyPrint = ident.prettyPrint + " of " + classType.prettyPrint
 
   def getIdent = ident

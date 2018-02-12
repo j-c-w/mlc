@@ -11,3 +11,7 @@ case class ASTValClass() extends ASTIdentClass {
 case class ASTFunClass() extends ASTIdentClass {
   def prettyPrint = "_fun"
 }
+
+case class ASTDataTypeClass() extends ASTIdentClass {
+  def prettyPrint = "_datatype"
+}

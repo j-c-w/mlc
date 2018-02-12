@@ -32,6 +32,17 @@ sealed trait ASTType extends GenericPrintable with GenericType[ASTType] {
    */
   def containsNonAtomic(other: ASTType): Boolean
 
+  /* This returns true if one type can be directly represented by another
+   * type with no unification.
+   *
+   * This arises in datatype definitions, for example:
+   * DataConstructor(exn) should be the same as the exception type without
+   * any unification.
+   *
+   * Note: For ease of implementation, this need not be a symmetric relation.
+   */
+  def is(other: ASTType): Boolean
+
   /* This returns true if the other type is contained within this type.
    *
    * This ONLY WORKS if the type 'other' is atomic
@@ -48,7 +59,7 @@ sealed trait ASTType extends GenericPrintable with GenericType[ASTType] {
    */
   override def unify(other: ASTType): ASTUnifier = {
     if (this.contains(other) || other.contains(this)) {
-      if (other equals this)
+      if ((other is this) || (this is other))
         ASTUnifier()
       else
         throw new UnificationError(this, other)
@@ -103,6 +114,10 @@ sealed trait ASTType extends GenericPrintable with GenericType[ASTType] {
    * other types. E.g. functions are not atomic, but 'int' is.
    */
   val isAtomic: Boolean
+
+  /* This returns true if the type is monomorphic and false if it is
+   * polymorphic.  */
+  def isMonomorphic: Boolean
 }
 
 case class ASTFunctionType(val arg: ASTType,
@@ -113,6 +128,12 @@ case class ASTFunctionType(val arg: ASTType,
     case ASTFunctionType(arg1, res1) =>
       (arg equals arg1) && (result equals res1)
     case _ => arg.contains(other) || result.contains(other)
+  }
+
+  override def is(other: ASTType) = other match {
+    case ASTFunctionType(otherArg, otherRes) =>
+      (arg is otherArg) && (result is otherRes)
+    case _ => false
   }
 
   override def containsAtomic(other: ASTType) =
@@ -143,7 +164,7 @@ case class ASTFunctionType(val arg: ASTType,
       argUnifier
     }
     case (ASTUnconstrainedTypeVar(name)) =>
-      if (this.containsAtomic(other)) 
+      if (this.containsAtomic(other))
         throw new UnificationError(this, other)
       else
         ASTUnifier(other, this)
@@ -163,6 +184,8 @@ case class ASTFunctionType(val arg: ASTType,
   def admitsEquality = false
 
   val isAtomic = false
+
+  def isMonomorphic = arg.isMonomorphic && result.isMonomorphic
 }
 
 // To avoid ambiguity, there must be at least two
@@ -172,11 +195,19 @@ case class ASTTupleType(val args: List[ASTType]) extends ASTType {
   def prettyPrint = " (" + (args.map(_.prettyPrint)).mkString(" * ") + ") "
 
   override def containsNonAtomic(other: ASTType) = other match {
-    case ASTTupleType(otherArgs) if otherArgs.length == args.length => 
+    case ASTTupleType(otherArgs) if otherArgs.length == args.length =>
       (otherArgs zip args).forall{
         case (x: ASTType, y: ASTType) => x equals y } ||
       args.exists((x) => x.contains(other))
     case _ => args.exists((x) => x.contains(other))
+  }
+
+  override def is(other: ASTType) = other match {
+    case ASTTupleType(otherArgs) =>
+      (args zip otherArgs).forall {
+        case (arg, otherArg) => arg is otherArg
+      }
+    case _ => false
   }
 
   override def containsAtomic(other: ASTType) =
@@ -253,6 +284,8 @@ case class ASTTupleType(val args: List[ASTType]) extends ASTType {
     be called as that is not nessecarily a well defined concept.""")
 
   val isAtomic = false
+
+  def isMonomorphic = args.forall(_.isMonomorphic)
 }
 
 sealed trait ASTTypeVar extends ASTType
@@ -262,6 +295,12 @@ case class ASTEqualityTypeVar(name: String) extends ASTTypeVar {
 
   override def containsNonAtomic(other: ASTType) = other match {
     case ASTEqualityTypeVar(otherName) => otherName == name
+    case _ => false
+  }
+
+  override def is(other: ASTType) = other match {
+    case ASTEqualityTypeVar(otherName) =>
+      otherName == name
     case _ => false
   }
 
@@ -312,6 +351,8 @@ case class ASTEqualityTypeVar(name: String) extends ASTTypeVar {
   def admitsEquality = true
 
   val isAtomic = true
+
+  def isMonomorphic = false
 }
 
 case class ASTUnconstrainedTypeVar(name: String) extends ASTTypeVar {
@@ -319,6 +360,12 @@ case class ASTUnconstrainedTypeVar(name: String) extends ASTTypeVar {
 
   override def containsNonAtomic(other: ASTType) = other match {
     case ASTUnconstrainedTypeVar(otherName) => otherName == name
+    case _ => false
+  }
+
+  override def is(other: ASTType) = other match {
+    case ASTUnconstrainedTypeVar(otherName) =>
+      otherName == name
     case _ => false
   }
 
@@ -352,6 +399,8 @@ case class ASTUnconstrainedTypeVar(name: String) extends ASTTypeVar {
     .admitsEquality, as that is not a well defined concept""")
 
   val isAtomic = true
+
+  def isMonomorphic = false
 }
 
 case class ASTListType(subType: ASTType) extends ASTTypeVar {
@@ -361,6 +410,12 @@ case class ASTListType(subType: ASTType) extends ASTTypeVar {
     case ASTListType(otherSubType) =>
       (otherSubType equals subType) || (subType contains otherSubType)
     case _ => subType.contains(other)
+  }
+
+  override def is(other: ASTType) = other match {
+    case ASTListType(otherSubType) =>
+      subType is otherSubType
+    case _ => false
   }
 
   override def containsAtomic(other: ASTType) =
@@ -402,6 +457,8 @@ case class ASTListType(subType: ASTType) extends ASTTypeVar {
   def admitsEquality = false
 
   val isAtomic = false
+
+  def isMonomorphic = subType.isMonomorphic
 }
 
 /* This class is a special case. The only function type that ML offers
@@ -418,6 +475,12 @@ case class ASTNumberType(id: String) extends ASTTypeVar {
 
   def containsNonAtomic(other: ASTType) = other match {
     case ASTNumberType(otherID) => otherID == id
+    case _ => false
+  }
+
+  override def is(other: ASTType) = other match {
+    case ASTNumberType(otherID) =>
+      id == otherID
     case _ => false
   }
 
@@ -442,6 +505,8 @@ case class ASTNumberType(id: String) extends ASTTypeVar {
     ASTNumberType.admitsEquality as  that is not a well defined concept.""")
 
   val isAtomic = true
+
+  def isMonomorphic = false
 
   override def getTypeVars() =
     ASTTypeSet(this)
@@ -489,6 +554,12 @@ case class ASTComparableType(val id: String) extends ASTTypeVar {
     case _ => false
   }
 
+  override def is(other: ASTType) = other match {
+    case ASTComparableType(otherID) =>
+      id == otherID
+    case _ => false
+  }
+
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substituteFor(map: Map[ASTType, ASTType]) =
@@ -503,6 +574,8 @@ case class ASTComparableType(val id: String) extends ASTTypeVar {
     ASTComparableType.admitsEquality as that is not a well defined concept.""")
 
   val isAtomic = true
+
+  def isMonomorphic = false
 
   def getTypeVars() = ASTTypeSet(this)
 
@@ -555,6 +628,12 @@ case class ASTIntStringCharType(val id: String) extends ASTTypeVar {
     case _ => false
   }
 
+  override def is(other: ASTType) = other match {
+    case ASTIntStringCharType(otherID) =>
+      id == otherID
+    case _ => false
+  }
+
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substituteFor(map: Map[ASTType, ASTType]) =
@@ -569,6 +648,8 @@ case class ASTIntStringCharType(val id: String) extends ASTTypeVar {
     ASTComparableType.admitsEquality as that is not a well defined concept.""")
 
   val isAtomic = true
+
+  def isMonomorphic = false
 
   def getTypeVars() = ASTTypeSet(this)
 
@@ -610,6 +691,11 @@ case class ASTIntType() extends ASTTypeVar {
 
   def containsNonAtomic(other: ASTType) = other.isInstanceOf[ASTIntType]
 
+  override def is(other: ASTType) = other match {
+    case ASTIntType() => true
+    case _ => false
+  }
+
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substituteFor(map: Map[ASTType, ASTType]) =
@@ -621,6 +707,8 @@ case class ASTIntType() extends ASTTypeVar {
   def admitsEquality = true
 
   val isAtomic = true
+
+  def isMonomorphic = true
 
   override def getTypeVars() = ASTTypeSet()
 
@@ -645,6 +733,11 @@ case class ASTRealType() extends ASTTypeVar {
 
   def containsNonAtomic(other: ASTType) = other.isInstanceOf[ASTRealType]
 
+  override def is(other: ASTType) = other match {
+    case ASTRealType() => true
+    case _ => false
+  }
+
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substituteFor(map: Map[ASTType, ASTType]) =
@@ -656,6 +749,8 @@ case class ASTRealType() extends ASTTypeVar {
   def admitsEquality = false
 
   val isAtomic = true
+
+  def isMonomorphic = true
 
   override def getTypeVars() = ASTTypeSet()
 
@@ -678,6 +773,11 @@ case class ASTBoolType() extends ASTTypeVar {
 
   def containsNonAtomic(other: ASTType) = other.isInstanceOf[ASTBoolType]
 
+  override def is(other: ASTType) = other match {
+    case ASTBoolType() => true
+    case _ => false
+  }
+
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substituteFor(map: Map[ASTType, ASTType]) =
@@ -689,6 +789,8 @@ case class ASTBoolType() extends ASTTypeVar {
   def admitsEquality = true
 
   val isAtomic = true
+
+  def isMonomorphic = true
 
   override def getTypeVars() = ASTTypeSet()
 
@@ -710,6 +812,11 @@ case class ASTStringType() extends ASTTypeVar {
 
   def containsNonAtomic(other: ASTType) = other.isInstanceOf[ASTStringType]
 
+  override def is(other: ASTType) = other match {
+    case ASTStringType() => true
+    case _ => false
+  }
+
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substituteFor(map: Map[ASTType, ASTType]) =
@@ -721,6 +828,8 @@ case class ASTStringType() extends ASTTypeVar {
   def admitsEquality = true
 
   val isAtomic = true
+
+  def isMonomorphic = true
 
   override def getTypeVars() = ASTTypeSet()
 
@@ -744,6 +853,11 @@ case class ASTCharType() extends ASTTypeVar {
 
   def containsNonAtomic(other: ASTType) = other.isInstanceOf[ASTCharType]
 
+  override def is(other: ASTType) = other match {
+    case ASTCharType() => true
+    case _ => false
+  }
+
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
   def substituteFor(map: Map[ASTType, ASTType]) =
@@ -755,6 +869,8 @@ case class ASTCharType() extends ASTTypeVar {
   def admitsEquality = true
 
   val isAtomic = true
+
+  def isMonomorphic = true
 
   override def getTypeVars() = ASTTypeSet()
 
@@ -773,10 +889,54 @@ case class ASTCharType() extends ASTTypeVar {
   }
 }
 
+case class ASTExceptionType() extends ASTTypeVar {
+  def prettyPrint = "exn"
+
+  def containsNonAtomic(other: ASTType) = other.isInstanceOf[ASTExceptionType]
+
+  override def is(other: ASTType) = other match {
+    case ASTExceptionType() => true
+    case _ => false
+  }
+
+  def containsAtomic(other: ASTType) = containsNonAtomic(other)
+
+  def substituteFor(map: Map[ASTType, ASTType]) = this
+
+  def atomicClone = throw new ICE("""Attempted clone of
+    uncloneable type %s""".format(this.prettyPrint))
+
+  def admitsEquality = false
+
+  val isAtomic = true
+
+  def isMonomorphic = true
+
+  override def getTypeVars() = ASTTypeSet()
+
+  override def specializeTo(other: ASTType) = other match {
+    case ASTExceptionType() => ASTUnifier()
+    case _ => throw new SpecializationError(this, other)
+  }
+
+  override def mguNoCyclicCheck(other: ASTType) = other match {
+    case ASTExceptionType() => ASTUnifier()
+    // We only match constructor types with no arguments.
+    // case ASTConstructorType(_, None, ASTExceptionType()) => ASTUnifier()
+    case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
+    case _ => throw new UnificationError(this, other)
+  }
+}
+
 case class ASTUnitType() extends ASTTypeVar {
   def prettyPrint = "unit"
 
   def containsNonAtomic(other: ASTType) = other.isInstanceOf[ASTUnitType]
+
+  override def is(other: ASTType) = other match {
+    case ASTUnitType() => true
+    case _ => false
+  }
 
   def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
@@ -788,6 +948,8 @@ case class ASTUnitType() extends ASTTypeVar {
   def admitsEquality = true
 
   val isAtomic = true
+
+  def isMonomorphic = true
 
   override def getTypeVars() = ASTTypeSet()
 
@@ -804,11 +966,99 @@ case class ASTUnitType() extends ASTTypeVar {
   }
 }
 
-case class ASTDataTypeName(val name: String) extends ASTTypeVar {
-  def prettyPrint = name
+// case class ASTConstructorType(val name: ASTIdent, val args: Option[ASTType],
+//                               val resultType: ASTType)
+//     extends ASTType {
+//   def prettyPrint =
+//     "%s(%s): %s".format(name, args.map(_.prettyPrint).mkString(", "),
+//                         resultType.prettyPrint)
+
+//   def containsNonAtomic(other: ASTType) = other match {
+//     // Two constructor types are equal if they have the same name and all
+//     // the same types.
+//     case ASTConstructorType(otherName, args, resultType)
+//         if name == otherName => true
+//     case _ =>
+//       resultType.containsNonAtomic(other) ||
+//       args.exists(_.containsNonAtomic(other))
+//   }
+
+//   override def is(other: ASTType) = {
+//     other match {
+//       case ASTConstructorType(otherName, otherArgs, otherResultType) => true
+//       // If this constructor requires some arguments, then it is effectively
+//       // a function from the argument type to the result type of the constructor.
+//       case ASTFunctionType(funFrom, funTo) => args match {
+//         case Some(args) =>
+//           (args is funFrom) && (resultType is funTo)
+//         case None => false
+//       }
+//       // If this constructor does not require arguments, then it is an implicit
+//       // constructor for the result type.
+//       case other => args match {
+//         case Some(args) => false
+//         case None =>
+//           resultType is other
+//       }
+//     }
+//   }
+
+//   def containsAtomic(other: ASTType) = containsNonAtomic(other)
+
+//   def substituteFor(map: Map[ASTType, ASTType]) =
+//     // As there may be no type variables in the argument types,
+//     // we can stop this here.
+//     this
+
+//   def atomicClone = throw new ICE("ASTConstructorType cannot be cloned")
+
+//   // Expect to change this if datatypes are added.
+//   def admitsEquality = false
+
+//   val isAtomic = false
+
+//   // There can be no type variables in the arguments.
+//   override def getTypeVars() = ASTTypeSet()
+
+//   override def specializeTo(other: ASTType) = other match {
+//     case ASTConstructorType(otherName, args, resultType)
+//         if name == otherName => ASTUnifier()
+//     case _ => args match {
+//       case Some(_) => throw new SpecializationError(other, this)
+//       // if there are no arguments, then this has the type of the
+//       // result.
+//       case None => resultType.specializeTo(other)
+//     }
+//   }
+
+//   override def mguNoCyclicCheck(other: ASTType) = other match {
+//     case ASTConstructorType(otherName, args, resultType)
+//         if name == otherName => ASTUnifier()
+//     case ASTUnconstrainedTypeVar(name) =>
+//       ASTUnifier(other, this)
+//     // Expect to introduce an equality type check here if equality
+//     // types are to be admitted.
+//     case other => args match {
+//       case Some(_) => throw new SpecializationError(other, this)
+//       // if there are no arguments, then this has the type of the
+//       // result.
+//       case None => resultType.mguNoCyclicCheck(other)
+
+//     }
+//   }
+// }
+
+case class ASTDataTypeName(val name: ASTIdent) extends ASTTypeVar {
+  def prettyPrint = name.prettyPrint
 
   def containsNonAtomic(other: ASTType) = other match {
     case ASTDataTypeName(otherName) => otherName == name
+    case _ => false
+  }
+
+  def is(other: ASTType) = other match {
+    case ASTDataTypeName(otherName) =>
+      otherName == name
     case _ => false
   }
 
@@ -817,7 +1067,7 @@ case class ASTDataTypeName(val name: String) extends ASTTypeVar {
   def substituteFor(map: Map[ASTType, ASTType]) =
     this
 
-  def atomicClone = throw new ICE("""ASTDataTypeName cannot be cloned""")
+  def atomicClone = throw new ICE("ASTDataTypeName cannot be cloned")
 
   // This is not strictly true by the standard. The standard requires
   // that we be able to compare datatypes when all of the values
@@ -825,6 +1075,8 @@ case class ASTDataTypeName(val name: String) extends ASTTypeVar {
   def admitsEquality = false
 
   val isAtomic = true
+
+  def isMonomorphic = true
 
   override def getTypeVars() = ASTTypeSet()
 
@@ -838,7 +1090,7 @@ case class ASTDataTypeName(val name: String) extends ASTTypeVar {
   }
 
   override def mguNoCyclicCheck(other: ASTType) = other match {
-    case ASTDataTypeName(otherName) => 
+    case ASTDataTypeName(otherName) =>
       if (name == otherName)
         ASTUnifier()
       else
