@@ -127,6 +127,9 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
     | LexIntType ~ tyvarTail ^^ { case (_ ~ tail) =>
                 tail(ASTIntType())
     }
+    | LexExceptionType ~ tyvarTail ^^ { case (_ ~ tail) =>
+                tail(ASTExceptionType())
+    }
     | LexRealType ~ tyvarTail ^^ { case (_ ~ tail) =>
                 tail(ASTRealType())
     }
@@ -145,7 +148,8 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
     // Refactored: Lists are the tail here because they are
     // left recursive
     | lexIdentifier ~ tyvarTail ^^ {
-        case (LexIdentifier(name) ~ tail) => tail(ASTDataTypeName(name))
+        case (LexIdentifier(name) ~ tail) =>
+          tail(ASTDataTypeName(ASTIdentVar(name)))
     }
   )
 
@@ -167,8 +171,9 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
         case (infix ~ None) => infix
       }
     // Refactored: (exp1 dots expn) replaced by the above
-    // Omitted: raise exp
-    // Omitted: exp handle match
+    | LexRaise ~ exp       ^^ {
+      case (_ ~ exp) => ASTExpRaise(exp)
+    }
     // Refactored: exp1; exp2; .. expN; replaced by expSeq
     // Note that none of these have EXP tails. This is intentional
     // as I do not believe that that is a meaningful grammar.
@@ -206,7 +211,11 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
   )
 
   lazy val infixTopTail: Parser[(ASTExp => ASTExp)] = (
-      LexOrElse ~ infixTop    ^^ {
+      LexHandle ~ matchPat    ^^ {
+        case (_ ~ patterns) => ((x: ASTExp) =>
+            ASTExpHandle(x, patterns))
+      }
+    | LexOrElse ~ infixTop    ^^ {
         case (_ ~ tail) => ((x: ASTExp) =>
             ASTExpInfixApp(ASTOrIdent(), x, tail))
       }
@@ -499,6 +508,14 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
         case (_ ~ Some(patTail)) => patTail._1(ASTPatWildcard(patTail._2))
         case (_ ~ None) => ASTPatWildcard(List())
     }
+    // This matches constructors with arguments.
+    | restrictedIDAllowList ~ LexLParen ~ patList ~ LexRParen ~
+      opt(patTail) ^^ {
+        case (id ~ _ ~ values ~ _ ~ Some(patTail)) =>
+          patTail._1(ASTPatConstructor(id, Some(values), patTail._2))
+        case (id ~ _ ~ values ~ _ ~ None) =>
+          ASTPatConstructor(id, Some(values), List())
+    }
     // This is inserted to avoid creating an empty patseq below
     // (which causes problems later)
     | LexUnit ~ opt(patTail) ^^ {
@@ -641,7 +658,9 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
         case (_ ~ datbind ~ _) => datbind
     }
     // Omitted: abstype datbind (withtype typbind) with dec end
-    // Omitted: exnbind
+    | LexException ~ exnbind ~ rep(LexSemiColon) ^^ {
+      case (_ ~ exnbind ~ _) => exnbind
+    }
     // Omitted: structure
     // Omitted: local dec1 in dec2 end
     // Omitted: open longid1 ... longidN
@@ -731,6 +750,12 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
     // Omitted: var (,) prefix
     restrictedID ~ LexEq ~ conbind ^^ {
       case (id ~ _ ~ conbind) => ASTDataType(id, conbind)
+    }
+  )
+
+  lazy val exnbind: Parser[ASTExceptionBind] = (
+    restrictedID ~ opt(LexOf ~> typ) ^^ {
+      case (id ~ typOpt) => ASTExceptionBind(id, typOpt)
     }
   )
 
