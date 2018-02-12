@@ -40,7 +40,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
    * an identifier refers to a val or a function.
    */
   val identifierClassMap = new HashMap[ASTIdentVar, ASTIdentClass]
-
+  
   /* The top level is a special case, because some unification
    * (e.g. the conversion of ASTNumberType's to ASTIntType
    * must occur at the top level only.
@@ -205,7 +205,31 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         fun.rowEnvs = Some(resultEnvs)
         unifier
       }
-      case ASTDataType(ident, astDatatConstructors) => {
+      case ASTExceptionBind(ident, types) => {
+        // Assert that the passed types are typeable
+        // and produce an empty unifier.
+        types match {
+          case Some(types) =>
+            // Check that the type is well defined and ground.
+            if (!isGroundType(env, types)) {
+              throw new BadBindingException("Cannot declare an exception" +
+                "of type " + types.prettyPrint)
+            }
+          case None =>
+        }
+        types match {
+          case Some(types) =>
+            env.add(ident, ASTFunctionType(types, ASTExceptionType()), false)
+          case None =>
+            env.add(ident, ASTExceptionType(), false)
+        }
+
+        identifierClassMap(ident.asInstanceOf[ASTIdentVar]) =
+          ASTDataTypeClass()
+        ident.asInstanceOf[ASTIdentVar].identClass = Some(ASTDataTypeClass())
+        ASTUnifier()
+      }
+      case ASTDataType(ident, astDataConstructors) => {
         println("""Datatypes are not currently supported. """)
         System.exit(1)
         unreachable
@@ -401,6 +425,45 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         unifier mguUnify unifier.unifyTo(inferedTyp, typ)
 
         (unifier, typ)
+      }
+      case ASTExpRaise(exception) => {
+        val (unifier, inferedTyp) = principalType(env, exception)
+
+        unifier mguUnify (inferedTyp unify ASTExceptionType())
+
+        // An exception raise has type 'a.
+        (unifier, TypeVariableGenerator.getVar())
+      }
+      case handle @ ASTExpHandle(expression, handleCases) => {
+        val (unifier, expressionType) = principalType(env, expression)
+
+        // We can treat the handle cases as a fndec with an argument type
+        // that is an exception.
+        val handleCasesFnDec = ASTExpFn(handleCases)
+        val (handleCasesUnifier, handleCasesFunType) =
+          principalType(env, handleCasesFnDec)
+
+        handleCasesFunType match {
+          case ASTFunctionType(from, to) => {
+            // We need to unify 'to' with 'expressionType'
+            // And 'from' with exception.
+            unifier mguUnify (from unify ASTExceptionType())
+            unifier mguUnify (to unify expressionType)
+            unifier mguUnify (expressionType unify to)
+          }
+          case _ => throw new UnreachableException()
+        }
+
+        // Add the internal identifier.
+
+        val handleTypeIdentifier = VariableGenerator.newInternalVariable()
+
+        env.addTopLevel(handleTypeIdentifier, unifier(handleCasesFunType),
+                        false)
+
+        handle.applicationType = Some(handleTypeIdentifier)
+
+        (unifier, unifier(expressionType))
       }
       case ifThenElse @ ASTExpIfThenElse(cond, ifTrue, ifFalse) => {
         val (condUnifier, condType) = principalType(env, cond)
@@ -634,6 +697,53 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
             throw new ICE("""Error, ident type %s is not expected
               |in a pattern""".stripMargin.format(variable.prettyPrint))
         }
+        // Note that name is an identifier for a datatype, not a useable
+        // variable.
+        case ASTPatConstructor(name, elems, typs) => {
+          // Get the type of the constructor from the environment.
+          val constructorType = env.getOrFail(name)
+
+          // Since name is an identifier, it needs to have a pattern class
+          // set.
+          name match {
+            case ident: ASTIdentVar =>
+              ident.identClass = Some(identifierClassMap(ident))
+            case _ => throw new ICE("Constructor with non ident var name")
+          }
+
+          // And unify these with the expected types for the constructor.
+          val (consType, unifier) = constructorType match {
+            // This is if the constructor takes arguments.
+            case ASTFunctionType(consArgs, consType) => {
+              // The constructor type has arguments, but this pattern does not.
+              if (elems == None) {
+                throw new BadPatternException("Constructor " + name +
+                                              " has unspecified arguments.")
+              }
+
+              // Recursively type the elems:
+              val (argTypes, astUnifiers) = setupPatEnv(env, List(elems.get))
+              assert(argTypes.length == 1)
+              assert(astUnifiers.length == 1)
+
+              // Unify the elem types with the argTypes:
+              astUnifiers(0) mguUnify (argTypes(0) unify consArgs)
+
+              // The consType does not have to be unified as it must not
+              // be a variable.
+              (consType, astUnifiers(0))
+            }
+            // The constructor does not take arguments.
+            case consType => {
+              // The consType does not have to be unified as it must not
+              // be a variable.
+              (consType, ASTUnifier())
+            }
+          }
+
+          astTypes = consType :: astTypes
+          astUnifiers = unifier :: astUnifiers
+        }
         case ASTPatSeq(seq, typs) => {
           // Note that there are no duplicate variable names
           // allowed within a single pattern entry.
@@ -864,6 +974,21 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
                                              typ.prettyPrint))
   }
 
+  /* Return true if the type is ground.  If the type contains
+   * some types that are not correctly defined, raise an exception.
+   */
+  def isGroundType(env: ASTTypeEnv, typ: ASTType) = {
+    println("Checking types " + typ)
+    typ.getTypeVars().forall({
+      case ASTDataTypeName(x) => env(x) match {
+        // This case needs some improving.
+        case Some(_) => true
+        case None => false
+      }
+      case _ => true
+    }) && typ.isMonomorphic
+  }
+
   def run(tree: ASTProgram) = {
     // This is executed as a sequential process.
     try {
@@ -913,6 +1038,15 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
       }
       case e: BadPatternException => {
         println("Bad Pattern:")
+        println(e.getMessage())
+        if (Shared.debug) {
+          e.printStackTrace()
+        }
+        System.exit(1)
+        unreachable
+      }
+      case e: BadBindingException => {
+        println("Bad Binding: ")
         println(e.getMessage())
         if (Shared.debug) {
           e.printStackTrace()
