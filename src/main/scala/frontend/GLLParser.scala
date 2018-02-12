@@ -608,14 +608,14 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
       case (_ ~ typ1 ~ None) =>
         ((typ: ASTType) => ASTFunctionType(typ, typ1))
     }
-    |  LexTimes ~ typ ~ opt(typTail) ^^ {
+    | LexTimes ~ typ ~ opt(typTail) ^^ {
       case (_ ~ typ1 ~ Some(typTail)) =>
-       ((typ: ASTType) => typ match {
+       ((typ: ASTType) => typ1 match {
          case ASTTupleType(tail) => typTail(ASTTupleType(typ :: tail))
          case otherTyp => typTail(ASTTupleType(List(typ, typ1)))
        })
       case ( _ ~ typ1 ~ None) =>
-        ((typ: ASTType) => typ match {
+        ((typ: ASTType) => typ1 match {
           case ASTTupleType(tail) => ASTTupleType(typ :: tail)
           case otherTyp => ASTTupleType(List(typ, typ1))
         })
