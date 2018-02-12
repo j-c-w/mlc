@@ -67,6 +67,10 @@ abstract class GenericTypeSet[TypeClass <: GenericPrintable]
     differenceSet
   }
 
+  def forall(f: (TypeClass) => Boolean): Boolean = {
+    getMembers.forall(f)
+  }
+
   def prettyPrint = "(" + getMembers().map(_.prettyPrint).mkString(", ") + ")"
 
   def size: Int
