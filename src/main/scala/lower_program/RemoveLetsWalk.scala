@@ -25,9 +25,9 @@ class RemoveLetsWalk(val replacementEnv: TTypeEnv)
   val accumulatedIdents: Set[TNamedIdent] = new HashSet[TNamedIdent]()
 
   override def apply(u: Unit, exp: TExp) = exp match {
-    // IMPORTANT: Do not the the Envrionment, as it may be BS
-    // by the time it gets here.  The case statement case
-    // uses a recursive call with a BS env.
+    // IMPORTANT: Do not use the Envrionment, as it may be BS
+    // by the time it gets here.  The case statement and the
+    // handle statement cases makes recursive calls with a BS envs.
     case let @ TExpLetIn(decs, exp, _) => {
       // First do a walk of each of the decs and the exp
       // to make sure that inner let declarations and
@@ -72,7 +72,7 @@ class RemoveLetsWalk(val replacementEnv: TTypeEnv)
       replacementEnv.add(expressionIdentifier, valType, false)
 
       val patternExpression =
-        patterns.foldRight(TExpThrow(TIdentMatchError()): TExp) {
+        patterns.foldRight(TExpRaise(TExpIdent(TIdentMatchError())): TExp) {
           case (TExpMatchRow(pats, matchExp, env), elseCond) => {
             assert(pats.length == 1)
 
@@ -94,6 +94,52 @@ class RemoveLetsWalk(val replacementEnv: TTypeEnv)
           new TTypeEnv())
 
       apply(u, letDec)
+    }
+    case TExpHandle(exp, cases, applicationType) => {
+      // Wrap this as a try statement in a normal TExpCase.  The input is
+      // provided as an unwrapped exception type that can be pattern matched
+      // on like a datatype.  If that fails, we re-throw the exception.
+      val newApplicationType =
+        replacementEnv.getOrFail(applicationType) match {
+          case TFunctionType(from, to) => TFunctionType(TExceptionType(), to)
+          case _ => throw new ICE("Handle statement without function type")
+        }
+      val newApplicationID = VariableGenerator.newTInternalVariable()
+      val exceptionName = VariableGenerator.newTVariable(TValClass())
+
+      replacementEnv.add(exceptionName, TExceptionType(), false)
+      replacementEnv.add(newApplicationID, newApplicationType, false)
+
+      accumulatedIdents += exceptionName
+
+      val catchCases =
+        cases :+
+        // Add the extra case to always match and re-throw the exception
+        // if no match was already found.
+        TExpMatchRow(List(TPatWildcard()),
+                     TExpRaise(TExpIdent(exceptionName)),
+                     // We may create an empty type env because there is
+                     // nothing to be typed within the environment.
+                     new TTypeEnv())
+
+      val reducedCases =
+        TExpTry(exp, exceptionName,
+                TExpSeq(List(TExpAssign(exceptionName,
+                                        TExpIdent(TCaughtExceptionIdent())),
+                             TExpCase(TExpIdent(exceptionName),
+                                      catchCases, newApplicationID))))
+
+      val fixedUp = apply(u, reducedCases)
+      assert(fixedUp == None)
+      Some(reducedCases)
+    }
+    case seq @ TExpSeq(elems) => {
+      // Since we are generating new TExpSeqs, we have to flatten.
+      super.apply(u, seq) match {
+        case None => Some(seq.flatten)
+        case Some(newSeq @ TExpSeq(newElems)) => Some(newSeq.flatten)
+        case Some(other) => Some(other)
+      }
     }
     // This case is inserted for safety.  We do not expect it to be
     // hit, and if it is, it is likely in error.  This pass is expected

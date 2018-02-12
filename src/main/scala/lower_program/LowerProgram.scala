@@ -71,7 +71,7 @@ object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
                     parentEnv: TTypeEnv) = {
     // The first pattern is just to throw. This is inserted
     // as the last 'else' case.
-    var resultPattern: TExp = TExpThrow(TIdentMatchError())
+    var resultPattern: TExp = TExpRaise(TExpIdent(TIdentMatchError()))
     val resultEnv = new TTypeEnv(Some(parentEnv))
     var allIdentifiers: Set[TNamedIdent] = new HashSet[TNamedIdent]()
 
@@ -88,11 +88,11 @@ object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
       // the resultEnv
       mergeEnvsWalk.apply(env, row)
 
-      val removeLetsWalk = new RemoveLetsWalk(resultEnv)
       // Remove the lets from the expression.
       val identifiers =
         (new GatherLetIdentifiersWalk(resultEnv)).apply(resultEnv,
                                                         row.exp).toList
+      val removeLetsWalk = new RemoveLetsWalk(resultEnv)
       val newOutterExp = removeLetsWalk.apply((), row.exp)
 
       newOutterExp.map(newExp => row.exp = newExp)
@@ -159,6 +159,7 @@ object LowerProgram extends Pass[TProgram, TJavaProgram]("lower_program") {
                      TFunctionType(TUnitType(), TUnitType()), false)
 
     new TJavaProgram(tree.typeEnv, mainFunction, valDecs,
+                     tree.dataTypeDecs,
                      tree.funs.map(lowerFun(_, tree.typeEnv)))
   }
 }

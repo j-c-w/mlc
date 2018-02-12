@@ -65,7 +65,12 @@ class FunLetsIntegrityWalk extends TTypeEnvUnitPass {
   val variablesInLets: Set[TNamedIdent] = new HashSet[TNamedIdent]()
 
   override def apply(env: TTypeEnv, program: TJavaProgram) = {
-    // Add all the functions first.
+    // Add all the data types first.
+    program.dataTypeDecs.foreach {
+      case TDataTypeDec(name, args, typ) =>
+        variablesInLets += name
+    }
+    // Add all the functions too.
     (program.main :: program.functions).foreach {
       case TJavaFun(ident, curriedArgs, exprs, env) =>
         variablesInLets += ident
@@ -142,7 +147,12 @@ class AssignIntegrityWalk extends TUnitPass {
   val assignedVariables: Set[TNamedIdent] = new HashSet[TNamedIdent]()
 
   override def apply(u: Unit, program: TJavaProgram) = {
-    // Add all the functions first.
+    // Add all datatypes first.
+    program.dataTypeDecs.foreach {
+      case TDataTypeDec(name, args, typ) =>
+        assignedVariables += name
+    }
+    // Add all the functions too.
     (program.main :: program.functions).foreach {
       case TJavaFun(ident, curriedArgs, exprs, env) =>
         assignedVariables += ident
@@ -160,6 +170,11 @@ class AssignIntegrityWalk extends TUnitPass {
       // And then insert the identifier. This is done second intentionally,
       // identifiers definitely should not be used in their assignments!
       assignedVariables += ident
+    }
+    case TExpTry(exp, tryVariable, handle) => {
+      apply(u, exp)
+      assignedVariables += tryVariable
+      apply(u, handle)
     }
     case TExpIdent(ident @ TIdentVar(name, identClass)) => {
       if (!assignedVariables.contains(ident)) {

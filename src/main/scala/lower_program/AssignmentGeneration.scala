@@ -125,8 +125,9 @@ object AssignmentGeneration {
               List(other)
             else
               throw new ICE("""Cannot pattern match a tuple (%s)
-                |to %s not of tuple type""".
-                stripMargin.format(seq.prettyPrint, other.prettyPrint))
+                |to %s not of tuple type.  Has type %s.""".
+                stripMargin.format(seq.prettyPrint, other.prettyPrint,
+                                   other))
         }
 
         // Since tuples are guaranteed to be the right length by type
@@ -181,6 +182,57 @@ object AssignmentGeneration {
           assignExprs,
           TExpConst(TConstFalse())),
          idents)
+      }
+      case TPatConstructor(name, typeArgs) => {
+        val constructorIdent = VariableGenerator.newTVariable(TValClass())
+        val unapplyInternalIdent = VariableGenerator.newTInternalVariable()
+
+        val (ifTrue, newIdents) = typeArgs match {
+          case None => (TExpConst(TConstTrue()), List())
+          case Some(typeArgs) => {
+            // If there were arguments, we need the unapply method, so
+            // also use that.
+            // Note that since there are arugments, we may assume
+            // that the type is a function.  We must extract the argument
+            // type of the function as that is the result of the apply.
+            //
+            // Note that the unapply function does the inverse of the
+            // apply function, hence why we switch the types.
+            val (unapplyTyp, argsType) = typeEnv.getOrFail(name) match {
+              case TFunctionType(from, to) => (TFunctionType(to, from), from)
+              case _ =>
+                throw new ICE("Unexpected non-function type of datatype")
+            }
+            typeEnv.addTopLevel(unapplyInternalIdent, unapplyTyp,
+                                false)
+
+            typeEnv.add(constructorIdent, argsType, false)
+
+            // After the variables have been added to the type env, we can
+            // recurse.
+            val (comparisons, newIdents) =
+              convertToAssignNodePat(constructorIdent, typeArgs, typeEnv)
+
+            (TExpSeq(List(TExpAssign(constructorIdent,
+                                     TExpUnapply(TExpIdent(parentIdent),
+                                                 unapplyInternalIdent)),
+                          comparisons)).flatten,
+                     constructorIdent :: newIdents)
+          }
+        }
+        // We must extract the result type of this constructor
+        // rather than the argument type.
+        val dataType = typeEnv.getOrFail(name) match {
+          // In the case of a TException type, we need the type used here
+          // to be more specific.
+              case TFunctionType(from, TExceptionType()) => TDataType(name)
+              case TFunctionType(from, to) => to
+              case other => other
+        }
+
+        (TExpIf(TExpIsType(TExpIdent(parentIdent), dataType),
+                ifTrue,
+                TExpConst(TConstFalse())), newIdents)
       }
       case TPatConst(const) => {
         val funIdent = VariableGenerator.newTInternalVariable()
