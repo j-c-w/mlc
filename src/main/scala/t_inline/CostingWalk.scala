@@ -165,6 +165,7 @@ class CostingWalk(programEnv: TTypeEnv, program: TProgram)
           Some(fun)
         }
         case valdec: TVal => None
+        case datDec: TDataTypeDec => None
         case javaFun: TJavaFun =>
           throw new ICE("Inlining after lower program not currently supported")
       }
