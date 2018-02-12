@@ -31,5 +31,11 @@ class DefFinderWalk(ident: TNamedIdent)
       } else {
         super.apply(env, dec)
       }
+    case TDataTypeDec(name, args, typ) =>
+      if (name == ident) {
+        List((env, dec))
+      } else {
+        super.apply(env, dec)
+      }
   }
 }
