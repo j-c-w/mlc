@@ -71,6 +71,7 @@ case object LexRParen extends Lexeme
 
 /* Declarations.  */
 case object LexDatatype extends LexemeKeyword
+case object LexException extends LexemeKeyword
 case object LexFun extends LexemeKeyword
 case object LexVal extends LexemeKeyword
 
@@ -81,6 +82,7 @@ case object LexFnDecArrow extends Lexeme
 /* Types.  */
 case object LexBoolType extends LexemeKeyword
 case object LexCharType extends LexemeKeyword
+case object LexExceptionType extends LexemeKeyword
 case object LexFunType extends Lexeme
 case object LexIntType extends LexemeKeyword
 case object LexListType extends LexemeKeyword
@@ -103,6 +105,10 @@ case object LexElse extends LexemeKeyword
 case object LexLet extends LexemeKeyword
 case object LexIn extends LexemeKeyword
 case object LexEnd extends LexemeKeyword
+
+/* Raise and Handle.  */
+case object LexHandle extends LexemeKeyword
+case object LexRaise extends LexemeKeyword
 
 /* Boolean operations.  */
 case object LexOrElse extends LexemeKeyword

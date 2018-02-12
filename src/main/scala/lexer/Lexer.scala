@@ -1,6 +1,6 @@
 package lexer
 
-import exceptions.LexException
+import exceptions.LexingException
 import io.InputString
 import java.math.{BigDecimal,BigInteger}
 import scala.util.parsing.combinator._
@@ -145,7 +145,7 @@ object Lexer extends Pass[InputString, LexemeSeq]("lex")
       case (LexIdentifier(name) ~ Some(_ ~ LexIdentifier(rest))) =>
         LexLongIdentifier(List(name, rest))
       case (other ~ Some(_)) =>
-        throw new LexException("Keyword as part of a long ident. ")
+        throw new LexingException("Keyword as part of a long ident. ")
     }
   )
 
@@ -160,9 +160,12 @@ object Lexer extends Pass[InputString, LexemeSeq]("lex")
       case "div" => LexIntDiv
       case "else" => LexElse
       case "end" => LexEnd
+      case "exception" => LexException
+      case "exn" => LexExceptionType
       case "false" => LexBoolFalse
       case "fn" => LexFn
       case "fun" => LexFun
+      case "handle" => LexHandle
       case "if" => LexIf
       case "in" => LexIn
       case "int" => LexIntType
@@ -174,6 +177,7 @@ object Lexer extends Pass[InputString, LexemeSeq]("lex")
       case "of" => LexOf
       case "orelse" => LexOrElse
       case "print" => LexPrint
+      case "raise" => LexRaise
       case "real" => LexRealType
       case "string" => LexStringType
       case "then" => LexThen
