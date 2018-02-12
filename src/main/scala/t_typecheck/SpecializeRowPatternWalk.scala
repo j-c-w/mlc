@@ -93,6 +93,7 @@ class SpecializeRowPatternWalk(renameMap: HashMap[TNamedIdent, TType])
               .format(targetType))
         }
       }
+      case _ => ???
     }
     None
   }
