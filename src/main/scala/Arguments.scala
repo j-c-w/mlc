@@ -56,6 +56,7 @@ class Arguments(arguments: Seq[String]) {
     val dumpTypecheck = opt[Boolean]()
     val dumpTir = opt[Boolean]()
     val dumpTce = opt[Boolean]()
+    val dumpDecLift = opt[Boolean]()
     val dumpLambdaLift = opt[Boolean]()
     val dumpTInline = opt[Boolean]()
     val dumpPreLowerSimplify = opt[Boolean]()
@@ -123,6 +124,8 @@ class Arguments(arguments: Seq[String]) {
     parser.dumpTypecheck() || parser.dumpAll()
   val dumpTir =
     parser.dumpTir() || parser.dumpAll()
+  val dumpDecLift =
+    parser.dumpDecLift() || parser.dumpAll()
   val dumpLambdaLift =
     parser.dumpLambdaLift() || parser.dumpAll()
   val dumpTce =
