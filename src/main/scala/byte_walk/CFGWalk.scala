@@ -21,49 +21,51 @@ object CFGWalk {
 
     // Create the map:
     val followMap = BWalk.walk(instructions)
-    // Do a DFS of the BB's.  At each BB, keep track of the live variables
-    // set.
-    var bbList = List(BBStart(0))
-    bbPreds(BBStart(0)) = new BBPred(List())
+    if (instructions.length > 0) {
+      // Do a DFS of the BB's.  At each BB, keep track of the live variables
+      // set.
+      var bbList = List(BBStart(0))
+      bbPreds(BBStart(0)) = new BBPred(List())
 
-    // Stop the while loop from running forever.
-    var loopCount = 0
+      // Stop the while loop from running forever.
+      var loopCount = 0
 
-    while (bbList.length != 0) {
-      loopCount += 1
-      if (loopCount == 1000000) {
-        throw new ICE("CFGWalk running forever")
-      }
-      val currentBB = bbList.head
-      bbList = bbList.tail
-
-      if (!visitedBBs.contains(currentBB)) {
-        val (bbEndIndex, next) = bbApply(currentBB,
-                                         instructions(currentBB.index),
-                                         followMap)
-        bbList = bbList ::: next.succs
-
-        // Add this block to the list of successors of BBs in the next set.
-        next.succs.foreach {
-          case nextBB => if (bbPreds.contains(nextBB)) {
-            bbPreds(nextBB) = BBPred(currentBB :: bbPreds(nextBB).preds)
-          } else {
-            bbPreds(nextBB) = BBPred(List(currentBB))
-          }
+      while (bbList.length != 0) {
+        loopCount += 1
+        if (loopCount == 1000000) {
+          throw new ICE("CFGWalk running forever")
         }
+        val currentBB = bbList.head
+        bbList = bbList.tail
 
-        // Build the CFG:
-        // The BBPred is later overwritten.
-        cfgMap(currentBB) = (bbEndIndex, BBPred(List()), next)
+        if (!visitedBBs.contains(currentBB)) {
+          val (bbEndIndex, next) = bbApply(currentBB,
+                                           instructions(currentBB.index),
+                                           followMap)
+          bbList = bbList ::: next.succs
 
-        visitedBBs += currentBB
+          // Add this block to the list of successors of BBs in the next set.
+          next.succs.foreach {
+            case nextBB => if (bbPreds.contains(nextBB)) {
+              bbPreds(nextBB) = BBPred(currentBB :: bbPreds(nextBB).preds)
+            } else {
+              bbPreds(nextBB) = BBPred(List(currentBB))
+            }
+          }
+
+          // Build the CFG:
+          // The BBPred is later overwritten.
+          cfgMap(currentBB) = (bbEndIndex, BBPred(List()), next)
+
+          visitedBBs += currentBB
+        }
       }
-    }
 
-    // Now, set the predecessors for each BB.
-    cfgMap.foreach {
-      case (start, (end, pred, succs)) =>
-        cfgMap(start) = (end, bbPreds(start), succs)
+      // Now, set the predecessors for each BB.
+      cfgMap.foreach {
+        case (start, (end, pred, succs)) =>
+          cfgMap(start) = (end, bbPreds(start), succs)
+      }
     }
 
     new JVMCFG(cfgMap, instructions.toArray)

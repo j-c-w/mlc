@@ -96,6 +96,14 @@ object BWalk {
             internalSet(index) = directFollow
             labelLocations(label) = index
           }
+          case JVMHandleMark(label) => {
+            internalSet(index) = directFollow
+            labelLocations(label) = index
+          }
+          case HandleDirective(_, from, to, withLabel) => {
+            internalSet(index) = directFollow
+            labelJumps(index) = withLabel
+          }
         }
       }
       case (other, index) =>

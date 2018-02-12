@@ -51,9 +51,11 @@ class SequentialByteWalk[T] {
       case parentInstruction : JVMParentInstruction =>
         parentInstruction match {
           case JVMCheckCast(ref) => walk(item, ref)
+          case JVMInstanceOf(ref) => walk(item, ref)
           case cmpAndJump : JVMCompareAndJumpInstruction =>
             walk(item, cmpAndJump.getTarget)
           case JVMLabelMark(label) => walk(item, label)
+          case JVMHandleMark(label) => walk(item, label)
           case JVMJump(label) => walk(item, label)
           case JVMNew(classRef) => walk(item, classRef)
           case JVMPutStaticField(jvmClass, name, typ) => {
