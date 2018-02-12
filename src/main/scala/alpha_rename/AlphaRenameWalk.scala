@@ -32,6 +32,12 @@ class AlphaRenameWalk extends TTypeEnvUnitPass {
       elems.map(apply(env, _))
     case TListPat(elems) =>
       elems.map(apply(env, _))
+    case TPatConstructor(id, typeArgs) => {
+      // We do not call 'mapIdents' on the ID because it should not be alpha
+      // renamed here.
+      apply(env, id)
+      typeArgs.map(apply(env, _))
+    }
     case TPatConst(_) => // Do nothing in this case.
     case TPatWildcard() => // Do nothing in this case. 
     case TPatCons(hd, tl) => {
@@ -53,6 +59,11 @@ class AlphaRenameWalk extends TTypeEnvUnitPass {
       mapIdents(env, name)
       curriedArgs.map(super.apply(env, _))
       super.apply(env, exp)
+    }
+    case TDataTypeDec(name, constructorTypes, typeClass) => {
+      mapIdents(env, name)
+      constructorTypes.map(apply(env, _))
+      apply(env, typeClass)
     }
   }
 
