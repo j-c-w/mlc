@@ -102,6 +102,12 @@ case class JVMDataTypeType(var name: JVMClassRef) extends JVMRefType {
   def getRefFor = name
 }
 
+case class JVMDataTypeParentClass(var name: JVMClassRef) extends JVMRefType {
+  def prettyPrint = "L" + name.prettyPrint + ";"
+
+  def getRefFor = name
+}
+
 case class JVMClassType(var name: JVMClassRef) extends JVMRefType {
   def prettyPrint = "L" + name.prettyPrint + ";"
 
