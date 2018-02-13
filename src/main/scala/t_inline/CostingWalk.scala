@@ -87,6 +87,12 @@ class CostingWalk(programEnv: TTypeEnv, program: TProgram)
     case other => super.apply(parentFun, other)
   }
 
+  /* This builds a call graph.  Functions that are stored
+   * into variables are assumed to be hot.  */
+  def buildFunctionClassifier(program: TProgram) = {
+
+  }
+
   /* This returns whether a function is likely going to be hot or cold.
    * This is done by looking at whether the function is recursive or not if
    * it is recursive, we assume hot.  Otherwise, we assume cold.  */

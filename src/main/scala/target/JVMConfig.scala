@@ -5,7 +5,9 @@ import t_inline.{InlinePriority,MAYBE_HOT_USE,SINGLE_USE,MAYBE_COLD_USE}
 
 object JVMConfig extends TargetConfig {
   def maxInlineInstructions(priority: InlinePriority) = priority match {
-    case SINGLE_USE => Int.MinValue
+    // Note that this must not go about 10,000.  10,000 is treated as a
+    // 'never inline value'
+    case SINGLE_USE => 1000
     // On the JVM, the cost of executing a function call can be quite high.
     // It involves:
     //  new
@@ -26,7 +28,10 @@ object JVMConfig extends TargetConfig {
     //
     // Arbitrarily, we return 4 times this.
     case MAYBE_HOT_USE => 28
-    case MAYBE_COLD_USE => 7
+    // Currently the cold funciton analysis is very bad.  It does not consider
+    // transitively hot functions.  Once that is resolved, this should be
+    // lowered.
+    case MAYBE_COLD_USE => 28
   }
 
   def peepholeSet =
