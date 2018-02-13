@@ -121,27 +121,26 @@ case class TListType(var subType: TType) extends TType {
   def prettyPrint = subType.prettyPrint + " list" 
 }
 
-// case class TConstructorType(var constName: String,
-//                             var constArgs: Option[TType],
-//                             var resultType: TDataType) extends TType {
-//   def getTypeVars() =
-//     constArgs.map(_.getTypeVars).getOrElse(new TypeSet())
-
-//   def atomicClone =
-//     throw new ICE("Error: TDataTypeConstructorType is not atomic")
-
-//   def prettyPrint =
-//     "%s(%s): %s".format(constName.prettyPrint, constArgs.map(_.prettyPrint),
-//                         resultType.prettyPrint)
-// }
-
-case class TDataType(var name: TIdent) extends TType {
+case class TDataType(var name: String) extends TType {
   def getTypeVars() = new TTypeSet()
 
   def substituteFor(map: Map[TType, TType]): TType =
     this
 
-  def atomicClone = new TDataType(name)
+  def atomicClone =
+    throw new ICE("Error: TDataType is not atomic")
+
+  def prettyPrint =
+    "%s".format(name)
+}
+
+case class TDataTypeInstance(var name: TIdent) extends TType {
+  def getTypeVars() = new TTypeSet()
+
+  def substituteFor(map: Map[TType, TType]): TType =
+    this
+
+  def atomicClone = new TDataTypeInstance(name)
 
   def prettyPrint = "datatype %s".format(name)
 }
