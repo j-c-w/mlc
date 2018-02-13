@@ -4,7 +4,8 @@ The ML dialect selected is, roughly speaking:
 
 	val
 	fun
-	exceptions (partially supported)
+	exceptions
+	datatypes
 
 # Installation
 
