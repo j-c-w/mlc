@@ -749,11 +749,7 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
     // Omitted: var (,) id = conbind (and datbind)
     // Omitted: var (,) prefix
     restrictedID ~ LexEq ~ conbind ^^ {
-      // Equality is calculated in the ASTChangeNames function.
-      // Note that is is important that all conbinds of the same
-      // ID get the same ASTDataType as the  equality is set
-      // as a variable value within that object.
-      case (id ~ _ ~ conbind) => conbind(ASTDataType(id, None))
+      case (id ~ _ ~ conbind) => conbind(ASTDataType(id))
     }
   )
 

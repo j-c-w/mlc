@@ -9,6 +9,11 @@ import toplev.GenericTypeSet
 import scala.collection.mutable.{HashMap,Map}
 
 object ASTType {
+  // This map contains whether datatypes have equality or not.  It is
+  // set by the typecheck pass.  Cals to admitsEquality may fail before
+  // that point.
+  var admitsEqualityMap: Option[Map[ASTIdent, Boolean]] = None
+
   def unify(t1: ASTType, t2: ASTType): ASTUnifier = t1 unify t2
 
   def isValidSpecialization(from: ASTType, to: ASTType) = {
@@ -453,7 +458,7 @@ case class ASTListType(subType: ASTType) extends ASTTypeVar {
   def atomicClone = throw new ICE("""Attempted type clone of
     uncloneable type %s""".format(this.prettyPrint))
 
-  def admitsEquality = false
+  def admitsEquality = subType.admitsEquality
 
   val isAtomic = false
 
@@ -964,24 +969,21 @@ case class ASTUnitType() extends ASTTypeVar {
   }
 }
 
-/* Note that admitsEquality is not set until the ASTChangeNames pass.  */
-case class ASTDataType(val name: ASTIdentVar,
-                       var admitsEqualityOption: Option[Boolean])
-    extends ASTType {
+case class ASTDataType(val name: ASTIdentVar) extends ASTType {
   def prettyPrint =
     "datatype " + name
 
   def containsNonAtomic(other: ASTType) = other match {
     // Two constructor types are equal if they have the same name and all
     // the same types.
-    case ASTDataType(otherName, _)
+    case ASTDataType(otherName)
         if name == otherName => true
     case _ =>
       false
   }
 
   override def is(other: ASTType) = other match {
-    case ASTDataType(otherName, _) => otherName == name
+    case ASTDataType(otherName) => otherName == name
     case _ => false
   }
 
@@ -998,29 +1000,27 @@ case class ASTDataType(val name: ASTIdentVar,
 
   override def isMonomorphic = true
 
-  override def admitsEquality = admitsEqualityOption match {
-    case None => // This has not yet been worked out.  It depends on the
-      // subtypes of the class.  It is calcultaed in the ASTChangeNames
-      // pass.  However, since recursive types admit equality, we have
-      // this return true.
-      true
-    case Some(equality) => equality
+  override def admitsEquality = ASTType.admitsEqualityMap match {
+    case Some(map) => map(name)
+    case None =>
+      throw new ICE("""Must set the admitsEqualityMap before calling
+        |admitsEquality""".stripMargin)
   }
 
   // There can be no type variables in the arguments.
   override def getTypeVars() = ASTTypeSet()
 
   override def specializeTo(other: ASTType) = other match {
-    case ASTDataType(otherName, _)
+    case ASTDataType(otherName)
         if name == otherName => ASTUnifier()
     case ASTDataTypeName(otherName) if name == otherName =>
       ASTUnifier(this, other)
     case _ =>
-      throw new SpecializationError(other, this)
+      throw new SpecializationError(this, other)
   }
 
   override def mguNoCyclicCheck(other: ASTType) = other match {
-    case ASTDataType(otherName, _)
+    case ASTDataType(otherName)
         if name == otherName => ASTUnifier()
     case ASTUnconstrainedTypeVar(name) =>
       ASTUnifier(other, this)
@@ -1054,10 +1054,12 @@ case class ASTDataTypeName(val name: ASTIdent) extends ASTTypeVar {
 
   def atomicClone = throw new ICE("ASTDataTypeName cannot be cloned")
 
-  // This is not strictly true by the standard. The standard requires
-  // that we be able to compare datatypes when all of the values
-  // within the type are equality types.
-  def admitsEquality = false
+  override def admitsEquality = ASTType.admitsEqualityMap match {
+    case Some(map) => map(name)
+    case None =>
+      throw new ICE("""Must set the admitsEqualityMap before calling
+        |admitsEquality""".stripMargin)
+  }
 
   val isAtomic = true
 
@@ -1071,7 +1073,7 @@ case class ASTDataTypeName(val name: ASTIdent) extends ASTTypeVar {
         ASTUnifier()
       else
         throw new SpecializationError(this, other)
-    case ASTDataType(otherName, admitsEquality) =>
+    case ASTDataType(otherName) =>
       if (name == otherName)
         ASTUnifier()
       else
@@ -1087,7 +1089,7 @@ case class ASTDataTypeName(val name: ASTIdent) extends ASTTypeVar {
         throw  new UnificationError(this, other)
     case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
     case ASTEqualityTypeVar(name) => ASTUnifier(other, this)
-    case ASTDataType(otherName, admitsEquality) =>
+    case ASTDataType(otherName) =>
       if (name == otherName)
         ASTUnifier()
       else

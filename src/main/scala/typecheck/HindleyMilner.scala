@@ -49,6 +49,10 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
    * rather the introduced types.  If the compiler were to be extended
    * with 'type' or similar, I would expect this to become a map.  */
   val datatypeTypes = new HashSet[ASTIdent]()
+
+  /* Keep track of which datatype admit equality.  */
+  val dataTypeEquality = new HashMap[ASTIdent, Boolean]()
+  ASTType.admitsEqualityMap = Some(dataTypeEquality)
   
   /* The top level is a special case, because some unification
    * (e.g. the conversion of ASTNumberType's to ASTIntType
@@ -252,6 +256,27 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
             }
           case None =>
         }
+
+        // Add the datatype class to the data type class map.
+        // This keeps track of whether this datatype admits equality
+        // or not.
+        if (!dataTypeEquality.contains(dataClass.name)) {
+          // Datatypes support equality by default.  It can only
+          // be removed with non-equality subtypes.
+          dataTypeEquality(dataClass.name) = true
+        }
+
+        val typAdmitsEquality = typ match {
+          case Some(typ) => typ.admitsEquality
+          case None => true
+        }
+
+        dataTypeEquality(dataClass.name) =
+          if (dataTypeEquality.contains(dataClass.name)) {
+            typAdmitsEquality && dataTypeEquality(dataClass.name)
+          } else {
+            typAdmitsEquality
+          }
 
         typ match {
           case Some(types) =>

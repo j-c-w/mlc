@@ -47,22 +47,6 @@ object ASTChangeNames
       ASTExceptionBind(changeNames(map, name), typs.map(changeNames(map, _)))
     }
     case ASTDataTypeBind(name, typs, dataClass) => {
-      // If the map does not have the data class, then insert it as new.
-      // Otherwise, set it.  Insert the name, and map to the typs.
-
-      // We also set the dataClass equality properties here.
-      // Note that recursive types can admit equality.
-      val thisAdmitsEquality = typs match {
-        case Some(typ) => typ.admitsEquality
-        case None => true
-      }
-
-      dataClass.admitsEqualityOption = dataClass.admitsEqualityOption match {
-        case None => Some(thisAdmitsEquality)
-        case Some(alreadyHasEquality) =>
-          Some(thisAdmitsEquality && alreadyHasEquality)
-      }
-
       if (!map.contains(dataClass.name.id)) {
         map.add(dataClass.name.id,
                 FunctionNameGenerator.newIdentName(dataClass.name.id))
@@ -216,9 +200,8 @@ object ASTChangeNames
     typ match {
       case ASTDataTypeName(name) =>
         ASTDataTypeName(changeNames(map, name))
-      case ASTDataType(name, admitsEquality) =>
-        ASTDataType(changeNames(map, name).asInstanceOf[ASTIdentVar],
-                    admitsEquality)
+      case ASTDataType(name) =>
+        ASTDataType(changeNames(map, name).asInstanceOf[ASTIdentVar])
       case ASTFunctionType(from, to) =>
         ASTFunctionType(changeNames(map, from),
                         changeNames(map, to))

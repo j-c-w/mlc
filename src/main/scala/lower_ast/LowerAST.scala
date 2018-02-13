@@ -267,8 +267,7 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
     case ASTCharType() => TCharType()
     case ASTUnitType() => TUnitType()
     case ASTDataTypeName(name) => TDataTypeInstance(lowerAST(name, env))
-    case ASTDataType(name, admitsEquality) =>
-      TDataType(name.id)
+    case ASTDataType(name) => TDataType(name.id)
     // We 'expect' to hit this case if the typechecker failed
     // to specialize some values away from the internal types.
     case _ => throw new ICE("""Unexepected group type %s
