@@ -93,7 +93,7 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
     | restrictedID
   )
 
-  lazy val restrictedID: Parser[ASTIdent] = (
+  lazy val restrictedID: Parser[ASTIdentVar] = (
     lexIdentifier           ^^ {
       case (LexIdentifier(name)) => ASTIdentVar(name)
     }
@@ -432,7 +432,7 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
 
   lazy val expLetIn: Parser[ASTExp] =
     LexLet ~ decs ~ LexIn ~ expSeq ~ LexEnd ^^ {
-      case (_ ~ decs ~ _ ~ seq ~ _) => ASTExpLetIn(decs, seq)
+      case (_ ~ decs ~ _ ~ seq ~ _) => ASTExpLetIn(decs.flatten, seq)
     }
 
   lazy val expTuple: Parser[List[ASTExp]] = (
@@ -643,14 +643,14 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
 
   //  Declarations
 
-  lazy val dec: Parser[ASTDeclaration] = (
+  lazy val dec: Parser[List[ASTDeclaration]] = (
     // Omitted: val (val)(,) valbind
       LexVal ~ valbind ~ rep(LexSemiColon) ^^ {
-        case (_ ~ valbind ~ _) => valbind
+        case (_ ~ valbind ~ _) => List(valbind)
       }
     // Omitted: val (val)(,) funbind
     | LexFun ~ funbind ~ rep(LexSemiColon) ^^ {
-        case (_ ~ funbind ~ _) => funbind
+        case (_ ~ funbind ~ _) => List(funbind)
     }
     // Omitted: type typebind
     // Omitted: (with typebind)
@@ -659,7 +659,7 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
     }
     // Omitted: abstype datbind (withtype typbind) with dec end
     | LexException ~ exnbind ~ rep(LexSemiColon) ^^ {
-      case (_ ~ exnbind ~ _) => exnbind
+      case (_ ~ exnbind ~ _) => List(exnbind)
     }
     // Omitted: structure
     // Omitted: local dec1 in dec2 end
@@ -671,7 +671,7 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
 
   // Inserted: This pattern is inserted to avoid left recursion
   // in dec.
-  lazy val decs: Parser[List[ASTDeclaration]] = (
+  lazy val decs: Parser[List[List[ASTDeclaration]]] = (
     rep(dec)                ^^ { case (decs) => decs }
   )
 
@@ -745,11 +745,15 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
     }
   )
 
-  lazy val datbind: Parser[ASTDeclaration] = (
+  lazy val datbind: Parser[List[ASTDeclaration]] = (
     // Omitted: var (,) id = conbind (and datbind)
     // Omitted: var (,) prefix
     restrictedID ~ LexEq ~ conbind ^^ {
-      case (id ~ _ ~ conbind) => ASTDataType(id, conbind)
+      // Equality is calculated in the ASTChangeNames function.
+      // Note that is is important that all conbinds of the same
+      // ID get the same ASTDataType as the  equality is set
+      // as a variable value within that object.
+      case (id ~ _ ~ conbind) => conbind(ASTDataType(id, None))
     }
   )
 
@@ -759,22 +763,27 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
     }
   )
 
-  lazy val conbind: Parser[List[ASTDataConstructor]] = (
+  lazy val conbind: Parser[(ASTDataType => List[ASTDataTypeBind])] = (
     restrictedID ~ opt(LexOf ~ typ) ~ opt(LexVBar ~ conbind) ^^ {
       case (id ~ Some(_ ~ typ) ~ Some(_ ~ rest)) =>
-        ASTDataConstructorDefinitionWithType(id, typ) :: rest
-      case (id ~ Some(_ ~ typ) ~ none) =>
-        List(ASTDataConstructorDefinitionWithType(id, typ))
+        (ident: ASTDataType) =>
+          ASTDataTypeBind(id, Some(typ), ident) :: rest(ident)
+      case (id ~ Some(_ ~ typ) ~ None) =>
+        (ident: ASTDataType) =>
+          List(ASTDataTypeBind(id, Some(typ), ident))
       case (id ~ None ~ Some(_ ~ rest)) =>
-        ASTDataConstructorDefinition(id) :: rest
-      case (id ~ None ~ None) => List(ASTDataConstructorDefinition(id))
+        (ident: ASTDataType) =>
+          ASTDataTypeBind(id, None, ident) :: rest(ident)
+      case (id ~ None ~ None) =>
+        (ident: ASTDataType) =>
+          List(ASTDataTypeBind(id, None, ident))
     }
   )
 
   // Programs
 
   lazy val prog: Parser[List[ASTDeclaration]] = (
-    phrase(decs)            ^^ { (decs) => decs }
+    phrase(decs)            ^^ { (decs) => decs.flatten }
   )
 
   override def treeToString(input: ASTProgram) =

@@ -280,8 +280,7 @@ case class ASTTupleType(val args: List[ASTType]) extends ASTType {
   def atomicClone = throw new ICE("""Attempted type clone of
     uncloneable type %s""".format(this.prettyPrint))
 
-  def admitsEquality = throw new ICE(""" Tuple.admitsEquality may not
-    be called as that is not nessecarily a well defined concept.""")
+  def admitsEquality = args.forall(_.admitsEquality)
 
   val isAtomic = false
 
@@ -922,7 +921,6 @@ case class ASTExceptionType() extends ASTTypeVar {
   override def mguNoCyclicCheck(other: ASTType) = other match {
     case ASTExceptionType() => ASTUnifier()
     // We only match constructor types with no arguments.
-    // case ASTConstructorType(_, None, ASTExceptionType()) => ASTUnifier()
     case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
     case _ => throw new UnificationError(this, other)
   }
@@ -966,87 +964,74 @@ case class ASTUnitType() extends ASTTypeVar {
   }
 }
 
-// case class ASTConstructorType(val name: ASTIdent, val args: Option[ASTType],
-//                               val resultType: ASTType)
-//     extends ASTType {
-//   def prettyPrint =
-//     "%s(%s): %s".format(name, args.map(_.prettyPrint).mkString(", "),
-//                         resultType.prettyPrint)
+/* Note that admitsEquality is not set until the ASTChangeNames pass.  */
+case class ASTDataType(val name: ASTIdentVar,
+                       var admitsEqualityOption: Option[Boolean])
+    extends ASTType {
+  def prettyPrint =
+    "datatype " + name
 
-//   def containsNonAtomic(other: ASTType) = other match {
-//     // Two constructor types are equal if they have the same name and all
-//     // the same types.
-//     case ASTConstructorType(otherName, args, resultType)
-//         if name == otherName => true
-//     case _ =>
-//       resultType.containsNonAtomic(other) ||
-//       args.exists(_.containsNonAtomic(other))
-//   }
+  def containsNonAtomic(other: ASTType) = other match {
+    // Two constructor types are equal if they have the same name and all
+    // the same types.
+    case ASTDataType(otherName, _)
+        if name == otherName => true
+    case _ =>
+      false
+  }
 
-//   override def is(other: ASTType) = {
-//     other match {
-//       case ASTConstructorType(otherName, otherArgs, otherResultType) => true
-//       // If this constructor requires some arguments, then it is effectively
-//       // a function from the argument type to the result type of the constructor.
-//       case ASTFunctionType(funFrom, funTo) => args match {
-//         case Some(args) =>
-//           (args is funFrom) && (resultType is funTo)
-//         case None => false
-//       }
-//       // If this constructor does not require arguments, then it is an implicit
-//       // constructor for the result type.
-//       case other => args match {
-//         case Some(args) => false
-//         case None =>
-//           resultType is other
-//       }
-//     }
-//   }
+  override def is(other: ASTType) = other match {
+    case ASTDataType(otherName, _) => otherName == name
+    case _ => false
+  }
 
-//   def containsAtomic(other: ASTType) = containsNonAtomic(other)
+  def containsAtomic(other: ASTType) = containsNonAtomic(other)
 
-//   def substituteFor(map: Map[ASTType, ASTType]) =
-//     // As there may be no type variables in the argument types,
-//     // we can stop this here.
-//     this
+  def substituteFor(map: Map[ASTType, ASTType]) =
+    // As there may be no type variables in the argument types,
+    // we can stop this here.
+    this
 
-//   def atomicClone = throw new ICE("ASTConstructorType cannot be cloned")
+  def atomicClone = throw new ICE("ASTDataType cannot be cloned")
 
-//   // Expect to change this if datatypes are added.
-//   def admitsEquality = false
+  val isAtomic = false
 
-//   val isAtomic = false
+  override def isMonomorphic = true
 
-//   // There can be no type variables in the arguments.
-//   override def getTypeVars() = ASTTypeSet()
+  override def admitsEquality = admitsEqualityOption match {
+    case None => // This has not yet been worked out.  It depends on the
+      // subtypes of the class.  It is calcultaed in the ASTChangeNames
+      // pass.  However, since recursive types admit equality, we have
+      // this return true.
+      true
+    case Some(equality) => equality
+  }
 
-//   override def specializeTo(other: ASTType) = other match {
-//     case ASTConstructorType(otherName, args, resultType)
-//         if name == otherName => ASTUnifier()
-//     case _ => args match {
-//       case Some(_) => throw new SpecializationError(other, this)
-//       // if there are no arguments, then this has the type of the
-//       // result.
-//       case None => resultType.specializeTo(other)
-//     }
-//   }
+  // There can be no type variables in the arguments.
+  override def getTypeVars() = ASTTypeSet()
 
-//   override def mguNoCyclicCheck(other: ASTType) = other match {
-//     case ASTConstructorType(otherName, args, resultType)
-//         if name == otherName => ASTUnifier()
-//     case ASTUnconstrainedTypeVar(name) =>
-//       ASTUnifier(other, this)
-//     // Expect to introduce an equality type check here if equality
-//     // types are to be admitted.
-//     case other => args match {
-//       case Some(_) => throw new SpecializationError(other, this)
-//       // if there are no arguments, then this has the type of the
-//       // result.
-//       case None => resultType.mguNoCyclicCheck(other)
+  override def specializeTo(other: ASTType) = other match {
+    case ASTDataType(otherName, _)
+        if name == otherName => ASTUnifier()
+    case ASTDataTypeName(otherName) if name == otherName =>
+      ASTUnifier(this, other)
+    case _ =>
+      throw new SpecializationError(other, this)
+  }
 
-//     }
-//   }
-// }
+  override def mguNoCyclicCheck(other: ASTType) = other match {
+    case ASTDataType(otherName, _)
+        if name == otherName => ASTUnifier()
+    case ASTUnconstrainedTypeVar(name) =>
+      ASTUnifier(other, this)
+    case ASTEqualityTypeVar(name) if admitsEquality =>
+      ASTUnifier(other, this)
+    case ASTDataTypeName(otherName) if name == otherName =>
+      ASTUnifier(other, this)
+    case other =>
+      throw new SpecializationError(other, this)
+  }
+}
 
 case class ASTDataTypeName(val name: ASTIdent) extends ASTTypeVar {
   def prettyPrint = name.prettyPrint
@@ -1086,6 +1071,11 @@ case class ASTDataTypeName(val name: ASTIdent) extends ASTTypeVar {
         ASTUnifier()
       else
         throw new SpecializationError(this, other)
+    case ASTDataType(otherName, admitsEquality) =>
+      if (name == otherName)
+        ASTUnifier()
+      else
+        throw new SpecializationError(this, other)
     case _ => throw new SpecializationError(this, other)
   }
 
@@ -1097,6 +1087,11 @@ case class ASTDataTypeName(val name: ASTIdent) extends ASTTypeVar {
         throw  new UnificationError(this, other)
     case ASTUnconstrainedTypeVar(name) => ASTUnifier(other, this)
     case ASTEqualityTypeVar(name) => ASTUnifier(other, this)
+    case ASTDataType(otherName, admitsEquality) =>
+      if (name == otherName)
+        ASTUnifier()
+      else
+        throw  new UnificationError(this, other)
     case _ => throw new UnificationError(this, other)
   }
 }

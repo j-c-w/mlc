@@ -63,33 +63,20 @@ case class ASTExceptionBind(val ident: ASTIdent, val typ: Option[ASTType])
 }
 
 // Datatype definitions
-sealed trait ASTDataConstructor {
-  def prettyPrint: String
-}
-
-case class ASTDataType(val ident: ASTIdent,
-                       val classes: List[ASTDataConstructor])
+case class ASTDataTypeBind(val ident: ASTIdent, val typ: Option[ASTType],
+                           val dataClass: ASTDataType)
     extends ASTDeclaration {
-  def prettyPrint = """
-
-  datatype %s = %s
-
-  """.format(ident.prettyPrint, (classes map(_.prettyPrint)).mkString(" | "))
-
-  def getIdent = ident
-}
-
-case class ASTDataConstructorDefinition(val ident: ASTIdent)
-                                        extends ASTDataConstructor {
-  def prettyPrint = ident.prettyPrint
-
-  def getIdent = ident
-}
-
-case class ASTDataConstructorDefinitionWithType(val ident: ASTIdent,
-                                                val classType: ASTType)
-    extends ASTDataConstructor {
-  def prettyPrint = ident.prettyPrint + " of " + classType.prettyPrint
+  def prettyPrint =
+    typ match {
+      case Some(typ) => """
+      |datatype %s: %s of %s
+      |""".stripMargin.format(ident.prettyPrint, dataClass.prettyPrint,
+                              typ.prettyPrint)
+      case None =>
+        """
+        |datatype %s: %s
+        |""".stripMargin.format(ident.prettyPrint, dataClass.prettyPrint)
+    }
 
   def getIdent = ident
 }
