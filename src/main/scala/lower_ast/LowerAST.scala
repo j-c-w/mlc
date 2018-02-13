@@ -79,11 +79,24 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
             TDataTypeDec(newIdent, args.map(lowerAST(_, env)),
                          TExceptionType()) :: dataTypeDecs
         }
-        case _ =>
-          // Datatypes may get down to here. They are formally
-          // pruned out of the tree at this point, although
-          // as  is they do not pass typechecking.
-          ???
+        case ASTDataTypeBind(ident, typ, dataClass) => {
+          val newIdent = ident match {
+            case ident @ ASTIdentVar(name) => {
+              assert(ident.identClass.get.isInstanceOf[ASTDataTypeClass])
+
+              if (env.topLevelHasType(ident)) {
+                TTopLevelIdent(name, TDataTypeClass())
+              } else {
+                TIdentVar(name, TDataTypeClass())
+              }
+            }
+            case _ => unreachable
+          }
+
+          dataTypeDecs =
+            TDataTypeDec(newIdent, typ.map(lowerAST(_, env)),
+                         lowerAST(dataClass, env)) :: dataTypeDecs
+        }
       }
     }
     (dataTypeDecs.reverse, funDecs.reverse, valDecs.reverse)
@@ -253,7 +266,9 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
     case ASTStringType() => TStringType()
     case ASTCharType() => TCharType()
     case ASTUnitType() => TUnitType()
-    case ASTDataTypeName(name) => TDataType(lowerAST(name, env))
+    case ASTDataTypeName(name) => TDataTypeInstance(lowerAST(name, env))
+    case ASTDataType(name, admitsEquality) =>
+      TDataType(name.id)
     // We 'expect' to hit this case if the typechecker failed
     // to specialize some values away from the internal types.
     case _ => throw new ICE("""Unexepected group type %s
