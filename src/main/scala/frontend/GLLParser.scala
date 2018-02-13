@@ -509,11 +509,10 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
         case (_ ~ None) => ASTPatWildcard(List())
     }
     // This matches constructors with arguments.
-    | restrictedIDAllowList ~ LexLParen ~ patList ~ LexRParen ~
-      opt(patTail) ^^ {
-        case (id ~ _ ~ values ~ _ ~ Some(patTail)) =>
+    | restrictedIDAllowList ~ patNoType ~ opt(patTail) ^^ {
+        case (id ~ values ~ Some(patTail)) =>
           patTail._1(ASTPatConstructor(id, Some(values), patTail._2))
-        case (id ~ _ ~ values ~ _ ~ None) =>
+        case (id ~ values ~ None) =>
           ASTPatConstructor(id, Some(values), List())
     }
     // This is inserted to avoid creating an empty patseq below

@@ -181,8 +181,7 @@ object ASTChangeNames
         val newName = changeNames(map, name)
 
         ASTPatConstructor(newName,
-                          args.map(changeNamesInsert(map, _)
-                            .asInstanceOf[ASTPatSeq]),
+                          args.map(changeNamesInsert(map, _)),
                           changeNames(map, typs))
       }
       case ASTPatCons(head, tail, typs) =>

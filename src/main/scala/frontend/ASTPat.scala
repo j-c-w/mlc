@@ -59,7 +59,7 @@ case class ASTPatCons(val head: ASTPat, val tail: ASTPat,
 }
 
 case class ASTPatConstructor(val constructor: ASTIdent,
-                             val args: Option[ASTPatSeq],
+                             val args: Option[ASTPat],
                              val typ: List[ASTType]) extends ASTPat {
   def prettyPrint = args match {
     case Some(args) =>
