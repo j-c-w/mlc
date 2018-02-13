@@ -34,5 +34,15 @@ class ASTNameEnvironment(val parent: Option[ASTNameEnvironment]) {
     }
   }
 
+  def contains(from: String): Boolean = {
+    if (map.contains(from))
+      true
+    else
+      parent match {
+        case Some(parentEnv) => parentEnv.contains(from)
+        case None => false
+      }
+  }
+
   def apply(from: String) = get(from)
 }
