@@ -226,15 +226,24 @@ object LowerTIR extends Pass[TJavaProgram, JVMProgram]("lower_tir") {
     decs.foreach {
       case TDataTypeDec(name, typs, typeClass) => {
         if (!defMap.contains(typeClass)) {
+          val initMethod =
+            new  JVMMethod("<init>", List(), JVMVoidPrimitiveType(),
+                           List(LocalsLimitDirective(1),
+                                StackLimitDirective(1),
+                                JVMSelfLoad(), JVMInvokeSpecialMethod(
+                                  new JVMMethodRef(JVMDataTypeClassRef(),
+                                    "<init>", List(),
+                                    JVMVoidPrimitiveType()))),
+                           false)
+
+          val className = LowerName(typeClass.asInstanceOf[TDataType].name)
           // Create a class to represent the datatype:
-          val newClass = JVMClass("DatatypeClass" +
-                                  typeClass.asInstanceOf[TDataType].name,
+          val newClass = JVMClass("DataTypeParentClass" + className,
                                   Some(JVMDataTypeClassRef()),
-                                  List(), List())
+                                  List(), List(initMethod))
 
           defMap(typeClass) =
-            JVMClassRef.classRefFor("DatatypeClass" +
-                                    typeClass.asInstanceOf[TDataType].name)
+            JVMClassRef.classRefFor("DataTypeParentClass" + className)
           newClasses = newClass :: newClasses
         }
       }
@@ -242,6 +251,9 @@ object LowerTIR extends Pass[TJavaProgram, JVMProgram]("lower_tir") {
 
     (newClasses, defMap)
   }
+
+  // This should be incremented and used for IDs for each datatype.
+  var dataTypeIDs = 0
 
   /* This takes a datatype constructor and a map that returns a reference
    * to the parent type.  It returns a class representing the datatype.  */
@@ -251,6 +263,8 @@ object LowerTIR extends Pass[TJavaProgram, JVMProgram]("lower_tir") {
     dataType match {
       case TDataTypeDec(name, constructorTypes, typeClass) => {
         val argTypes = constructorTypes.map(LowerType(_, env))
+        val thisID = dataTypeIDs
+        dataTypeIDs += 1
         val initInstructions =
           List(LocalsLimitDirective(1), StackLimitDirective(1),
                // call init:
@@ -258,13 +272,17 @@ object LowerTIR extends Pass[TJavaProgram, JVMProgram]("lower_tir") {
                JVMInvokeSpecialMethod(
                  new JVMMethodRef(typeClassMap(typeClass), "<init>",
                                   List(), JVMVoidPrimitiveType())))
+        val idMethod =
+          JVMMethod("id", List(), JVMIntPrimitiveType(),
+                    List(LocalsLimitDirective(1), StackLimitDirective(1),
+                         JVMIPush(thisID), JVMIReturn()), false)
         val initFunction =
           JVMMethod("<init>", List(), JVMVoidPrimitiveType(),
                     initInstructions, false)
-        JVMClass("DatatypeClass" +
+        JVMClass("DataTypeClass" +
                  LowerName(name.asInstanceOf[TTopLevelIdent].name),
                  Some(typeClassMap(typeClass)),
-                 List(), List(initFunction))
+                 List(), List(initFunction, idMethod))
       }
                  
     }

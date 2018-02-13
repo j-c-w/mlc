@@ -1,5 +1,6 @@
 package lower_tir
 
+import exceptions.ICE
 import tir._
 import byteR._
 
@@ -11,17 +12,20 @@ object LowerType {
     case TUnconstrainedTypeVar(name) => JVMObjectType()
     case TListType(subType) => JVMLinkedListType()
     case TExceptionType() => JVMExceptionType()
-    case TDataType(name) => {
-      // Note that data types are stored as functions.
-      val dataTyp = env.getOrFail(name) match {
-        case TFunctionType(from, to) => to
-        case other => other
+    case TDataTypeInstance(name) => {
+      name match {
+        case TIdentVar(id, _) =>
+          JVMDataTypeParentClass(
+            JVMClassRef.classRefFor("DataTypeParentClass" + LowerName(id)))
+        case TTopLevelIdent(id, _) =>
+          JVMDataTypeType(
+            JVMClassRef.classRefFor("DataTypeClass" + LowerName(id)))
+        case other => throw new ICE("Unrecognized ident type " + name)
       }
-
-      JVMDataTypeType(
-        JVMClassRef.classRefFor(
-          "DatatypeClass" + LowerName(name.asInstanceOf[TTopLevelIdent].name)))
     }
+    case TDataType(name) =>
+      JVMDataTypeParentClass(
+        JVMClassRef.classRefFor("DataTypeParentClass" + LowerName(name)))
     case TIntType() => JVMIntegerType()
     case TStringType() => JVMStringType()
     case TRealType() => JVMFloatType()

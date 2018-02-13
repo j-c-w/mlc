@@ -48,11 +48,11 @@ object LowerLoadIdent {
                    "<init>", List(), JVMVoidPrimitiveType())))
         case TDataTypeClass() =>
           List(JVMNew(JVMClassRef.classRefFor(
-                  LowerName("DatatypeClass" + LowerName(name)))),
+                  LowerName("DataTypeClass" + LowerName(name)))),
                JVMDup(),
                JVMInvokeSpecialMethod(
                  new JVMMethodRef(
-                   JVMClassRef.classRefFor(LowerName("DatatypeClass" + name)),
+                   JVMClassRef.classRefFor(LowerName("DataTypeClass" + name)),
                    "<init>", List(), JVMVoidPrimitiveType())))
         case TValClass() =>
           List(JVMGetStaticField(JVMMainClassRef(), LowerName(name),
