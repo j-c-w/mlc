@@ -225,9 +225,10 @@ object AssignmentGeneration {
         val dataType = typeEnv.getOrFail(name) match {
           // In the case of a TException type, we need the type used here
           // to be more specific.
-              case TFunctionType(from, TExceptionType()) => TDataType(name)
-              case TFunctionType(from, to) => to
-              case other => other
+          case TFunctionType(from, TExceptionType()) => TDataTypeInstance(name)
+          case TFunctionType(from, TDataType(instanceName)) =>
+            TDataTypeInstance(name)
+          case other => other
         }
 
         (TExpIf(TExpIsType(TExpIdent(parentIdent), dataType),
