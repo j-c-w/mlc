@@ -110,9 +110,9 @@ trait TPass[T, U] {
       combine(combine(apply(item, exp),
                       combineList(handleCases.map(apply(item, _)))),
               apply(item, handleType))
-    case TExpTry(exp, exceptionIdent, handleExp) =>
+    case TExpTry(exp, exceptionIdent, handleExp, internalType) =>
       combine(combine(apply(item, exp), apply(item, exceptionIdent)),
-              apply(item, handleExp))
+              combine(apply(item, handleExp), apply(item, internalType)))
     case TExpRaise(throwable) =>
       apply(item, throwable)
     case TExpContinue(id) => default

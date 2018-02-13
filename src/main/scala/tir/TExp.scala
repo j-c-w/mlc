@@ -308,14 +308,15 @@ case class TExpHandle(var expression: TExp, var cases: List[TExpMatchRow],
 /* This differes from Exp Handle because it is a lower level construct.
  * This maps closely onto the JVM.  */
 case class TExpTry(var exp: TExp, var catchVar: TNamedIdent,
-                   var catchExp: TExp) extends TExp {
+                   var catchExp: TExp, var internalIdent: TInternalIdentVar)
+    extends TExp {
   def prettyPrint =
     "try (%s) catch in %s as (%s)".format(exp.prettyPrint, catchVar.prettyPrint,
                                           catchExp.prettyPrint)
 
   def nodeClone(env: TTypeEnv) =
     new TExpTry(exp.nodeClone(env), catchVar.nodeClone(env),
-                catchExp.nodeClone(env))
+                catchExp.nodeClone(env), internalIdent.nodeClone(env))
 }
 
 case class TExpRaise(var throwable: TExp) extends TExp {

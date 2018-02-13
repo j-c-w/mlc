@@ -15,13 +15,16 @@ import tir._
 object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
   def lowerAST(program: ASTProgram): TProgram = {
     val ttypeEnv = lowerEnv(program.env.get)
-    val (funDecs, valDecs) = lowerAST(program.decs, program.env.get)
+    val (dataTypeDecs, funDecs, valDecs) =
+      lowerAST(program.decs, program.env.get)
 
-    TProgram(ttypeEnv, funDecs, valDecs)
+    TProgram(ttypeEnv, dataTypeDecs, funDecs, valDecs)
   }
 
   def lowerAST(program: List[ASTDeclaration],
-               env: ASTTypeEnv): (List[TFun], List[TVal]) = {
+               env: ASTTypeEnv): (List[TDataTypeDec],
+                                  List[TFun], List[TVal]) = {
+    var dataTypeDecs = List[TDataTypeDec]()
     var funDecs = List[TFun]()
     var valDecs = List[TVal]()
 
@@ -59,6 +62,23 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
 
           valDecs = TVal(newIdents, newExpression) :: valDecs
         }
+        case ASTExceptionBind(ident, args) => {
+          val newIdent = ident match {
+            case ident @ ASTIdentVar(name) => {
+              assert(ident.identClass.get.isInstanceOf[ASTDataTypeClass])
+
+              if (env.topLevelHasType(ident)) {
+                TTopLevelIdent(name, TDataTypeClass())
+              } else {
+                TIdentVar(name, TDataTypeClass())
+              }
+            }
+            case _ => unreachable
+          }
+          dataTypeDecs =
+            TDataTypeDec(newIdent, args.map(lowerAST(_, env)),
+                         TExceptionType()) :: dataTypeDecs
+        }
         case _ =>
           // Datatypes may get down to here. They are formally
           // pruned out of the tree at this point, although
@@ -66,7 +86,7 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
           ???
       }
     }
-    (funDecs.reverse, valDecs.reverse)
+    (dataTypeDecs.reverse, funDecs.reverse, valDecs.reverse)
   }
 
   def lowerASTInternal(ident: ASTInternalIdent,
@@ -75,6 +95,7 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
 
   def lowerAST(ident: ASTIdent, env: ASTTypeEnv): TIdent =
     lowerAST(ident, env, None)
+
   /* Some, but not all of the identifiers require function type
    * information to disambiguate them.
    * For ease of access, an overloaded function call is
@@ -208,6 +229,7 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
   def lowerAST(identClass: ASTIdentClass): TIdentClass = identClass match {
     case ASTFunClass() => TFunClass()
     case ASTValClass() => TValClass()
+    case ASTDataTypeClass() => TDataTypeClass()
   }
 
   def lowerAST(typ: ASTType, env: ASTTypeEnv): TType = typ match {
@@ -221,13 +243,17 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
       TUnconstrainedTypeVar(name)
     case ASTListType(subType) =>
       TListType(lowerAST(subType, env))
+    // case ASTConstructorType(name, args, resultType) =>
+    //   TConstructorType(lowerAST(env, name), args.map(lowerAST(env, _)),
+    //                    lowerAST(env, resultType))
     case ASTIntType() => TIntType()
+    case ASTExceptionType() => TExceptionType()
     case ASTRealType() => TRealType()
     case ASTBoolType() => TBoolType()
     case ASTStringType() => TStringType()
     case ASTCharType() => TCharType()
     case ASTUnitType() => TUnitType()
-    case ASTDataTypeName(_) => ???
+    case ASTDataTypeName(name) => TDataType(lowerAST(name, env))
     // We 'expect' to hit this case if the typechecker failed
     // to specialize some values away from the internal types.
     case _ => throw new ICE("""Unexepected group type %s
@@ -271,9 +297,14 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
       }
       case other => TPatIdentifier(lowerAST(other, env))
     }
-    case ASTPatSeq(subseq, typ) => TPatSeq(subseq.map(lowerAST(_, env)))
+    case ASTPatSeq(subseq, typ) => subseq match {
+      case List(elem) => lowerAST(elem, env)
+      case other =>TPatSeq(subseq.map(lowerAST(_, env)))
+    }
     case ASTListPat(listpat, typ) => TListPat(listpat.map(lowerAST(_, env)))
     case ASTPatConst(const, typ) => TPatConst(lowerAST(const, env))
+    case ASTPatConstructor(instanceName, args, ofType) =>
+      TPatConstructor(lowerAST(instanceName, env), args.map(lowerAST(_, env)))
     case ASTPatCons(head, tail, typ) =>
       TPatCons(lowerAST(head, env), lowerAST(tail, env))
   }
@@ -321,7 +352,8 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
     case ASTExpList(elems) => TExpList(elems.map(lowerAST(_, env)))
     case let @ ASTExpLetIn(decs, exps) => {
       val loweredEnv = lowerEnv(let.typeEnv.get)
-      val (loweredFuns, loweredVals)  = lowerAST(decs, let.typeEnv.get)
+      val (loweredDatatypes, loweredFuns, loweredVals) =
+        lowerAST(decs, let.typeEnv.get)
       val loweredExp = exps.map(lowerAST(_, let.typeEnv.get))
 
       // The design decision to treat a let-in in the AST
@@ -335,11 +367,16 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
         case exps => TExpSeq(exps)
       }
 
-      TExpLetIn(loweredFuns ::: loweredVals, tExps, loweredEnv)
+      TExpLetIn(loweredDatatypes ::: loweredFuns ::: loweredVals,
+                tExps, loweredEnv)
     }
     case ASTExpSeq(exps) =>
       TExpSeq(exps.map(lowerAST(_, env)))
     case ASTExpTyped(exp, typ) => lowerAST(exp, env)
+    case ASTExpRaise(exp) => TExpRaise(lowerAST(exp, env))
+    case handle @ ASTExpHandle(exp, handleCases) =>
+      TExpHandle(lowerAST(exp, env), handleCases.map(lowerMatchRowAST(_, env)),
+                 lowerASTInternal(handle.applicationType.get, env))
     case ifThenElse @ ASTExpIfThenElse(cond, ifTrue, ifFalse) => {
       // For the sake of keeping the IR smaller, we implement this
       // as a case statement.

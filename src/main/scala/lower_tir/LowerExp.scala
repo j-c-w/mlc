@@ -411,7 +411,7 @@ object LowerExp {
 
       List(JVMJump(label))
     }
-    case TExpTry(expression, tryVariable, cases) => {
+    case TExpTry(expression, tryVariable, cases, internalTyp) => {
       // The re-throw logic was inserted by lower_program.
       val beforeLabel = LabelGenerator.newLabel()
       val afterLabel = LabelGenerator.newLabel()

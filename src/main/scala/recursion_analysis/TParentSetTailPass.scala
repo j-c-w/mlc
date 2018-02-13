@@ -73,12 +73,16 @@ abstract class TParentSetTailPass extends TParentSetPass[Boolean] {
                apply(false, appType).asInstanceOf[Option[TInternalIdentVar]])
       None
     }
-    case tryExp @ TExpTry(exp, handleVar, handleExp) => {
+    case tryExp @ TExpTry(exp, handleVar, handleExp, internalIdent) => {
       tryExp.exp = getNew(exp, apply(isTail, exp))
       tryExp.catchVar =
         getNew(handleVar,
                apply(false, handleVar).asInstanceOf[Option[TInternalIdentVar]])
       tryExp.catchExp = getNew(handleExp, apply(isTail, handleExp))
+      tryExp.internalIdent =
+        getNew(internalIdent,
+               apply(false,
+                     internalIdent).asInstanceOf[Option[TInternalIdentVar]])
 
       None
     }

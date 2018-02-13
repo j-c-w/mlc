@@ -105,10 +105,12 @@ class RemoveLetsWalk(val replacementEnv: TTypeEnv)
           case _ => throw new ICE("Handle statement without function type")
         }
       val newApplicationID = VariableGenerator.newTInternalVariable()
+      val tryCatchID = VariableGenerator.newTInternalVariable()
       val exceptionName = VariableGenerator.newTVariable(TValClass())
 
       replacementEnv.add(exceptionName, TExceptionType(), false)
-      replacementEnv.add(newApplicationID, newApplicationType, false)
+      replacementEnv.addTopLevel(newApplicationID, newApplicationType, false)
+      replacementEnv.addTopLevel(tryCatchID, newApplicationType, false)
 
       accumulatedIdents += exceptionName
 
@@ -127,7 +129,8 @@ class RemoveLetsWalk(val replacementEnv: TTypeEnv)
                 TExpSeq(List(TExpAssign(exceptionName,
                                         TExpIdent(TCaughtExceptionIdent())),
                              TExpCase(TExpIdent(exceptionName),
-                                      catchCases, newApplicationID))))
+                                      catchCases, newApplicationID))),
+                tryCatchID)
 
       val fixedUp = apply(u, reducedCases)
       assert(fixedUp == None)

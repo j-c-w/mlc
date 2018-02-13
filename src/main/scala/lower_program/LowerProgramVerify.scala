@@ -171,10 +171,12 @@ class AssignIntegrityWalk extends TUnitPass {
       // identifiers definitely should not be used in their assignments!
       assignedVariables += ident
     }
-    case TExpTry(exp, tryVariable, handle) => {
+    case TExpTry(exp, tryVariable, handle, internalTyp) => {
       apply(u, exp)
       assignedVariables += tryVariable
       apply(u, handle)
+
+      // Do not walk the typ.
     }
     case TExpIdent(ident @ TIdentVar(name, identClass)) => {
       if (!assignedVariables.contains(ident)) {

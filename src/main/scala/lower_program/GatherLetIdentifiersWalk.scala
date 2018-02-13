@@ -43,10 +43,12 @@ class GatherLetIdentifiersWalk(parentEnv: TTypeEnv)
       combine(thisIdent, super.apply(env, exp))
     }
     // Variables may also be declared in try-catch nodes.
-    case TExpTry(tryExp, ident, catchExp) => {
+    case TExpTry(tryExp, ident, catchExp, internalIdent) => {
       val thisIdent = new HashSet[TNamedIdent]
       thisIdent += ident
       combine(thisIdent, super.apply(env, exp))
+
+      // We do not need to walk the internal ident.
     }
     case other => super.apply(env, exp)
   }

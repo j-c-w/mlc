@@ -212,12 +212,16 @@ class TParentSetPass[T] {
         ifStmt.ifTrue = getNew(ifStmt.ifTrue, newTrue)
         ifStmt.ifFalse = getNew(ifStmt.ifFalse, newFalse)
       }
-      case tryExp @ TExpTry(expression, catchVar, catchExp) => {
+      case tryExp @ TExpTry(expression, catchVar, catchExp, internalType) => {
         tryExp.exp = getNew(expression, apply(item, expression))
         tryExp.catchVar =
           getNew(catchVar,
                  apply(item, catchVar).asInstanceOf[Option[TNamedIdent]])
         tryExp.catchExp = getNew(catchExp, apply(item, catchExp))
+        tryExp.internalIdent =
+          getNew(internalType,
+                 apply(item,
+                       internalType).asInstanceOf[Option[TInternalIdentVar]])
       }
       case handle @ TExpHandle(exp, cases, internalIdent) => {
         handle.expression = getNew(handle.expression, apply(item, exp))
