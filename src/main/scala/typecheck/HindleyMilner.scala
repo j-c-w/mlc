@@ -3,7 +3,7 @@ package typecheck
 import exceptions._
 import frontend._
 import generators._
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.{HashMap,HashSet}
 import toplev.Pass
 import toplev.Shared
 
@@ -40,6 +40,15 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
    * an identifier refers to a val or a function.
    */
   val identifierClassMap = new HashMap[ASTIdentVar, ASTIdentClass]
+
+  /* Keep track of which datatypes have been declared.  Note that this
+   * does not have to be hierarchical because the type names are
+   * expected to be unique.
+   *
+   * Note that this does NOT store the instances of the datatypes, but
+   * rather the introduced types.  If the compiler were to be extended
+   * with 'type' or similar, I would expect this to become a map.  */
+  val datatypeTypes = new HashSet[ASTIdent]()
   
   /* The top level is a special case, because some unification
    * (e.g. the conversion of ASTNumberType's to ASTIntType
@@ -229,10 +238,32 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         ident.asInstanceOf[ASTIdentVar].identClass = Some(ASTDataTypeClass())
         ASTUnifier()
       }
-      case ASTDataType(ident, astDataConstructors) => {
-        println("""Datatypes are not currently supported. """)
-        System.exit(1)
-        unreachable
+      case ASTDataTypeBind(ident, typ, dataClass) => {
+        // Make sure that the dataClass is in the set of valid data classes.
+        datatypeTypes += dataClass.name
+
+        // Assert that the passed types are typeable:
+        typ match {
+          case Some(types) =>
+            // Check that the type is well defined and ground.
+            if (!isGroundType(env, types)) {
+              throw new BadBindingException("Cannot declare a datatype" +
+                "of type " + types.prettyPrint)
+            }
+          case None =>
+        }
+
+        typ match {
+          case Some(types) =>
+            env.add(ident, ASTFunctionType(types, dataClass), false)
+          case None =>
+            env.add(ident, dataClass, false)
+        }
+
+        identifierClassMap(ident.asInstanceOf[ASTIdentVar]) =
+          ASTDataTypeClass()
+        ident.asInstanceOf[ASTIdentVar].identClass = Some(ASTDataTypeClass())
+        ASTUnifier()
       }
     }
 
@@ -977,17 +1008,20 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
   /* Return true if the type is ground.  If the type contains
    * some types that are not correctly defined, raise an exception.
    */
-  def isGroundType(env: ASTTypeEnv, typ: ASTType) = {
-    println("Checking types " + typ)
-    typ.getTypeVars().forall({
-      case ASTDataTypeName(x) => env(x) match {
-        // This case needs some improving.
-        case Some(_) => true
-        case None => false
+  def isGroundType(env: ASTTypeEnv, typ: ASTType): Boolean = (typ match {
+      case ASTFunctionType(from, to) =>
+        isGroundType(env, from) && isGroundType(env, to)
+      case ASTListType(subTyp) =>
+        isGroundType(env, subTyp)
+      case ASTTupleType(types) =>
+        types.forall(isGroundType(env, _))
+      case ASTDataTypeName(ident) => {
+        ident.asInstanceOf[ASTIdentVar].identClass = Some(ASTDataTypeClass())
+
+        datatypeTypes.contains(ident)
       }
       case _ => true
     }) && typ.isMonomorphic
-  }
 
   def run(tree: ASTProgram) = {
     // This is executed as a sequential process.
