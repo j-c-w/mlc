@@ -12,6 +12,7 @@ import typecheck.HindleyMilner
 import lower_ast.LowerAST
 import lower_ast.LowerASTVerify
 import lift_declarations.LiftDecs
+import t_outline.TOutline
 import lambda_lift.LambdaLift
 import lambda_lift.LambdaLiftVerify
 import tail_call_elim.TailCallElimination
@@ -56,8 +57,8 @@ object Toplev extends App {
   val _0 = LowerASTVerify.optionalExecute(cli.runLowerAstVerify, intermediate,
                                           false)
   val declaration_lifted = LiftDecs.execute(intermediate, cli.dumpDecLift)
-  val lambda_lifted = LambdaLift.execute(declaration_lifted,
-                                         cli.dumpLambdaLift)
+  val outlined = TOutline.execute(declaration_lifted, cli.dumpOutlined)
+  val lambda_lifted = LambdaLift.execute(outlined, cli.dumpLambdaLift)
   val _1 = LambdaLiftVerify.optionalExecute(cli.runLambdaLiftVerify,
                                             lambda_lifted, false)
 
