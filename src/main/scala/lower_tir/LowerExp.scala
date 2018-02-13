@@ -425,7 +425,6 @@ object LowerExp {
       (LowerExp(expression, env) :+
        JVMLabelMark(afterLabel) :+
        JVMJump(afterHandleLabel) :+
-       JVMStackPushDirective(JVMRuntimeExceptionRef()) :+
        JVMHandleMark(handleLabel)) :::
       (LowerExp(cases, env) :+
        JVMLabelMark(afterHandleLabel))
