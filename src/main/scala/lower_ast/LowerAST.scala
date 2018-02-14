@@ -391,31 +391,9 @@ object LowerAST extends Pass[ASTProgram, TProgram]("lower_ast") {
     case handle @ ASTExpHandle(exp, handleCases) =>
       TExpHandle(lowerAST(exp, env), handleCases.map(lowerMatchRowAST(_, env)),
                  lowerASTInternal(handle.applicationType.get, env))
-    case ifThenElse @ ASTExpIfThenElse(cond, ifTrue, ifFalse) => {
-      // For the sake of keeping the IR smaller, we implement this
-      // as a case statement.
-      val loweredEnv = lowerEnv(env)
-      val ifTrueCase = TExpMatchRow(List(TPatConst(TConstTrue())),
-                                    lowerAST(ifTrue, env),
-                                    new TTypeEnv(Some(loweredEnv)))
-      val ifFalseCase = TExpMatchRow(List(TPatConst(TConstFalse())),
-                                     lowerAST(ifFalse, env),
-                                     new TTypeEnv(Some(loweredEnv)))
-
-      // Since this is an if, we know that the expression has type
-      // boolean.
-      val boolTypeRef = VariableGenerator.newTInternalVariable()
-      loweredEnv.addTopLevel(boolTypeRef,
-                             lowerAST(ASTFunctionType(ASTBoolType(),
-                                                      env.getOrFail(
-                                                      ifThenElse.
-                                                        branchType.get)),
-                                      env),
-                             false)
-
-      TExpCase(lowerAST(cond, env), List(ifTrueCase, ifFalseCase),
-               boolTypeRef)
-    }
+    case ifThenElse @ ASTExpIfThenElse(cond, ifTrue, ifFalse) =>
+      TExpIf(lowerAST(cond, env), lowerAST(ifTrue, env),
+             lowerAST(ifFalse, env))
     case stmt @ ASTExpCase(exp, cases) =>
       TExpCase(lowerAST(exp, env), cases.map(lowerMatchRowAST(_, env)),
                lowerASTInternal(stmt.applicationType.get, env))
