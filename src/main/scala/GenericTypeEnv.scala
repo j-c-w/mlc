@@ -47,7 +47,8 @@ abstract class GenericTypeEnv[TypeEnvClass <: GenericTypeEnv[TypeEnvClass,
    * false.  */
   def hasTypeBetweenExclusive(bound: TypeEnvClass, id: From): Boolean =
     if (!envInHierarchy(bound))
-      throw new ICE("Attempted to find value between unconnected bounds")
+      // We must not throw here as this may happen if the first env is a miss.
+      false
     else if (bound == this) {
       false
     } else {
@@ -61,7 +62,8 @@ abstract class GenericTypeEnv[TypeEnvClass <: GenericTypeEnv[TypeEnvClass,
 
   def hasTypeBetweenInclusive(bound: TypeEnvClass, id: From):  Boolean =
     if (!envInHierarchy(bound)) {
-      throw new ICE("Attempted to find value between unconnected bounds")
+      // We must not throw here as this may happen if the first env is a miss.
+      false
     } else if (bound == this) {
       innermostHasType(id)
     } else {
