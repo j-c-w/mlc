@@ -54,6 +54,7 @@ class FreeValsWalk(val program: TProgram,
     case TExpIdent(identVar: TIdentVar) => {
       // We check whether the identifier was declared between this
       // environment and the top function environment.
+      assert(env.hasType(identVar))
       if (!env.hasTypeBetweenInclusive(functionEnv, identVar)) {
         identVar.identClass match {
           // If this is a function, then we should walk that function
@@ -80,7 +81,9 @@ class FreeValsWalk(val program: TProgram,
                     // free in this function.
                     case ((TExpIdent(ident), typ)) =>
                       if (!env.hasTypeBetweenInclusive(functionEnv, ident)) {
-                        freeValsSet += ((TExpIdent(ident), typ))
+                        if (env.hasType(ident)) {
+                          freeValsSet += ((TExpIdent(ident), typ))
+                        }
                       }
                   }
                 }
