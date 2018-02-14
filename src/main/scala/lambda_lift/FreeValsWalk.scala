@@ -107,14 +107,18 @@ class FreeValsWalk(val program: TProgram,
               }
             }
           }
-          case _ =>
+          case TDataTypeClass() => // These have already been lifted
+            // so should not have passed the has between inclusive check.
+            throw new ICE("Error: DataType appears not to have been lifted")
+          case TValClass() =>
             freeValsSet +=
               ((TExpIdent(identVar), env.getNoSubstituteOrFail(identVar)))
         }
       }
     }
-    case TExpMatchRow(pattern, expr, matchRowEnv) =>
+    case TExpMatchRow(pattern, expr, matchRowEnv) => {
       apply(matchRowEnv, expr)
+    }
     case other => super.apply(env, exp)
   }
 
