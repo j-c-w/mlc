@@ -182,8 +182,14 @@ class LambdaLiftWalk(val program: TProgram)
 
                 ChangeIdentNames.newNamesFor(functionReplacementMap, let,
                                              letEnv)
+                newTopLevelFunctions.foreach {
+                  ChangeIdentNames.newNamesFor(functionReplacementMap, _,
+                                               program.typeEnv)
+                }
+
               }
             }
+
           }
           case TVal(_, _) => // Do nothing
           case TDataTypeDec(_, _, _) =>
