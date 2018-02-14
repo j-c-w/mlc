@@ -47,8 +47,8 @@ case class TExpFunApp(var funname: TExp, var application: TExp,
 
 case class TExpTuple(var elems: List[TExp])
     extends TExp with TFlattenable[TExp] {
-  // There are lots of other checks for singleton tuples.  If single tuples are needed
-  // temporarily, it would not be a huge loss to delete this.
+  // There are lots of other checks for singleton tuples.  If single tuples are
+  // needed temporarily, it would not be a huge loss to delete this.
   assert(elems.length > 1)
 
   def prettyPrint = "(" + elems.map(_.prettyPrint).mkString(", ") + ")"
