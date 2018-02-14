@@ -104,7 +104,8 @@ case class TExpLetIn(var decs: List[TDec], var exp: TExp, var env: TTypeEnv)
   def prettyPrint =
   """
   |let
-  |with Env: %s (parent %s)
+  |with Env: %s
+  | (parent %s)
   |%s
   |in
   |%s
@@ -140,8 +141,8 @@ case class TExpCase(var exp: TExp, var cases: List[TExpMatchRow],
 case class TExpMatchRow(var pat: List[TPat], var exp: TExp, var env: TTypeEnv)
     extends TExp {
   def prettyPrint =
-    pat.map(_.prettyPrint).mkString(" ") + " with env:  " + env +
-    " with parent " + env.parent +  " => " + exp.prettyPrint
+    pat.map(_.prettyPrint).mkString(" ") + "\n\twith env:  " + env +
+    " with parent " + env.parent +  "\n\t=> " + exp.prettyPrint
 
   def nodeClone(parentEnv: TTypeEnv) =
     new TExpMatchRow(pat.map(_.nodeClone(env)),
