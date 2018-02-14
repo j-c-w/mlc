@@ -65,28 +65,36 @@ class FreeValsWalk(val program: TProgram,
               val foundDef =
                 DefFinder.getSingleDef(program.typeEnv, program, identVar)
               foundDef match {
-                case Some((otherEnv, identDef : TFun)) => {
-                  val recursiveWalk =
-                    new FreeValsWalk(program, Some(identVar),
-                                     // We want to pass the same
-                                     // environment here. We are interested
-                                     // in the variables that are not in
-                                     // the local environment after all.
-                                     functionEnv, visited)
+                case Some((otherEnv, identDef : TFun)) =>
+                  identDef.patterns.foreach {
+                    case row @ TExpMatchRow(pat, exp, rowEnv) => {
+                      val recursiveWalk =
+                        new FreeValsWalk(program, Some(identVar),
+                                         // We want to pass the environment from
+                                         // the other function because we are
+                                         // interested in the values that
+                                         // /it/ has that are free.
+                                         rowEnv, visited)
 
-                  recursiveWalk(otherEnv, identDef)
+                      recursiveWalk(rowEnv, row)
 
-                  recursiveWalk.freeValsSet.foreach {
-                    // Only add the ident to the free vals set if it would be
-                    // free in this function.
-                    case ((TExpIdent(ident), typ)) =>
-                      if (!env.hasTypeBetweenInclusive(functionEnv, ident)) {
-                        if (env.hasType(ident)) {
-                          freeValsSet += ((TExpIdent(ident), typ))
-                        }
+                      recursiveWalk.freeValsSet.foreach {
+                        // Only add the ident to the free vals set if it would
+                        // be free in this function.
+                        case ((TExpIdent(ident), typ)) =>
+                          if (!env.hasTypeBetweenInclusive(functionEnv,
+                                                           ident)) {
+                            if (!env.hasType(ident)) {
+                              throw new ICE("""Derived use for identifier %s
+                                | in function %s but the variable is not
+                                | even typed. """.stripMargin.format(
+                                  ident.prettyPrint, functionName))
+                            }
+                            freeValsSet += ((TExpIdent(ident), typ))
+                          }
                       }
+                    }
                   }
-                }
                 case Some((_, valdec : TVal)) =>
                   // In this case, add to the variable to the set.
                   freeValsSet +=
