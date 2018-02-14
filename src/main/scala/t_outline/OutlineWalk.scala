@@ -5,6 +5,7 @@ import exceptions.UnreachableException
 import generators.VariableGenerator
 import tir._
 import tpass.TTypeEnvUpdateParentPass
+import type_env.TypeEnvUpdateParentWalk
 
 /* This walk goes through the program and outlines any
  * try-catch blocks.  These need to go in their own functions
@@ -15,8 +16,6 @@ import tpass.TTypeEnvUpdateParentPass
 class OutlineWalk extends TTypeEnvUpdateParentPass {
   override def apply(env: TTypeEnv, exp: TExp) = exp match {
     case expTry @ TExpTry(tryExp, catchVar, catchExp, internalTyp) => {
-      super.apply(env, expTry)
-
       val functionIdent =
         TIdentVar(FunctionNameGenerator.newAnonymousName(), TFunClass())
       val funAppVar = VariableGenerator.newTInternalVariable() 
@@ -32,17 +31,22 @@ class OutlineWalk extends TTypeEnvUpdateParentPass {
       newLetEnv.add(functionIdent, TFunctionType(TUnitType(), catchResType),
                     false)
 
+      // Walk all the cases and set the new parent environment.
+      TypeEnvUpdateParentWalk.apply(newLetEnv, expTry)
+      super.apply(newLetEnv, expTry)
+
+      val innerFunEnv = new TTypeEnv(Some(newLetEnv))
+      TypeEnvUpdateParentWalk.apply(innerFunEnv, expTry)
+
       // Now create this as a new function:
       Some(TExpLetIn(
         List(TFun(functionIdent, List(TExpMatchRow(List(TPatWildcard()),
-          expTry, new TTypeEnv(Some(newLetEnv)))))),
+          expTry, innerFunEnv)))),
         TExpFunApp(TExpIdent(functionIdent),
                    TExpIdent(TUnitIdent()), funAppVar),
         newLetEnv))
     }
     case expHandle @ TExpHandle(exp, cases, applicationVar) => {
-      super.apply(env, expHandle)
-
       val functionIdent =
         TIdentVar(FunctionNameGenerator.newAnonymousName(), TFunClass())
       val funAppVar = VariableGenerator.newTInternalVariable() 
@@ -58,10 +62,19 @@ class OutlineWalk extends TTypeEnvUpdateParentPass {
       newLetEnv.add(functionIdent, TFunctionType(TUnitType(), handleResType),
                     false)
 
+      // Set all direct children ENVs to have a parent that is the new
+      // environment.  This insers 'newLetEnv' into the chain of type
+      // environments.
+      TypeEnvUpdateParentWalk.apply(newLetEnv, expHandle)
+      super.apply(newLetEnv, expHandle)
+
+      val innerFunEnv = new TTypeEnv(Some(newLetEnv))
+      TypeEnvUpdateParentWalk.apply(innerFunEnv, expHandle)
+
       // Now create this as a new function:
       Some(TExpLetIn(
         List(TFun(functionIdent, List(TExpMatchRow(List(TPatWildcard()),
-          expHandle, new TTypeEnv(Some(newLetEnv)))))),
+                                                   expHandle, innerFunEnv)))),
         TExpFunApp(TExpIdent(functionIdent),
                    TExpIdent(TUnitIdent()), funAppVar),
         newLetEnv))
