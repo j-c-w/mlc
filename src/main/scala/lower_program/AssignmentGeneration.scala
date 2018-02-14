@@ -228,7 +228,7 @@ object AssignmentGeneration {
           case TFunctionType(from, TExceptionType()) => TDataTypeInstance(name)
           case TFunctionType(from, TDataType(instanceName)) =>
             TDataTypeInstance(name)
-          case other => other
+          case other => TDataTypeInstance(name)
         }
 
         (TExpIf(TExpIsType(TExpIdent(parentIdent), dataType),

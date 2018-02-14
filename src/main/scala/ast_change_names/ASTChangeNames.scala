@@ -57,7 +57,14 @@ object ASTChangeNames
       val newDataClass = changeNames(map, dataClass).asInstanceOf[ASTDataType]
 
       val newTyps = typs.map(changeNames(map, _))
-      val newName = changeNamesInsert(map, name)
+      val newName = name match {
+        case ASTIdentVar(name) => {
+          val newName = FunctionNameGenerator.newIdentName(name)
+          map.addDataType(name, newName)
+          ASTIdentVar(newName)
+        }
+        case _ => throw new ICE("Datatype with non ASTIdentVar name")
+      }
 
       ASTDataTypeBind(newName, newTyps, newDataClass)
     }
@@ -171,8 +178,14 @@ object ASTChangeNames
   def changeNamesInsert(map: ASTNameEnvironment, pattern: ASTPat): ASTPat =
     pattern match {
       case ASTPatVariable(variable, typ) =>
-        ASTPatVariable(changeNamesInsertNoDuplicate(map, variable),
-                       changeNames(map, typ))
+        if (variable.isInstanceOf[ASTIdentVar] &&
+            map.isDataType(variable.asInstanceOf[ASTIdentVar].id)) {
+          ASTPatConstructor(changeNames(map, variable), None,
+                            changeNames(map, typ))
+        } else {
+          ASTPatVariable(changeNamesInsertNoDuplicate(map, variable),
+                         changeNames(map, typ))
+        }
       case ASTPatSeq(pats, typs) =>
         ASTPatSeq(pats.map(changeNamesInsert(map, _)), changeNames(map, typs))
       case ASTListPat(list, typs) =>

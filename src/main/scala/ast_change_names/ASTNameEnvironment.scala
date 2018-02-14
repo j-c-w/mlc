@@ -1,16 +1,31 @@
 package ast_change_names
 
-import scala.collection.mutable.{Map,HashMap}
+import scala.collection.mutable.{Map,HashMap,Set,HashSet}
 import exceptions.{BadPatternException,UnrecognizedIdentifierError}
 
 class ASTNameEnvironment(val parent: Option[ASTNameEnvironment]) {
   val map: Map[String, String] = new HashMap[String, String]()
+  val datatypeNames: Set[String] = new HashSet[String]()
 
   def this() = this(None)
   def this(parent: ASTNameEnvironment) = this(Some(parent))
 
+  def addDataType(from: String, to: String) = {
+    datatypeNames += from
+    map(from) = to
+  }
+
   def add(from: String, to: String) =
     map(from) = to
+
+  def isDataType(name: String): Boolean =
+    if (datatypeNames.contains(name))
+      true
+    else 
+      parent match {
+        case Some(parentEnv) => parentEnv.isDataType(name)
+        case None => false
+      }
 
   /* This adds the variable if it is new at this level. Otherwise
    * it fails.  */
