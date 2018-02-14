@@ -98,10 +98,13 @@ case class ASTExpLetIn(val dec: List[ASTDeclaration], val exp: List[ASTExp])
   def prettyPrint = """
   let
     %s
+    with env %s
+    parent %s
   in
     %s
   end
   """.format((dec map (_.prettyPrint)).mkString(";\n"),
+             typeEnv, typeEnv.map(_.parent),
              (exp map (_.prettyPrint)).mkString(";\n"))
 }
 
@@ -153,8 +156,9 @@ case class ASTExpMatchRow(val pat: List[ASTPat], val exp: ASTExp)
   var env: Option[ASTTypeEnv] = None
 
   def prettyPrint =
-    " case %s => %s ".format(pat.map(_.prettyPrint).mkString(" "),
-                             exp.prettyPrint)
+    " case %s with env %s, parent %s => %s "
+      .format(pat.map(_.prettyPrint).mkString(" "), env, env.map(_.parent),
+              exp.prettyPrint)
 }
 
 case class ASTExpFn(val body: List[ASTExpMatchRow]) extends ASTExp {
