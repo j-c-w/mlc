@@ -104,11 +104,13 @@ case class TExpLetIn(var decs: List[TDec], var exp: TExp, var env: TTypeEnv)
   def prettyPrint =
   """
   |let
+  |with Env: %s (parent %s)
   |%s
   |in
   |%s
   |end
-  """.stripMargin.format(decs.map(_.prettyPrint).mkString("\n"),
+  """.stripMargin.format(env.toString, env.parent.toString,
+                         decs.map(_.prettyPrint).mkString("\n"),
                          exp.prettyPrint)
 
   // Note that we do not nodeClone the type environment.
@@ -138,7 +140,8 @@ case class TExpCase(var exp: TExp, var cases: List[TExpMatchRow],
 case class TExpMatchRow(var pat: List[TPat], var exp: TExp, var env: TTypeEnv)
     extends TExp {
   def prettyPrint =
-    pat.map(_.prettyPrint).mkString(" ") + " => " + exp.prettyPrint
+    pat.map(_.prettyPrint).mkString(" ") + " with env:  " + env +
+    " with parent " + env.parent +  " => " + exp.prettyPrint
 
   def nodeClone(parentEnv: TTypeEnv) =
     new TExpMatchRow(pat.map(_.nodeClone(env)),
