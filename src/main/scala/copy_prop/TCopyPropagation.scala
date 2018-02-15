@@ -17,7 +17,6 @@ object TCopyPropagation extends OptionalPass[TJavaProgram]("copy_prop") {
       val copyPropagated = new HashSet[TNamedIdent]()
       valdecs.toList.foreach {
         case ident => {
-          println("Looking at " + ident)
           DefFinder.getSingleAssign(env, funLet, ident) match {
             case Some((typeEnv, dec)) => dec match {
               case TExpAssign(name: TNamedIdent, exp) =>
