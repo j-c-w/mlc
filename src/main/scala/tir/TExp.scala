@@ -38,7 +38,8 @@ case class TExpIdent(var ident: TIdent) extends TExp {
 case class TExpFunApp(var funname: TExp, var application: TExp,
                       var callType: TInternalIdentVar) extends TExp {
   def prettyPrint =
-    "(" + funname.prettyPrint + ") (" + application.prettyPrint + ")"
+    "(" + funname.prettyPrint + ") (" + application.prettyPrint + ")" +
+    ": " + callType.prettyPrint
 
   def nodeClone(env: TTypeEnv) =
     new TExpFunApp(funname.nodeClone(env), application.nodeClone(env),
@@ -172,7 +173,7 @@ case class TExpAssign(var ident: TNamedIdent, var expression: TExp)
 case class TExpListHead(var list: TExp, var tyVar: TInternalIdentVar)
     extends TExp {
   def prettyPrint =
-    "Head(%s)".format(list.prettyPrint)
+    "Head(%s): type %s".format(list.prettyPrint, tyVar.prettyPrint)
 
   def nodeClone(env: TTypeEnv) =
     new TExpListHead(list.nodeClone(env), tyVar.nodeClone(env))
@@ -189,7 +190,7 @@ case class TExpListTail(var list: TExp) extends TExp {
 case class TExpUnapply(var dataType: TExp, var internalType: TInternalIdentVar)
     extends TExp {
   def prettyPrint =
-    "Unapply(%s)".format(dataType.prettyPrint)
+    "Unapply(%s) type: %s".format(dataType.prettyPrint, internalType.prettyPrint)
 
   def nodeClone(env: TTypeEnv) =
     new TExpUnapply(dataType.nodeClone(env), internalType.nodeClone(env))
@@ -212,7 +213,7 @@ case class TExpTupleExtract(var tuple: TExp, var tupleSize: Int,
 case class TExpListExtract(var list: TExp, var index: Int,
                            var tyVar: TInternalIdentVar) extends TExp {
   def prettyPrint =
-    "(%s)[%s]".format(list.prettyPrint, index)
+    "(%s)[%s]: type %s".format(list.prettyPrint, index, tyVar.prettyPrint)
 
   def nodeClone(env: TTypeEnv) =
     new TExpListExtract(list.nodeClone(env), index, tyVar.nodeClone(env))
@@ -302,7 +303,9 @@ case class TExpHandle(var expression: TExp, var cases: List[TExpMatchRow],
                       var applicationType: TInternalIdentVar)
     extends TExp {
   def prettyPrint =
-    "(%s) handle (%s)".format(expression.prettyPrint, cases.map(_.prettyPrint))
+    "(%s) handle (%s): type %s".format(expression.prettyPrint,
+                                       cases.map(_.prettyPrint),
+                                       applicationType.prettyPrint)
 
   def nodeClone(env: TTypeEnv) =
     new TExpHandle(expression.nodeClone(env), cases.map(_.nodeClone(env)),
@@ -315,8 +318,10 @@ case class TExpTry(var exp: TExp, var catchVar: TNamedIdent,
                    var catchExp: TExp, var internalIdent: TInternalIdentVar)
     extends TExp {
   def prettyPrint =
-    "try (%s) catch in %s as (%s)".format(exp.prettyPrint, catchVar.prettyPrint,
-                                          catchExp.prettyPrint)
+    "try (%s) catch in %s as (%s): type %s".format(exp.prettyPrint,
+                                                   catchVar.prettyPrint,
+                                                   catchExp.prettyPrint,
+                                                   internalIdent.prettyPrint)
 
   def nodeClone(env: TTypeEnv) =
     new TExpTry(exp.nodeClone(env), catchVar.nodeClone(env),
