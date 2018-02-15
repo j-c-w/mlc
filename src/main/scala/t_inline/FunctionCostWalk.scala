@@ -21,15 +21,17 @@ object FunctionCostWalk
     // If this application is going to be inlined, then we return the new
     // inlined cost rather than the old cost.
     case TExpFunApp(fun, app, typ) => {
-      internalApp(typ) match {
-        case Inline(cost, thresh, funName, applicationTuple: List[TExp],
-                    _, _) =>
-          // We want the cost of the expressions being applied, not whatever
-          // exists in this node.  Add 1 for the application cost.
-          cost + combineList(applicationTuple.map(apply(internalApp, _))) + 1
-        case other =>
-          super.apply(internalApp, exp)
-      }
+      // This is a small hack.  The InliningCost is broken.
+      if (internalApp.contains(typ))
+        internalApp(typ) match {
+          case Inline(cost, thresh, funName, applicationTuple: List[TExp],
+                      _, _) =>
+            // We want the cost of the expressions being applied, not whatever
+            // exists in this node.  Add 1 for the application cost.
+            cost + combineList(applicationTuple.map(apply(internalApp, _))) + 1
+          case other =>
+            super.apply(internalApp, exp)
+        }
     }
     // We MUST NOT inline exception handlers.  This is only true for the JVM
     // and can be changed for other targets.
