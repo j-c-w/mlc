@@ -20,4 +20,4 @@ val x =
 
 (* We check that the closure has been constructed by checking that
 * 'end' does not immediately follow the 'f' on line 11. *)
-(* t-scan-not: f\s*end: lambda_lift *)
+(* t-scan-not: #f\s*end: lambda_lift *)
