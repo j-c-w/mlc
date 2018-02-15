@@ -15,8 +15,9 @@ object TCopyPropagation extends OptionalPass[TJavaProgram]("copy_prop") {
     case TJavaFun(name, curriedArgs, funLet @ TExpFunLet(valdecs, exp),
                   env) => {
       val copyPropagated = new HashSet[TNamedIdent]()
-      valdecs.foreach {
-        case ident =>
+      valdecs.toList.foreach {
+        case ident => {
+          println("Looking at " + ident)
           DefFinder.getSingleAssign(env, funLet, ident) match {
             case Some((typeEnv, dec)) => dec match {
               case TExpAssign(name: TNamedIdent, exp) =>
@@ -27,7 +28,7 @@ object TCopyPropagation extends OptionalPass[TJavaProgram]("copy_prop") {
                                                          otherVariable, funLet,
                                                          env)
                     copyPropWalk((), funLet)
-                    // Remove the variable from the declared vvariables list.
+                    // Remove the variable from the declared variables list.
                     valdecs.remove(ident)
                     // Now, add the variable assigned to to the variables to
                     // delete.
@@ -50,6 +51,7 @@ object TCopyPropagation extends OptionalPass[TJavaProgram]("copy_prop") {
               dumpString("Variable " + ident +
                          " not copy propagated due to multiple defs.\n")
           }
+      }
       }
 
       // Finally, we go through all the variables we have copy propagated
