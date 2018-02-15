@@ -32,6 +32,8 @@ object FunctionCostWalk
           case other =>
             super.apply(internalApp, exp)
         }
+      else
+        super.apply(internalApp, exp)
     }
     // We MUST NOT inline exception handlers.  This is only true for the JVM
     // and can be changed for other targets.
