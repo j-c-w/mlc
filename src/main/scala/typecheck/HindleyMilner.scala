@@ -32,6 +32,11 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
    * has to be able to unify set based types.
    */
   var innerEnvs = List[ASTTypeEnv]()
+  /* This is used to store all inner environments that are
+   * created as part of this top level delcaration.  It is needed
+   * to stop quadratic behaviour in the number of created environments.
+   */
+  var nestedEnvs = List[ASTTypeEnv]()
 
   /* This is used to keep track of what identifier class each encountered
    * identifier is.
@@ -65,6 +70,10 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
                             decs: List[ASTDeclaration]): Unit = {
     for (dec <- decs) {
       principalType(env, dec)
+
+      // Reset the list of nested ENVs between each dec
+      // to speed up unification a little bit.
+      nestedEnvs = List(env)
 
       // This is done after every declaration. If this is going too slow,,
       // it could be applied to the unifier instead (which would mean
@@ -136,7 +145,8 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         // We update the environment with the new types
         // as appropriate.
         insertTypes(env, lhs, adjustedTyp)
-        unifier.apply(env)
+        // We must walk all the environments to apply this.
+        nestedEnvs.foreach(unifier.apply(_))
         unifier
       }
       case fun @ ASTFunBind(cases) => {
@@ -202,7 +212,8 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         unifier mguUnify functionTypeUnifier
         // We need to apply the unifier as the function definition may
         // have modified a non-polymorphic type.
-        unifier.apply(env)
+        // We must walk all the environments to apply this.
+        nestedEnvs.foreach(unifier.apply(_))
 
         // Finally, re-add this function (forall qualified) to the
         // global environment.
@@ -438,6 +449,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
         // of new typing environment.
         val letEnv = new ASTTypeEnv(Some(env))
         innerEnvs = letEnv :: innerEnvs
+        nestedEnvs = letEnv :: nestedEnvs
 
         // Set the environment of the let env.
         // This may be done here as the environment is mutable
@@ -621,6 +633,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
     var resultType: ASTType = TypeVariableGenerator.getVar()
 
     innerEnvs = rowEnvs ::: innerEnvs
+    nestedEnvs = rowEnvs ::: nestedEnvs
 
     // Verify that each of the pattern lists are the same lengths:
     if (!patterns.forall(x => x.length == patterns(0).length)) {
@@ -996,7 +1009,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
       // so we repeat the process.
       if (idents.length != typList.length)
         throw new InferenceException("""Could not unify l-values %s
-          and r-values %s"""format(names.prettyPrint, typs.prettyPrint))
+          and r-values %s""".format(names.prettyPrint, typs.prettyPrint))
       else
         (typList zip idents).foreach({
           case (typ, ASTIdentTuple(name)) =>
@@ -1053,6 +1066,7 @@ object HindleyMilner extends Pass[ASTProgram, ASTProgram]("typecheck") {
     try {
       val env = new ASTTypeEnv()
       innerEnvs = env :: innerEnvs
+      nestedEnvs = env :: nestedEnvs
 
       toplevelPrincipalType(env, tree.decs)
 
