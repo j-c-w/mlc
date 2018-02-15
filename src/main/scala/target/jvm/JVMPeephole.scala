@@ -8,7 +8,8 @@ object JVMPeephole {
     UnitPop,
     BoxUnbox,
     IntPushPop,
-    BranchBoxUnbox
+    BranchBoxUnbox,
+    ObjectCast
   )
 
   def getSet =

@@ -114,3 +114,16 @@ object BranchBoxUnbox extends JVMPeepholeInstance {
     }
   }
 }
+
+object ObjectCast extends JVMPeepholeInstance {
+  def getSize = 1
+
+  def matches(input: List[JVMInstruction]) = {
+    assert(input.length == 1)
+
+    input match {
+      case List(JVMCheckCast(JVMObjectRef())) => Some(List())
+      case _ => None
+    }
+  }
+}
