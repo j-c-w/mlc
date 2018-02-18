@@ -419,7 +419,7 @@ object LowerExp {
       val handleLabel = LabelGenerator.newLabel()
       val afterHandleLabel = LabelGenerator.newLabel()
 
-      HandleDirective(JVMRuntimeExceptionRef(), beforeLabel, afterLabel,
+      HandleDirective(JVMThrowableClassRef(), beforeLabel, afterLabel,
                       handleLabel) ::
       JVMLabelMark(beforeLabel) ::
       (LowerExp(expression, env) :+
