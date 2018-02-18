@@ -221,7 +221,7 @@ object LowerTIR extends Pass[TJavaProgram, JVMProgram]("lower_tir") {
     var newClasses = List[JVMClass]()
 
     // Also add a mapping from exceptions:
-    defMap(TExceptionType()) = JVMExceptionClassRef()
+    defMap(TExceptionType()) = JVMCMLCExceptionClassRef()
 
     decs.foreach {
       case TDataTypeDec(name, typs, typeClass) => {

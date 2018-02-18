@@ -66,11 +66,11 @@ case class JVMDataTypeClassRef() extends JVMCMLCLibRef {
   def prettyPrint = "cmlc/Datatype"
 }
 
-case class JVMExceptionClassRef() extends JVMCMLCLibRef {
+case class JVMCMLCExceptionClassRef() extends JVMCMLCLibRef {
   def prettyPrint = "cmlc/CMLCException"
 }
 
-case class JVMThrowableClassRef() extends JVMCMLCLibRef {
+case class JVMCMLCThrowableClassRef() extends JVMCMLCLibRef {
   def prettyPrint = "cmlc/CMLCThrowable"
 }
 

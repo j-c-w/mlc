@@ -419,7 +419,7 @@ object LowerExp {
       val handleLabel = LabelGenerator.newLabel()
       val afterHandleLabel = LabelGenerator.newLabel()
 
-      HandleDirective(JVMThrowableClassRef(), beforeLabel, afterLabel,
+      HandleDirective(JVMCMLCThrowableClassRef(), beforeLabel, afterLabel,
                       handleLabel) ::
       JVMLabelMark(beforeLabel) ::
       (LowerExp(expression, env) :+
@@ -431,10 +431,10 @@ object LowerExp {
     }
     case TExpRaise(throwable) =>
       LowerExp(throwable, env) :+
-      JVMInvokeVirtualMethod(new JVMMethodRef(JVMExceptionClassRef(),
+      JVMInvokeVirtualMethod(new JVMMethodRef(JVMCMLCExceptionClassRef(),
                                               "getThrowable",
                                               List(),
-                                              JVMThrowableType())) :+
+                                              JVMCMLCThrowableType())) :+
       new JVMAThrow()
     case TExpHandle(_, _, _) => throw new ICE("""Error: Expected
       the TExpHandle to have been removed.  It was not""".stripMargin)

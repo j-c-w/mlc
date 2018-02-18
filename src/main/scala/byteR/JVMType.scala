@@ -90,10 +90,10 @@ case class JVMTupleType() extends JVMRefType {
   def getRefFor = new JVMTupleRef()
 }
 
-case class JVMExceptionType() extends JVMRefType {
+case class JVMCMLCExceptionType() extends JVMRefType {
   def prettyPrint = "Lcmlc/CMLCException;"
 
-  def getRefFor = new JVMExceptionClassRef()
+  def getRefFor = new JVMCMLCExceptionClassRef()
 }
 
 case class JVMDataTypeType(var name: JVMClassRef) extends JVMRefType {
@@ -144,10 +144,10 @@ case class JVMLinkedListType() extends JVMRefType {
   def getRefFor = new JVMLinkedListRef()
 }
 
-case class JVMThrowableType() extends JVMRefType {
+case class JVMCMLCThrowableType() extends JVMRefType {
   def prettyPrint = "Lcmlc/CMLCThrowable;"
 
-  def getRefFor = new JVMThrowableClassRef()
+  def getRefFor = new JVMCMLCThrowableClassRef()
 }
 
 case class JVMDataTypeClass() extends JVMRefType {

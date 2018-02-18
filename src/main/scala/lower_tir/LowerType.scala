@@ -11,7 +11,7 @@ object LowerType {
     case TEqualityTypeVar(name) => JVMObjectType()
     case TUnconstrainedTypeVar(name) => JVMObjectType()
     case TListType(subType) => JVMLinkedListType()
-    case TExceptionType() => JVMExceptionType()
+    case TExceptionType() => JVMCMLCExceptionType()
     case TDataTypeInstance(name) => {
       name match {
         case TIdentVar(id, _) =>

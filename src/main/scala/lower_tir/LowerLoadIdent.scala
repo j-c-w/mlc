@@ -71,7 +71,7 @@ object LowerLoadIdent {
            new JVMInvokeSpecialMethod(
              new JVMMethodRef(new JVMMatchExceptionRef(), "<init>",
                               List(), JVMVoidPrimitiveType())),
-           new JVMCheckCast(JVMExceptionClassRef()))
+           new JVMCheckCast(JVMCMLCExceptionClassRef()))
     case TEmptyListIdent() => List(
     JVMNew(JVMLinkedListNilRef()),
     JVMDup(),
@@ -83,10 +83,10 @@ object LowerLoadIdent {
       // on the internal exception classes which are not what is thrown.
       // Cast this (which is a RuntimeException) into a JVMThrowableClassRef
       // and then pass it.
-      List(JVMCheckCast(JVMThrowableClassRef()),
+      List(JVMCheckCast(JVMCMLCThrowableClassRef()),
            JVMInvokeVirtualMethod(
-             new JVMMethodRef(new JVMThrowableClassRef(), "get", List(),
-                              new JVMExceptionType())))
+             new JVMMethodRef(new JVMCMLCThrowableClassRef(), "get", List(),
+                              new JVMCMLCExceptionType())))
     case other => throw new ICE("Cannot load ident " + other.prettyPrint)
   }
 }
