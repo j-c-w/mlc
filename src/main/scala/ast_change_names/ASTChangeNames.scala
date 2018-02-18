@@ -41,10 +41,18 @@ object ASTChangeNames
       })
     }
     case ASTExceptionBind(name, typs) => {
-      changeNamesInsert(map, name)
+      // Add this exception type to the datatype map.
+      val newName = name match {
+        case ASTIdentVar(name) => {
+          val newName = FunctionNameGenerator.newIdentName(name)
+          map.addDataType(name, newName)
+          ASTIdentVar(newName)
+        }
+        case _ => throw new ICE("Exception with non ASTIdentVar name")
+      }
       // Declaration of this exception is left unchanged.  Exceptions
       // may not appear in the types of an exception.
-      ASTExceptionBind(changeNames(map, name), typs.map(changeNames(map, _)))
+      ASTExceptionBind(newName, typs.map(changeNames(map, _)))
     }
     case ASTDataTypeBind(name, typs, dataClass) => {
       if (!map.contains(dataClass.name.id)) {
