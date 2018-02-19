@@ -34,7 +34,39 @@ def draw_line(x_data, y_data, error_bars=None,
         error_min = [x[0] for x in error_bars]
         error_max = [x[1] for x in error_bars]
 
-        axis.errorbar(x_data, y_data, [error_min, error_max], color='blue')
+        axis.errorbar(x_data, y_data, [error_min, error_max], color='green')
+
+    if legend:
+        axis.legend(legend, loc=2)
+
+    return figure
+
+
+def draw_multiple_lines(x_data, y_data, error_bars=None,
+                        x_label=None, y_label=None, title=None, legend=None):
+    figure = plt.figure()
+
+    axis = figure.add_subplot(111)
+    handles = []
+
+    for data in y_data:
+        handle, = axis.plot(x_data, data)
+        handles.append(handle)
+
+    if error_bars:
+        error_min = [x[0] for x in error_bars]
+        error_max = [x[1] for x in error_bars]
+
+        axis.errorbar(x_data, y_data, [error_min, error_max])
+
+    if x_label:
+        axis.set_xlabel(x_label)
+
+    if y_label:
+        axis.set_ylabel(y_label)
+
+    if title:
+        axis.set_title(title)
 
     if legend:
         axis.legend(legend, loc=2)
