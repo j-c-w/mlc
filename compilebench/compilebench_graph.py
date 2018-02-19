@@ -55,14 +55,32 @@ def sum_byteR_times_from(data, runs):
 
 def gen_title_for(compile_pass, benchmark):
     # TODO -- Expect to insert custom titles here.
-    return "Time taken to execute pass " + compile_pass + \
-            " against number of " + benchmark
+    if benchmark == "nested_lets":
+        benchmark_item = "nested let satements"
+    elif benchmark == "type_blowup":
+        benchmark_item = "log2(type variables)"
+    else:
+        benchmark_item = benchmark
+
+    if compile_pass:
+        return "Time taken to execute pass " + compile_pass + \
+                " against number of " + benchmark_item
+    else:
+        return "Compilation Time vs Number of " + benchmark_item
 
 
 def gen_x_label_for(compile_pass, benchmark):
     # Expect to insert custom x-labels here.
     if benchmark == 'vals':
         return "Number of 'val' declarations"
+    elif benchmark == 'applications':
+        return "Number of function applications"
+    elif benchmark == 'functions':
+        return "Number of 'fun' declarations"
+    elif benchmark == 'nested_lets':
+        return "Number of nested 'let' declarations"
+    elif benchmark == 'type_blowup':
+        return "log2(Number of type variables)"
     raise Exception("Need to insert a name for benchmark " + benchmark)
 
 
@@ -124,7 +142,8 @@ def generic_compile_time_graph(axis_size, run_data):
     fig = graph.draw_stacked_line(number, x_data, y_data, errors,
                                   y_label="Compile Time (ms)",
                                   x_label=gen_x_label_for(None, benchmark),
-                                  title=("Compile Times for " + benchmark),
+                                  title=("Compile Times for " +
+                                         gen_title_for(None, benchmark)),
                                   legend=["Time spent in AST Representation",
                                           "Time spent in TIR Representation",
                                           "Time spent in ByteR " +
@@ -133,30 +152,7 @@ def generic_compile_time_graph(axis_size, run_data):
     graph.save_to(fig, benchmark + run_data['name'] + '_compile_time.eps')
 
 
-# Given an input file as an argument, output all the expented graphs.
-parser = \
-    argparse.ArgumentParser("A tool for drawing compilation time benchmarks")
-
-parser.add_argument('input_file', help=("Input JSON file as created by the "
-                                        "benchmarking scripts"))
-parser.add_argument('--nohold', action='store_true', default=False,
-                    help="Don't display the figure on the screen.")
-
-args = parser.parse_args()
-
-# Load in the JSON file:
-with open(args.input_file) as f:
-    data = json.load(f)
-
-# Draw graphs:
-for benchmark in data:
-    print "Drawing graph for benchmark", benchmark
-    run_data = data[benchmark]
-
-    # This is the number of times we will divide the data.
-    axis_size = run_data['number']
-    generic_compile_time_graph(axis_size, run_data)
-
+def per_pass_compile_times(axis_size, run_data):
     # Also plot a graph for each specific pass.
 
     for compile_pass in run_data['0.sml']:
@@ -186,5 +182,34 @@ for benchmark in data:
         graph.save_to(fig, benchmark + run_data['name'] + '_' +
                       compile_pass + '.eps')
 
-    if not args.nohold:
-        pyplot.show(True)
+
+if __name__ == "__main__":
+    # Given an input file as an argument, output all the expented graphs.
+    parser = \
+        argparse.ArgumentParser("A tool for drawing compilation time "
+                                "benchmarks")
+
+    parser.add_argument('input_file', help=("Input JSON file as created by "
+                                            "the benchmarking scripts"))
+    parser.add_argument('--nohold', action='store_true', default=False,
+                        help="Don't display the figure on the screen.")
+
+    args = parser.parse_args()
+
+    # Load in the JSON file:
+    with open(args.input_file) as f:
+        data = json.load(f)
+
+    # Draw graphs:
+    for benchmark in data:
+        print "Drawing graph for benchmark", benchmark
+        run_data = data[benchmark]
+        print run_data
+
+        # This is the number of times we will divide the data.
+        axis_size = run_data['number']
+        generic_compile_time_graph(axis_size, run_data)
+        per_pass_compile_times(axis_size, run_data)
+
+        if not args.nohold:
+            pyplot.show(True)
