@@ -86,22 +86,22 @@ class CMLC(Compiler):
                 # Extract the pass name:
                 passname = line[:line.find("'")]
                 # And the time:
-                time = line[line.find("=") + 1:].strip()[:-2]
+                this_time = line[line.find("=") + 1:].strip()[:-2]
 
-                time_number = int(time)
+                time_number = int(this_time)
 
                 if passname in times:
                     times[passname].append(time_number)
                 else:
                     times[passname] = [time_number]
             elif line.startswith("Compile time: "):
-                time = int(line[len("Compile time: "):-2])
+                this_time = int(line[len("Compile time: "):-2])
 
                 if 'total' in times:
-                    times['total'].append(time)
+                    times['total'].append(this_time)
                 else:
-                    times['total'] = [time]
-                print "Total time ", time
+                    times['total'] = [this_time]
+                print "Total time ", this_time
 
         return times
 
