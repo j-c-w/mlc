@@ -1,4 +1,7 @@
-#!/bin/sh
+#!/bin/bash
+
+set -e
+set -u
 
 help() {
 	cat << EOF
@@ -11,15 +14,15 @@ Usage:
 EOF
 }
 
-if [ "$@" -ne 1 ]; then
+if [ "$#" -ne 1 ]; then
 	help
 	exit 1
 fi
 
-runs=100
+runs=3
 
 # Benchmark CMLC.  100 Runs of each file.
-./compilebench.py --executable="$($1)" --cmlc --runs=$runs --output=cmlc_output.json
+./compilebench.py --executable="$1" --cmlc --runs=$runs --output=cmlc_output.json
 
 # Benchmark MLton.
 ./compilebench.py --mlton --runs=$runs --output=mlton_output.json
