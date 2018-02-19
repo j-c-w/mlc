@@ -5,14 +5,15 @@ import json
 import os
 import re
 import subprocess
+import time
 
 
 class Compiler(object):
     def __init__(self):
         pass
 
-    def compile(self, filename, options):
-        """ This is expected to fail if the compilation fails. """
+    def compile(self, filename, options, times):
+        """ This is expected to fail if the compilation fails.  """
         raise Exception("Expected compile to be implemented.")
 
 
@@ -20,8 +21,37 @@ class MosML(Compiler):
     def __init__(self):
         pass
 
-    def compiler(self, filename, options):
-        raise Exception("Unimplemented")
+    def compile(self, filename, options, times):
+        print "Compiling", filename, "with MLton"
+        deduplicated_options = options
+        deduplicated_options = [x for x in deduplicated_options if x]
+        commands = ['time', 'mosmlc', filename, '-o', 'time_data'] + \
+            deduplicated_options
+        start_millis = int(round(time.time() * 1000))
+        output = subprocess.check_output(commands)
+        end_millis = int(round(time.time() * 1000))
+
+        times['subprocess_times'] = end_millis - start_millis
+        return times
+
+
+class MLton(Compiler):
+    def __init__(self):
+        pass
+
+    def compile(self, filename, options, times):
+        print "Compiling", filename, "with MLton"
+        deduplicated_options = options
+        deduplicated_options = [x for x in deduplicated_options if x]
+        commands = ['time', 'mlton', filename] + deduplicated_options
+        output = subprocess.check_output(commands)
+
+        start_millis = int(round(time.time() * 1000))
+        output = subprocess.check_output(commands)
+        end_millis = int(round(time.time() * 1000))
+
+        times['subprocess_times'] = end_millis - start_millis
+        return times
 
 
 class CMLC(Compiler):
@@ -38,7 +68,12 @@ class CMLC(Compiler):
         # TODO -- actually deduplicate these options.
         deduplicated_options = [x for x in deduplicated_options if x]
         commands = [self.executable] + deduplicated_options + [filename]
+
+        start_millis = int(round(time.time() * 1000))
         output = subprocess.check_output(commands)
+        end_millis = int(round(time.time() * 1000))
+
+        times['subprocess_times'] = end_millis - start_millis
 
         for line in output.split('\n'):
             # 'line' is of the form:
@@ -145,7 +180,9 @@ if __name__ == "__main__":
     compilers_group = parser.add_mutually_exclusive_group(required=True)
     compilers_group.add_argument('--cmlc', help='Run CMLC', dest='use_cmlc',
                                  default=False, action='store_true')
-    compilers_group.add_argument('--mosml', help='Run MOSML', dest='use_mosml',
+    compilers_group.add_argument('--mosml', help='Run MosML', dest='use_mosml',
+                                 default=False, action='store_true')
+    compilers_group.add_argument('--mlton', help='Run MLton', dest='use_mlton',
                                  default=False, action='store_true')
     args = parser.parse_args()
 
@@ -156,6 +193,8 @@ if __name__ == "__main__":
         compiler = CMLC(args.executable)
     elif args.use_mosml:
         compiler = MosML()
+    elif args.use_mlton:
+        compiler = MLton()
     else:
         raise Exception("Unknown compiler used.")
 
