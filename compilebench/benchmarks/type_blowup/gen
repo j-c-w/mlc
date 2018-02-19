@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 if __name__ == "__main__":
-    for fileno in range(20):
+    for fileno in range(13):
         filename = str(fileno) + ".sml"
 
         with open(filename, 'w') as f:
