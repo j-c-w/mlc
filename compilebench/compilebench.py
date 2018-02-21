@@ -31,7 +31,10 @@ class MosML(Compiler):
         output = subprocess.check_output(commands)
         end_millis = int(round(time.time() * 1000))
 
-        times['subprocess_times'] = end_millis - start_millis
+        if 'subprocess_times' not in times:
+            times['subprocess_times'] = []
+
+        times['subprocess_times'].append(end_millis - start_millis)
         return times
 
 
@@ -50,7 +53,10 @@ class MLton(Compiler):
         output = subprocess.check_output(commands)
         end_millis = int(round(time.time() * 1000))
 
-        times['subprocess_times'] = end_millis - start_millis
+        if 'subprocess_times' not in times:
+            times['subprocess_times'] = []
+
+        times['subprocess_times'].append(end_millis - start_millis)
         return times
 
 
@@ -73,7 +79,10 @@ class CMLC(Compiler):
         output = subprocess.check_output(commands)
         end_millis = int(round(time.time() * 1000))
 
-        times['subprocess_times'] = end_millis - start_millis
+        if 'subprocess_times' not in times:
+            times['subprocess_times'] = []
+
+        times['subprocess_times'].append(end_millis - start_millis)
 
         for line in output.split('\n'):
             # 'line' is of the form:
