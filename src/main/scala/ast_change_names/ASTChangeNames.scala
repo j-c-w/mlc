@@ -226,7 +226,8 @@ object ASTChangeNames
         ASTFunctionType(changeNames(map, from),
                         changeNames(map, to))
       case ASTTupleType(elems) =>
-        ASTTupleType(elems.map(changeNames(map, _)))
+        if (elems.length == 1) elems(0)
+        else ASTTupleType(elems.map(changeNames(map, _)))
       case ASTListType(subTyp) =>
         ASTListType(changeNames(map, subTyp))
       case other => other

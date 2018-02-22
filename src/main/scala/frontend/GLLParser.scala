@@ -611,8 +611,8 @@ object GLLParser extends Pass[LexemeSeq, ASTProgram]("ast")
     }
     // Omitted: (typ)(,) longid; constructor
     | LexLParen ~ typ ~ LexRParen ~ opt(typTail) ^^ {
-        case (_ ~ typ ~ _ ~ Some(typTail)) => typTail(typ)
-        case (_ ~ typ ~ _ ~ None) => typ
+        case (_ ~ typ ~ _ ~ Some(typTail)) => typTail(ASTTupleType(List(typ)))
+        case (_ ~ typ ~ _ ~ None) => ASTTupleType(List(typ))
     }
     // Omitted: { (typrow) }; record
   )
