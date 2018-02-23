@@ -38,7 +38,7 @@ class ChangeIdentNamesWalk(namesToReplace: Map[TNamedIdent,
             && env.hasType(oldIdent)) {
           // Also sanity check that the types are the same.
           assert(env.getOrFail(oldIdent) == typ)
-          env.add(newIdent, typ, false)
+          env.swapNames(oldIdent, newIdent)
         }
       }
     }
