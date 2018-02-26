@@ -20,6 +20,7 @@ class Arguments(arguments: Seq[String]) {
     // the compilation.
     val compileStats = opt[Boolean]()
 
+    val optimizeSize = opt[Boolean]("optimize-size", 's', "Os")
     val optimize = opt[Boolean]("optimize", 'O')
 
     // Pass by pass optimization flags:
@@ -91,24 +92,29 @@ class Arguments(arguments: Seq[String]) {
 
   val optimize =
     parser.optimize()
+  val optimizeSize =
+    parser.optimizeSize()
 
   // Pass run options:
   val runTce =
+    // TCE tends to moderately increase the executable size.
     parser.fTce() || (!parser.fnoTce() && optimize)
   val runTInline =
     parser.fTInline() || (!parser.fnoTInline() && optimize)
   val runSimplify =
     (optimize && !parser.fnoSimplify()) || parser.fSimplify()
   val runPreLowerSimplify =
-    ((optimize || runSimplify) && !parser.fnoPreLowerSimplify()) ||
+    ((optimize || optimizeSize || runSimplify) &&
+     !parser.fnoPreLowerSimplify()) ||
     parser.fPreLowerSimplify()
   val runPostLowerSimplify =
-    ((optimize || runSimplify) && !parser.fnoPostLowerSimplify()) ||
+    ((optimize || optimizeSize || runSimplify) &&
+     !parser.fnoPostLowerSimplify()) ||
     parser.fPostLowerSimplify()
   val runTCopyProp =
-    (optimize && !parser.fnoCopyProp()) || parser.fCopyProp()
+    ((optimize || optimizeSize) && !parser.fnoCopyProp()) || parser.fCopyProp()
   val runByteDce =
-    (optimize && !parser.fnoByteDce()) || parser.fByteDce()
+    ((optimize || optimizeSize) && !parser.fnoByteDce()) || parser.fByteDce()
   val runPeephole =
     !parser.fnoPeephole() || parser.fPeephole()
 
