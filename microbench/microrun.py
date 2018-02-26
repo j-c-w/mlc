@@ -541,11 +541,9 @@ if __name__ == "__main__":
         compile_options = args.compile_options.split(' ')
         for index in range(0, len(compile_options)):
             if compile_options[index][0] == '-':
-                raise Error("Argument error: Arguments passed with be prefixed"
-                            "with - and -- automatically.  Found" + "'" +
-                            compile_options[index] + "'")
-
-            if len(compile_options[index]) == 1:
+                # If the option has already been prefixed, do not attempt to.
+                pass
+            elif len(compile_options[index]) == 1:
                 compile_options[index] = '-' + compile_options[index]
             else:
                 compile_options[index] = '--' + compile_options[index]
