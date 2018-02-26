@@ -1,11 +1,11 @@
-#!/bin/bash
+#!/bin/zsh
 
 set -e
 set -u
 
 # Do this just for one benchmark at a time.
 benchmark_pat="mandelbrot"
-opts="--f-byte-dce,dce --f-copy-prop,copyprop --f-peephole,peephole --f-simplify,simplify --f-t-inline,inline --f-tce,tce"
+opts=(--f-byte-dce,dce --f-copy-prop,copyprop --f-peephole,peephole --f-simplify,simplify --f-t-inline,inline --f-tce,tce)
 
 usage() {
 	cat <<EOF
@@ -53,23 +53,23 @@ for i in $opts; do
 
 		if [[ "$name" != "peephole" && "$name_2" != "peephole" ]]; then
 			# We have to do this because peepholes are enabled by defualt.
-			options="--fno-peephole"
+			compile_options="--fno-peephole"
 		else
-			options=""
+			compile_options=""
 		fi
 
 		if [ "$name_2" != "$name" ]; then
-			options="$option $option_2 $options"
+			compile_options="$option $option_2 $compile_options"
 			combined_name="${name}_$name_2"
 	    else
 			# The names are identical.  Do not duplicate the arguments.
-			options="$option $options"
+			compile_options="$option $compile_options"
 			combined_name="${name}_$name"
 		fi
 
 		# Now, run the compiler:
-		echo "Running compiler name $combined_name with opts $options"
-		run_with_opts "$compiler" "$combined_name" "$options"
+		echo "Running compiler name $combined_name with opts $compile_options"
+		run_with_opts "$compiler" "$combined_name" "$compile_options"
 	done
 done
 
