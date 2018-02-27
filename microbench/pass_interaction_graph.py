@@ -1,10 +1,11 @@
 #!/usr/bin/python
 
-import copy
 import argparse
+import copy
 import glob
-import perf_parser
 import numpy
+import os
+import perf_parser
 
 
 def usage():
@@ -23,15 +24,15 @@ def gen_gnuplot(args, row_data):
     # the JIT.
     if args.without_jit_titles:
         color_settings = """
-    set title "{/*1.2 Speedup from running an additional optimization in \
-addition for Mandelbrot without JIT}" offset 2
+    set title "{/*1 Speedup from running pairs of optimizations \
+for Mandelbrot without JIT}" offset 2
     set palette defined (-30 'red', 0 'white', 3000 'green')
         """
     else:
         color_settings = """
-    set title "{/*1.4 Speedup from running an additional optimization in \
-addition for Mandelbrot}" offset 2
-    set cbrange [-300:300]
+    set title "{/*1.3 Speedup from running pairs of optimizations \
+for Mandelbrot}" offset 2
+    set cbrange [-80:80]
     set palette defined (-300 'red', 0 'white', 300 'green')
         """
 
@@ -40,20 +41,25 @@ addition for Mandelbrot}" offset 2
     """ + "\n".join(row_data) + """
 EOD
 
-    set xlabel '{/*1.6 Additional Optimization}' offset 2
-    set ylabel '{/*1.6 Base Optimization}' offset -2
+    set xlabel '{/*1.4 Additional Optimization}' offset 2
+    set ylabel '{/*1.4 Base Optimization}' offset -2
     set palette model RGB
     """ + color_settings + """
-    set cblabel "{/*1.3 Difference in execution time with addtional \
+    set cblabel "{/*0.9 Difference in execution time with addtional \
 optimization (ms)}" offset 2
     set datafile separator comma
+    set terminal eps
+    set output 'pass_interaction.eps'
     plot '$map3' matrix rowheaders columnheaders using 1:2:3 with image
+    set terminal x11
+    set output
+    replot
     set datafile separator
     pause -1
     """
 
 
-def get_relevant_data_from(data, baseline_data):
+def get_relevant_data_from(data, baseline_data_pass1, baseline_data_pass2):
     """ Given a dictionary of perf data, pick some data from this
         dictionary and return it.  Each entry in this data dictionary
         is a list, and will be indexed by the perf name.
@@ -65,12 +71,18 @@ def get_relevant_data_from(data, baseline_data):
     clock_times.remove(min(clock_times))
     clock_times.remove(max(clock_times))
 
-    baseline_times = baseline_data['cpu-clock']
+    baseline_times_1 = baseline_data_pass1['cpu-clock']
 
-    baseline_times.remove(min(baseline_times))
-    baseline_times.remove(max(baseline_times))
+    baseline_times_1.remove(min(baseline_times_1))
+    baseline_times_1.remove(max(baseline_times_1))
 
-    return numpy.mean(baseline_times) - numpy.mean(clock_times)
+    baseline_times_2 = baseline_data_pass2['cpu-clock']
+
+    baseline_times_2.remove(min(baseline_times_2))
+    baseline_times_2.remove(max(baseline_times_2))
+
+    return min(numpy.mean(baseline_times_1), numpy.mean(baseline_times_2)) \
+        - numpy.mean(clock_times)
 
 
 def draw(args, data_folder):
@@ -116,7 +128,8 @@ def draw(args, data_folder):
                     copy.deepcopy((full_data[targ_row][targ_col])),
                     # Repeat the targ_row twice here as a
                     # baseline.
-                    copy.deepcopy((full_data[targ_row][targ_row])))
+                    copy.deepcopy((full_data[targ_row][targ_row])),
+                    copy.deepcopy((full_data[targ_col][targ_col])))
 
     # Now, draw the row
     row_lists = ["," + ",".join(sorted(col_headers))]
@@ -149,4 +162,7 @@ if __name__ == "__main__":
                         help=("Title the graph as if JIT had not been used"))
 
     args = parser.parse_args()
+
+    if not os.path.exists(args.data_folder):
+        raise Exception("Folder " + args.data_folder + " does not exist")
     draw(args, args.data_folder)
