@@ -28,8 +28,8 @@ run_with_opts() {
 	local compile_opts="$3"
 
 	# Use with JIT and without JIT requirement.
-	./microrun.py --cmlc --machine-name "$machine_name" --project-version=1 --runs 10 --run-use-perf ./reports/current --use-jit --json-dump "./reports/current/cmlc-$machine_name.json" --compiler "$compiler" --compile-options="$compile_opts"
-	./microrun.py --cmlc --machine-name "$machine_name" --project-version=1 --runs 3 --run-use-perf ./reports/current --json-dump "./reports/current/cmlc-$machine_name-no-jit.json" --compiler "$compiler" --compile-options="$compile_opts"
+	./microrun.py --cmlc --machine-name "$machine_name" --project-version=1 --runs 20 --run-use-perf ./reports/current --use-jit --json-dump "./reports/current/cmlc-$machine_name.json" --compiler "$compiler" --compile-options="$compile_opts"
+	./microrun.py --cmlc --machine-name "$machine_name" --project-version=1 --runs 6 --run-use-perf ./reports/current --json-dump "./reports/current/cmlc-$machine_name-no-jit.json" --compiler "$compiler" --compile-options="$compile_opts"
 }
 
 for i in $opts; do
@@ -47,3 +47,6 @@ for i in $opts; do
 
 	run_with_opts $compiler $name $compile_options
 done
+
+mkdir -p reports/individual_passes
+mv ./reports/current/* reports/individual_passes
