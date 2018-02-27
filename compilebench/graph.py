@@ -50,14 +50,15 @@ def draw_multiple_lines(x_data, y_data, error_bars=None,
     handles = []
 
     for data in y_data:
-        handle, = axis.plot(x_data, data)
-        handles.append(handle)
+        handle = axis.plot(x_data, data)
+        handles += handle
 
     if error_bars:
-        error_min = [x[0] for x in error_bars]
-        error_max = [x[1] for x in error_bars]
+        for (datum, error_bar) in zip(y_data, error_bars):
+            error_min = [x[0] for x in error_bar]
+            error_max = [x[1] for x in error_bar]
 
-        axis.errorbar(x_data, y_data, [error_min, error_max])
+            axis.errorbar(x_data, datum, [error_min, error_max])
 
     if x_label:
         axis.set_xlabel(x_label)
@@ -131,13 +132,14 @@ def draw_stacked_line(number_of_points, x_data, y_data, error_bars=None,
 
 def generate_min_max_median(data, narrowing_function=None,
                             averaging_function=None,
-                            delete_min_max=False):
+                            delete_min_max=None):
     temp_list = data[:]
 
     # Delete the min and the max if requested.
     if delete_min_max:
-        temp_list.remove(min(data))
-        temp_list.remove(max(data))
+        for i in range(0, delete_min_max):
+            temp_list.remove(min(temp_list))
+            temp_list.remove(max(temp_list))
 
     # Get the original item out of data.
     selected_medians = median(temp_list, narrowing_function)

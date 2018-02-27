@@ -36,29 +36,40 @@ if __name__ == "__main__":
         # Get the y_data and the error bars out.
         # Also create the legend mappings.
         y_data = []
-        x_data = []
+        y_errors = []
 
         for compiler in builtup_data[benchmark]:
+            x_data = []
             this_data = []
+            this_errors = []
             measurement = 0
             while str(measurement) + '.sml' in \
                     builtup_data[benchmark][compiler]:
-                this_data.append(builtup_data[benchmark][compiler]
-                                             [str(measurement) + ".sml"]
-                                             ['subprocess_times'])
+                recorded_data = \
+                    builtup_data[benchmark][compiler] \
+                                [str(measurement) + ".sml"] \
+                                ['subprocess_times']
+                (min_err, max_err, med_value) = \
+                    graph.generate_min_max_median(recorded_data,
+                                                  delete_min_max=3)
+                this_data.append(med_value)
+                this_errors.append((min_err, max_err))
+
                 x_data.append(measurement)
                 measurement += 1
 
+            y_errors.append(this_errors)
             y_data.append(this_data)
 
         # Draw the graph.
         plot = \
-            graph.draw_multiple_lines(x_data, y_data, None,
+            graph.draw_multiple_lines(x_data, y_data, y_errors,
                                       plotter.gen_x_label_for(None, benchmark),
                                       y_label='Compile Time (ms)',
                                       title=('Compile time against number of'
                                              ' function declarations'),
                                       legend=None)
 
+        graph.save_to(plot, benchmark + 'compiler_comparison.eps')
         if not args.nohold:
             pyplot.show(True)

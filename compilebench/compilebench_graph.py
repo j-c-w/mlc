@@ -21,7 +21,7 @@ def sum_times_between(data, runs, passfrom, passto):
     times = []
 
     for key in data:
-        if key != 'total':
+        if key != 'total' and key != 'subprocess_times':
             pass_no = int(key[key.find('.') + 1:])
             if start_no < pass_no and end_no >= pass_no:
                 times.append(data[key])
@@ -81,6 +81,8 @@ def gen_x_label_for(compile_pass, benchmark):
         return "Number of nested 'let' declarations"
     elif benchmark == 'type_blowup':
         return "log2(Number of type variables)"
+    elif benchmark == 'expressions':
+        return "Number of expressions"
     raise Exception("Need to insert a name for benchmark " + benchmark)
 
 
@@ -134,7 +136,7 @@ def generic_compile_time_graph(axis_size, run_data):
                 graph.generate_min_max_median(tuples,
                                               narrowing_function=select,
                                               averaging_function=averager,
-                                              delete_min_max=True)
+                                              delete_min_max=3)
             errors.append((min_err, max_err))
 
         y_data.append(selected_tuple)
@@ -166,7 +168,7 @@ def per_pass_compile_times(axis_size, run_data):
 
             (min_err, max_err, value) = \
                 graph.generate_min_max_median(ith[compile_pass],
-                                              delete_min_max=True)
+                                              delete_min_max=3)
 
             errors.append((min_err, max_err))
             y_data.append(value)
@@ -204,7 +206,6 @@ if __name__ == "__main__":
     for benchmark in data:
         print "Drawing graph for benchmark", benchmark
         run_data = data[benchmark]
-        print run_data
 
         # This is the number of times we will divide the data.
         axis_size = run_data['number']
