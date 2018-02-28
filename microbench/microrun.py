@@ -539,6 +539,7 @@ if __name__ == "__main__":
 
     if args.compile_options:
         compile_options = args.compile_options.split(' ')
+        compile_options = [opt for opt in compile_options if opt]
         for index in range(0, len(compile_options)):
             if compile_options[index][0] == '-':
                 # If the option has already been prefixed, do not attempt to.
