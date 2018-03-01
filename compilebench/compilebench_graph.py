@@ -4,6 +4,7 @@ from matplotlib import pyplot
 import argparse
 import graph
 import json
+import matplotlib
 
 
 def sum_times_between(data, runs, passfrom, passto):
@@ -144,8 +145,7 @@ def generic_compile_time_graph(axis_size, run_data):
     fig = graph.draw_stacked_line(number, x_data, y_data, errors,
                                   y_label="Compile Time (ms)",
                                   x_label=gen_x_label_for(None, benchmark),
-                                  title=("Compile Times for " +
-                                         gen_title_for(None, benchmark)),
+                                  title=(gen_title_for(None, benchmark)),
                                   legend=["Time spent in AST Representation",
                                           "Time spent in TIR Representation",
                                           "Time spent in ByteR " +
@@ -201,6 +201,19 @@ if __name__ == "__main__":
     # Load in the JSON file:
     with open(args.input_file) as f:
         data = json.load(f)
+
+    # Setup the font sizes
+    SMALL_SIZE = 11
+    MEDIUM_SIZE = 14
+    LARGE_SIZE = 17
+
+    matplotlib.rc('font', size=LARGE_SIZE)
+    matplotlib.rc('axes', titlesize=LARGE_SIZE)
+    matplotlib.rc('axes', labelsize=LARGE_SIZE)
+    matplotlib.rc('xtick', labelsize=MEDIUM_SIZE)
+    matplotlib.rc('ytick', labelsize=MEDIUM_SIZE)
+    matplotlib.rc('legend', fontsize=MEDIUM_SIZE)
+    matplotlib.rc('figure', titlesize=LARGE_SIZE)
 
     # Draw graphs:
     for benchmark in data:
