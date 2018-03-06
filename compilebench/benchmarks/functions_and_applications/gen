@@ -11,6 +11,7 @@ if __name__ == "__main__":
                 for j in range(fun_decs + 1):
                     f.write("fun f" + str(j) + " x = x + " + str(j) + "\n")
 
-                f.write("\n\nval _ = ")
+                f.write("\n\nval _ = (")
                 for j in range(val_decs + 1):
-                    f.write("  f" + str(j) + " " + str(j) + ";\n")
+                    f.write("  f" + str(min(j, fun_decs)) + " " + str(j) + ";\n")
+                f.write("1)")
