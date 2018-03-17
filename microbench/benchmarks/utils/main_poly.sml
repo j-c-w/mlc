@@ -80,7 +80,7 @@ fun main () =
         val time = Timer.checkRealTimer(timer)
       in
         (print("Execution Time: " ^ Time.toString(time) ^ "\n");
-        print("Validation: " ^ res_str ^ "\n"))
+        print("Validation: " ^ res_str ^ "\n"); 0)
       end
     end
   end

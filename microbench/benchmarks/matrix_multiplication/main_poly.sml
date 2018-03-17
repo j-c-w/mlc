@@ -61,7 +61,7 @@ fun main () =
                         then "pass" else "fail"
       in
         (print("Execution Time: " ^ Time.toString(time) ^ "\n");
-        print("Validation: " ^ result_ok ^ "\n"))
+        print("Validation: " ^ result_ok ^ "\n"); 0)
       end
     end
   end

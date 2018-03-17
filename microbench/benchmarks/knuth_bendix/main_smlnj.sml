@@ -578,7 +578,7 @@ fun main_fn() = let
     val endTime = Timer.checkRealTimer(startTime)
     val _ = print("Execution Time: " ^ Time.toString(endTime) ^ "\n" ^
                   "Validation: pass\n")
-in 1
+in 0
 end
 
 structure Test =

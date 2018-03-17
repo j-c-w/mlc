@@ -46,5 +46,5 @@ fun main_fn () =
 structure Test =
     struct
       fun main(prog_name, args) =
-        (main_fn(); 1)
+        (main_fn(); 0)
     end
