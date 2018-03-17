@@ -138,7 +138,7 @@ class SMLNJ(Compiler):
         self.executable = executable
 
     def get_generated_executable(self, input_filename):
-        return 'main.x86-linux'
+        return './main.x86-linux'
 
     def compile(self, filename, options):
         # The ML file has a different name in the testsuite because SMLNJ
@@ -163,7 +163,7 @@ class MLton(Compiler):
         self.executable = executable
 
     def get_generated_executable(self, input_filename):
-        return input_filename.split('.')[0]
+        return './' + input_filename.split('.')[0]
 
     def compile(self, filename, options):
         return Compiler.compile(self, self.executable + options + [filename],
@@ -592,6 +592,9 @@ if __name__ == "__main__":
     compiler_group.add_argument('--smlnj', dest='use_smlnj',
                                 action='store_true',
                                 help='Use SML/NJ as the compiler')
+    compiler_group.add_argument('--mlton', dest='use_mlton',
+                                action='store_true',
+                                help='Use MLton as the compiler')
 
     args = parser.parse_args()
     compiler = None
@@ -604,6 +607,9 @@ if __name__ == "__main__":
 
     if args.use_smlnj:
         compiler = SMLNJ()
+
+    if args.use_mlton:
+        compiler = MLton()
 
     if args.use_cmlc:
         compiler = CMLC(executable=args.compiler.split(' '),
