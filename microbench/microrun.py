@@ -109,6 +109,73 @@ class CMLC(Compiler):
                             source_filename)
 
 
+class PolyML(Compiler):
+    def __init__(self, executable=['polyc']):
+        self.executable = executable
+
+    def get_generated_executable(self, input_filename):
+        return './a.out'
+
+    def compile(self, filename, options):
+        # The ML file has a different name in the testsuite because PolyML
+        # requires a function to be used as the entry point.  (And evaluates
+        # any top-level decs at compile-time)
+        prefix = filename.split('.')[0]
+        filename = prefix + "_poly.sml"
+
+        return Compiler.compile(self, self.executable + options + [filename],
+                                filename)
+
+    def run(self, options, use_perf, perf_number, source_filename):
+        command = [self.get_generated_executable(source_filename)]
+
+        return Compiler.run(self, command, use_perf, perf_number,
+                            source_filename)
+
+
+class SMLNJ(Compiler):
+    def __init__(self, executable=['ml-build']):
+        self.executable = executable
+
+    def get_generated_executable(self, input_filename):
+        return 'main.x86-linux'
+
+    def compile(self, filename, options):
+        # The ML file has a different name in the testsuite because SMLNJ
+        # requires a module to be used as the entry point.  (And evaluates
+        # any top-level decs at compile-time)
+        prefix = filename.split('.')[0]
+        filename = prefix + ".cm"
+
+        return Compiler.compile(self, self.executable + options + [filename],
+                                filename)
+
+    def run(self, options, use_perf, perf_number, source_filename):
+        command = ['sml', '@SMLload',
+                   self.get_generated_executable(source_filename)]
+
+        return Compiler.run(self, command, use_perf, perf_number,
+                            source_filename)
+
+
+class MLton(Compiler):
+    def __init__(self, executable=['mlton']):
+        self.executable = executable
+
+    def get_generated_executable(self, input_filename):
+        return input_filename.split('.')[0]
+
+    def compile(self, filename, options):
+        return Compiler.compile(self, self.executable + options + [filename],
+                                filename)
+
+    def run(self, options, use_perf, perf_number, source_filename):
+        command = [self.get_generated_executable(source_filename)]
+
+        return Compiler.run(self, command, use_perf, perf_number,
+                            source_filename)
+
+
 class MOSML(Compiler):
     def __init__(self, executable=['mosmlc']):
         self.executable = executable
@@ -519,12 +586,24 @@ if __name__ == "__main__":
     compiler_group.add_argument('--cmlc', dest='use_cmlc',
                                 action='store_true',
                                 help=('Use cmlc as the compiler'))
+    compiler_group.add_argument('--polyml', dest='use_polyml',
+                                action='store_true',
+                                help='Use PolyML as the compiler')
+    compiler_group.add_argument('--smlnj', dest='use_smlnj',
+                                action='store_true',
+                                help='Use SML/NJ as the compiler')
 
     args = parser.parse_args()
     compiler = None
 
     if args.use_mosml:
         compiler = MOSML()
+
+    if args.use_polyml:
+        compiler = PolyML()
+
+    if args.use_smlnj:
+        compiler = SMLNJ()
 
     if args.use_cmlc:
         compiler = CMLC(executable=args.compiler.split(' '),
@@ -556,7 +635,10 @@ if __name__ == "__main__":
 
     # Set the perf directory to an absolute path since the execution
     # takes place within various directories.
-    full_run_perf = os.path.join(os.getcwd(), args.run_perf)
+    if args.run_perf:
+        full_run_perf = os.path.join(os.getcwd(), args.run_perf)
+    else:
+        full_run_perf = None
 
     # Now, build the benchmarks.
     benchmarks = find_benchmarks(args.benchmark_pattern)
