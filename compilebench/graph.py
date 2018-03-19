@@ -29,7 +29,8 @@ def draw_line(x_data, y_data, error_bars=None,
     if title:
         axis.set_title(title)
 
-    handle, = axis.plot(x_data, y_data)
+    handle, = axis.plot(x_data, y_data, color='blue')
+    axis.grid(color='black', linestyle='dashed', linewidth=1)
     handles.append(handle)
 
     # Put error bars on the last one of these.
@@ -37,10 +38,17 @@ def draw_line(x_data, y_data, error_bars=None,
         error_min = [x[0] for x in error_bars]
         error_max = [x[1] for x in error_bars]
 
-        axis.errorbar(x_data, y_data, [error_min, error_max], color='green')
+        axis.errorbar(x_data, y_data, [error_min, error_max], ecolor='green',
+                      elinewidth=1, capsize=1.5)
 
     if legend:
         axis.legend(legend, loc=2)
+    else:
+        axis.legend().set_visible(False)
+
+    axis.set_xlim([0, len(x_data)])
+    (ymin, ymax) = axis.get_ylim()
+    axis.set_ylim([0, ymax])
 
     return figure
 
@@ -103,7 +111,7 @@ def draw_stacked_line(number_of_points, x_data, y_data, error_bars=None,
     if not colors:
         # Use a random sequence for colors with a constant seed for
         # reproduceability.
-        random_seq = random.Random(5)
+        random_seq = random.Random(18)
         colors = []
 
         for i in range(number_of_points):
@@ -115,6 +123,7 @@ def draw_stacked_line(number_of_points, x_data, y_data, error_bars=None,
 
     axis = figure.add_subplot(111)
     handles = []
+    axis.grid(color='black', linestyle='dashed', linewidth=1)
 
     if x_label:
         axis.set_xlabel(x_label)
@@ -137,7 +146,12 @@ def draw_stacked_line(number_of_points, x_data, y_data, error_bars=None,
         error_min = [x[0] for x in error_bars]
         error_max = [x[1] for x in error_bars]
 
-        axis.errorbar(x_data, y_idata, [error_min, error_max], color='blue')
+        axis.errorbar(x_data, y_idata, [error_min, error_max], color='black',
+                      elinewidth=1, capsize=1)
+
+    axis.set_xlim([0, len(x_data) - 1])
+    (y_min, y_max) = axis.get_ylim()
+    axis.set_ylim([0, y_max + 100])
 
     if legend:
         axis.legend(legend, loc=2)

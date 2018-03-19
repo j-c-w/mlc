@@ -177,9 +177,7 @@ def per_pass_compile_times(axis_size, run_data):
         fig = graph.draw_line(x_data, y_data, error_bars=errors,
                               x_label=gen_x_label_for(compile_pass, benchmark),
                               y_label="Time (ms)",
-                              title=gen_title_for(compile_pass, benchmark),
-                              legend=[gen_legend_string(compile_pass,
-                                                        benchmark)])
+                              title=gen_title_for(compile_pass, benchmark))
 
         graph.save_to(fig, benchmark + run_data['name'] + '_' +
                       compile_pass + '.eps')
@@ -203,9 +201,9 @@ if __name__ == "__main__":
         data = json.load(f)
 
     # Setup the font sizes
-    SMALL_SIZE = 11
-    MEDIUM_SIZE = 14
-    LARGE_SIZE = 17
+    SMALL_SIZE = 7
+    MEDIUM_SIZE = 11
+    LARGE_SIZE = 13
 
     matplotlib.rc('font', size=LARGE_SIZE)
     matplotlib.rc('axes', titlesize=LARGE_SIZE)
