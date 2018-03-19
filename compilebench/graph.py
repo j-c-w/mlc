@@ -4,7 +4,10 @@
 # generic utilities that can be used by all data to do
 # graphing.
 
+from matplotlib import cm
 from matplotlib import pyplot as plt
+from matplotlib import ticker
+from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import random
 
@@ -71,6 +74,18 @@ def draw_multiple_lines(x_data, y_data, error_bars=None,
 
     if legend:
         axis.legend(legend, loc=2)
+
+    return figure
+
+
+def draw_mesh(X, Y, Z):
+    # Plot the surface.
+    figure = plt.figure()
+    axis = figure.gca(projection='3d')
+
+    axis.plot_surface(X, Y, Z, cmap=cm.coolwarm,
+                      linewidth=0, cstride=2, rstride=2,
+                      antialiased=False)
 
     return figure
 
