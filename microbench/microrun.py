@@ -429,24 +429,24 @@ def parse_output(output, compile_time, perf_directory, benchmark_id,
         lnt_data_item.set_compile_failed(True)
         return lnt_data_item
 
+    # Parse the compile time and executable size before
+    # checking whether the run failed or not.
+    if executable_file is not None:
+        lnt_data_item.set_code_size(os.path.getsize(executable_file))
+
+    # See the associated README.  That explains the expected
+    # format of the output.
+    lnt_data_item.set_compile_time(compile_time)
+
     if output is None:
         # The run failed. Mark that and return
         lnt_data_item.set_run_failed(True)
         return lnt_data_item
 
-    # We chose not to record this if the run failed.  We could do, but it
-    # would be borderline useless.
-    if executable_file is not None:
-        lnt_data_item.set_code_size(os.path.getsize(executable_file))
-
     if perf_directory:
         # We copy the data item into the output folder.
         perf_file_name = os.path.join(perf_directory, benchmark_id) + '.perf'
         subprocess.check_output(['mv', 'data.perf', perf_file_name])
-
-    # See the associated README.  That explains the expected
-    # format of the output.
-    lnt_data_item.set_compile_time(compile_time)
 
     for line in output.split('\n'):
         if line.strip(' ').startswith('Execution Time:'):
