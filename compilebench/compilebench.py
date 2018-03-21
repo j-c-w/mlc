@@ -22,7 +22,7 @@ class MosML(Compiler):
         pass
 
     def compile(self, filename, options, times):
-        print "Compiling", filename, "with MLton"
+        print "Compiling", filename, "with MosML"
         deduplicated_options = options
         deduplicated_options = [x for x in deduplicated_options if x]
         commands = ['time', 'mosmlc', filename, '-o', 'time_data'] + \
@@ -71,6 +71,7 @@ class CMLC(Compiler):
             can be added to.  """
         print "Compiling", filename
         deduplicated_options = options + ['--compile-stats']
+        print "Options are ", deduplicated_options
         # TODO -- actually deduplicate these options.
         deduplicated_options = [x for x in deduplicated_options if x]
         commands = [self.executable] + deduplicated_options + [filename]
@@ -153,13 +154,22 @@ def execute_test(name, options, runs, compiler):
     if "-O" in options or "--optimize" in options:
         results['name'] = 'optimize'
 
+    last_time = 0
+
     for run in range(runs):
         for file in files:
+            if last_time > 15000:
+                # If the last compile time was greater than 15 seconds, then
+                # stop increasing the file size.
+                break
+
             if file in results:
                 already_gathered = results[file]
             else:
                 already_gathered = {}
             results[file] = compiler.compile(file, options, already_gathered)
+            last_time = results[file]['subprocess_times']\
+                    [len(results[file]['subprocess_times']) - 1]
 
     # Go back out
     os.chdir('../..')
@@ -174,6 +184,10 @@ if __name__ == "__main__":
     parser.add_argument('--filter', dest='benchmark_filter', action='store',
                         default=None, help=('Only run benchmarks whose name '
                                             'matches the regex passed.'))
+    parser.add_argument('--filter-not', dest='benchmark_filter_not',
+                        default=None, action='store',
+                        help=('Only run benchmarks whose  name does /not/ '
+                              'match the regex'))
     parser.add_argument('--runs', dest='runs', action='store',
                         type=int,
                         default=5, help=('Number of times to build each'
@@ -213,6 +227,10 @@ if __name__ == "__main__":
     if args.benchmark_filter:
         regex = re.compile(args.benchmark_filter)
         tests = [test for test in tests if regex.match(test)]
+
+    if args.benchmark_filter_not:
+        regex = re.compile(args.benchmark_filter_not)
+        tests = [test for test in tests if not regex.match(test)]
 
     options = args.options.split(' ')
     output_dicts = {}
