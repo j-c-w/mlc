@@ -159,6 +159,143 @@ def draw_stacked_line(number_of_points, x_data, y_data, error_bars=None,
     return figure
 
 
+def draw_grouped_bar(no_bargroups, no_xgroups, group_data, group_names,
+                     errors=None, colors=None, labels=None,
+                     xlabel=None, ylabel=None, title=None, bottom=0,
+                     logarithmic=False, label_rotation=0, approx_ticks=20,
+                     figsize=None, random_color_seed=-1, top_padding=None):
+    """ Draw a bar chart in groups.  'groups' is the number of groups. """
+    # create plot
+    fig, ax = plt.subplots(figsize=figsize)
+    index = np.arange(no_xgroups)
+    bar_width = 0.7 / no_bargroups
+    bar_spacing = 0.3
+    opacity = 1.0
+
+    if colors is None:
+        random_seq = random.Random(random_color_seed)
+        colors = []
+
+        for i in range(no_bargroups):
+            if labels:
+                random_seq = random.Random(random_color_seed + hash(labels[i]))
+
+            color_value = random_seq.randint(0x100000, 0xFFFFFF)
+            hex_color = "#" + hex(color_value)[2:]
+            colors.append(hex_color)
+
+    if not labels:
+        labels = [''] * no_bargroups
+
+    # This is a list that stores the locations of any data items
+    # that were entered as None.  These are assumed to have failed,
+    # and a marker is left to indicate this.
+    failed_data = []
+
+    for group_no in range(no_bargroups):
+        data = group_data[group_no]
+        y_err = np.array(errors[group_no]) if errors else None
+
+        if y_err is not None:
+            for i in range(len(y_err)):
+                if y_err[i][0] is not None and y_err[i][1] is not None:
+                    y_err[i] = (data[i] + bottom - y_err[i][0],
+                                y_err[i][1] - data[i] - bottom)
+                else:
+                    # Errors are none, so make them actually 0.
+                    y_err[i] = (0, 0)
+
+            # Rotate the errors so the are in the correct format.
+            y_err = y_err.T
+
+        error_config = {'elinewidth': 1}
+
+        for item in range(len(data)):
+            if data[item] is None:
+                # Mark this index as None.  We will mark it as an error later.
+                failed_data.append((group_no, item))
+                # The plotter cannot handle None, so insert it as 0.
+                data[item] = 0
+
+        plt.bar(index + bar_width * group_no, data, bar_width,
+                alpha=opacity, color=colors[group_no], label=labels[group_no],
+                yerr=y_err, bottom=bottom, capsize=2.5, error_kw=error_config)
+
+    # Add the labels:
+    # Set the position of the x ticks
+    ax.set_xticks([pos + no_xgroups / 2 * bar_width
+                   for pos in range(no_xgroups)])
+
+    # Set the labels for the x ticks
+    ax.set_xticklabels(group_names, rotation=label_rotation)
+
+    (ymin, ymax) = plt.ylim()
+    # Make the ylim higher if it is specified.
+    if top_padding:
+        ax.set_ylim(ymin, ymax + top_padding)
+
+    (ymin, ymax) = plt.ylim()
+    # Draw the failure marks for benchmarks that failed.
+    for (group_number, bargroup_number) in failed_data:
+        yrange = ymax - ymin
+        ax.annotate(labels[group_number] + " Failed", rotation=90,
+                    xy=(0, 0), fontsize=str(65 * bar_width),
+                    va='bottom', ha='left',
+                    xytext=(bargroup_number + bar_width * group_number -
+                            bar_width / 2, ymin + yrange / 60))
+
+    # Draw gridlines between each bar and box colors below each to
+    # make it clear which optimizations are being applied with 0 bar size.
+    for pos in range(0, no_xgroups):
+        if pos != 0:
+            ax.annotate("", xy=(pos - bar_spacing / 1.5, ymin),
+                        xytext=(pos - bar_spacing / 1.5, ymax),
+                        arrowprops=dict(arrowstyle="-", linestyle="dotted",
+                                        connectionstyle="arc3, rad=0"))
+
+        if bottom != 0:
+            # Only draw the color references if the bottom is not at 0.
+            # Make the ticks invisible in this case.
+            ax.tick_params(axis='x', which='both', length=0)
+            for bar in range(no_bargroups):
+                ax.add_patch(
+                    plt.Rectangle((-bar_width / 2 + bar * bar_width + pos,
+                                   ymin), bar_width,
+                                  -(ymax - ymin) / 70, facecolor=colors[bar],
+                                  clip_on=False, linewidth=0))
+
+    if xlabel:
+        plt.xlabel(xlabel)
+    if ylabel:
+        plt.ylabel(ylabel)
+    if title:
+        plt.title(title)
+
+    plt.legend(ncol=2)
+    plt.tight_layout()
+
+    # Set the x-axis so the gridlines are symetric.
+    ax.set_xlim(-0.21, no_xgroups - 0.21)
+
+    if logarithmic:
+        # If the ymin is less than the bottom, then we need
+        # to use two logarithmic scales.
+        loc = ticker.LogLocator(numticks=20, presets=bottom)
+        ax.yaxis.set_major_locator(loc)
+    else:
+        # We can use a single linear scale, but the numbers must
+        # be engineered so it passes through the 'bottom'.
+        loc = ticker.MaxNLocator(nbins=approx_ticks, min_n_ticks=approx_ticks,
+                                 integer=True)
+        ax.yaxis.set_major_locator(loc)
+
+    # Add the x grid.
+    ax.xaxis.grid(False)
+    ax.grid(which='major', axis='y', linestyle='dotted')
+
+    return plt
+
+
 def generate_min_max_median(data, narrowing_function=None,
                             averaging_function=None,
                             delete_min_max=None):
