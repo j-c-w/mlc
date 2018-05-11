@@ -7,6 +7,8 @@ import numpy
 import os
 import perf_parser
 
+BENCHMARK = 'matrix_multiplication'
+
 
 def usage():
     return """
@@ -25,15 +27,14 @@ def gen_gnuplot(args, row_data):
     if args.without_jit_titles:
         color_settings = """
     set title "{/*1 Speedup from running pairs of optimizations \
-for Mandelbrot without JIT}" offset 2
-    set palette defined (-30 'red', 0 'white', 3000 'green')
+for Matrix Multiplication without JIT}" offset 2
+    set palette defined (-3000 'red', 0 'white', 3000 'blue')
         """
     else:
         color_settings = """
-    set title "{/*1.3 Speedup from running pairs of optimizations \
-for Mandelbrot}" offset 2
-    set cbrange [-80:80]
-    set palette defined (-300 'red', 0 'white', 300 'green')
+    set title "{/*1.3 Store miss rate change from running pairs of \
+optimizations for Matrix Multiplication}" offset 2
+    set palette defined (-300 'blue', 0 'white', 300 'red')
         """
 
     # Now build the GNUPlot code.
@@ -45,8 +46,8 @@ EOD
     set ylabel '{/*1.4 Base Optimization}' offset -2
     set palette model RGB
     """ + color_settings + """
-    set cblabel "{/*0.9 Difference in execution time with addtional \
-optimization (ms)}" offset 2
+    set cblabel "{/*0.9 Addtional speedup when combining \
+optimisations (ms)}" offset 2
     set datafile separator comma
     set terminal eps
     set output 'pass_interaction.eps'
@@ -59,35 +60,59 @@ optimization (ms)}" offset 2
     """
 
 
-def get_relevant_data_from(data, baseline_data_pass1, baseline_data_pass2):
+def get_relevant_data_from(data, baseline_data_pass1, no_opts_times,
+                           baseline_data_pass2=None):
     """ Given a dictionary of perf data, pick some data from this
         dictionary and return it.  Each entry in this data dictionary
         is a list, and will be indexed by the perf name.
 
         Baseline data is the data for this pass on it's own.  """
 
-    clock_times = data['cpu-clock']
+    field = 'cpu-clock'
+    field2 = 'L1-dcache-load-misses'
+
+    def op((e1, e2)):
+        return e1
+
+    clock_times = foreach_do(data[field], data[field2], op)
 
     clock_times.remove(min(clock_times))
     clock_times.remove(max(clock_times))
 
-    baseline_times_1 = baseline_data_pass1['cpu-clock']
+    baseline_times_1 = \
+        foreach_do(baseline_data_pass1[field], baseline_data_pass1[field2], op)
 
-    baseline_times_1.remove(min(baseline_times_1))
-    baseline_times_1.remove(max(baseline_times_1))
+    if baseline_data_pass2:
+        baseline_times_2 = \
+            foreach_do(baseline_data_pass2[field],
+                       baseline_data_pass2[field2], op)
+    else:
+        baseline_times_2 = None
 
-    baseline_times_2 = baseline_data_pass2['cpu-clock']
+    no_opts_time = \
+        numpy.median(foreach_do(no_opts_times[field],
+                                no_opts_times[field2], op))
 
-    baseline_times_2.remove(min(baseline_times_2))
-    baseline_times_2.remove(max(baseline_times_2))
+    if baseline_times_2:
+        return (no_opts_time - numpy.median(clock_times)) - \
+               (no_opts_time - numpy.median(baseline_times_1) +
+                no_opts_time - numpy.median(baseline_times_2))
+    else:
+        return (no_opts_time - numpy.median(clock_times)) - \
+               (no_opts_time - numpy.median(baseline_times_1))
 
-    return min(numpy.mean(baseline_times_1), numpy.mean(baseline_times_2)) \
-        - numpy.mean(clock_times)
+
+def foreach_do(list1, list2, fun):
+    return map(fun, zip(list1, list2))
 
 
 def draw(args, data_folder):
     # Get all the perf files:
     files = glob.glob(data_folder + "/*_0.perf")
+    # The no_opts files must be processed specially.
+    files = \
+        [file for file in files
+         if not os.path.basename(file).startswith("no_opts")]
 
     full_data = {}
     rows = {}
@@ -109,27 +134,43 @@ def draw(args, data_folder):
         # Now, note the row and col it belongs in.
         record_name = file[len(data_folder) + 1:]
         targ_row = record_name.split("_")[0]
-        targ_col = record_name.split("_")[1][:-len("mandelbrot")]
+        targ_col = record_name.split("_")[1][:-len(BENCHMARK.split('_')[0])]
 
         # Add the datat to the record of it all
         full_data[targ_row][targ_col] = data
+
+    no_opts_data = \
+        perf_parser.parse_perf_files(data_folder + "/no_opts" +
+                                     BENCHMARK + "_")
 
     # Extra loop required so that we know the baseliine data is set.
     for file in files:
         record_name = file[len(data_folder) + 1:]
         targ_row = record_name.split("_")[0]
-        targ_col = record_name.split("_")[1][:-len("mandelbrot")]
+        targ_col = record_name.split("_")[1][:-len(BENCHMARK.split('_')[0])]
 
         # Now, we can narrow the data down.
-        rows[targ_row][targ_col] = \
-            get_relevant_data_from(
-                    # Deep copy because this method is allowed to change
-                    # the dictionaries.
-                    copy.deepcopy((full_data[targ_row][targ_col])),
-                    # Repeat the targ_row twice here as a
-                    # baseline.
-                    copy.deepcopy((full_data[targ_row][targ_row])),
-                    copy.deepcopy((full_data[targ_col][targ_col])))
+        if targ_row in rows and targ_row in full_data and \
+                targ_col in full_data[targ_row]:
+            if targ_row == targ_col:
+                rows[targ_row][targ_col] = \
+                    get_relevant_data_from(
+                            copy.deepcopy((full_data[targ_row][targ_col])),
+                            copy.deepcopy((full_data[targ_row][targ_col])),
+                            no_opts_data)
+            else:
+                rows[targ_row][targ_col] = \
+                    get_relevant_data_from(
+                            # Deep copy because this method is allowed to
+                            # change the dictionaries.
+                            copy.deepcopy((full_data[targ_row][targ_col])),
+                            # Repeat the targ_row twice here as a
+                            # baseline.
+                            copy.deepcopy((full_data[targ_row][targ_row])),
+                            no_opts_data,
+                            copy.deepcopy((full_data[targ_col][targ_col])))
+        else:
+            print "Warning: no data for pair ", targ_row, targ_col
 
     # Now, draw the row
     row_lists = ["," + ",".join(sorted(col_headers))]
@@ -144,7 +185,7 @@ def draw(args, data_folder):
     # Now, get the graph drawing code:
     gnu_code = gen_gnuplot(args, row_lists)
 
-    with open('mandelbrot_heatmap.gnu', 'w') as f:
+    with open(BENCHMARK + '_heatmap.gnu', 'w') as f:
         f.write(gnu_code)
 
 
