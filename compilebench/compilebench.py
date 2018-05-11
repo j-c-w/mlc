@@ -17,6 +17,19 @@ class Compiler(object):
         raise Exception("Expected compile to be implemented.")
 
 
+class SMLNJ(Compiler):
+    def __init__(self):
+        pass
+
+    def compile(self, filename, options, times):
+        # We need to create a test.cm file that contains the compilation
+        # commands.
+
+        with open(os.path.dirname(filename), 'w') as f:
+            filename = 'sml' + filename + '.main.sml'
+
+
+
 class MosML(Compiler):
     def __init__(self):
         pass
