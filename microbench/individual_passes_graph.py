@@ -4,16 +4,21 @@ import numpy as np
 import perf_parser
 
 OPTS = ['copyprop', 'dce', 'inline', 'no_opts', 'peephole', 'simplify', 'tce']
+OPT_NAMES = \
+    {'copyprop': 'copyprop', 'dce': 'dse', 'inline': 'inline',
+        'no_opts': 'no_opts', 'peephole': 'peephole', 'simplify': 'simplify',
+        'tce': 'tce'}
 BENCHMARKS = ['alignment', 'dft', 'inlining', 'knuth_bendix', 'life',
               'mandelbrot', 'matrix_multiplication', 'tak', 'utils']
 
-FIELD = ['cpu-clock', 'cpu-clock', 'L1-dcache-loads',
+FIELD = ['cpu-clock', 'cpu-clock', 'cpu-clock', 'L1-dcache-loads',
          'L1-dcache-load-misses', 'cpu-cycles', 'instructions',
          'branch-instructions', 'branch-misses']
-FIELD2 = [None, None, None, 'L1-dcache-loads', None, 'cpu-cycles',
+FIELD2 = [None, None, None, None, 'L1-dcache-loads', None, 'cpu-cycles',
           None, 'branch-instructions']
-NUM_TO_DROP = [3, 5, 2, 2, 2, 2, 2, 2]
+NUM_TO_DROP = [3, 5, 0, 0, 0, 0, 0, 0, 0]
 METRIC_NAME = ['Execution Time (ms)',
+               'Relative Execution Time (Lower Means Speedup)',
                'Relative Execution Time (Lower Means Speedup)',
                'Relative Number of Cache References',
                'Relative Cache Miss Rate',
@@ -21,10 +26,11 @@ METRIC_NAME = ['Execution Time (ms)',
                '(Relative) Instructions per Clock Cycle',
                '(Relative) Branch Instructions',
                '(Relative) Branch Predictor Miss Rate']
-NORMALIZE = [False, True, True, True, True, True, True, True]
-WITH_JIT = [True, True, True, True, True, True, True, True]
+NORMALIZE = [False, True, True, True, True, True, True, True, True]
+WITH_JIT = [True, True, False, False, False, False, False, False, False]
 OUTPUT_FILES = ['execution_time_individual_passes.eps',
                 'relative_execution_time_individual_passes.eps',
+                'relative_execution_time_individual_passes_no_jit.eps',
                 'relative_cache_refs.eps',
                 'relative_cache_misses.eps',
                 'relative_clock_cycles.eps',
@@ -34,16 +40,21 @@ OUTPUT_FILES = ['execution_time_individual_passes.eps',
 TITLES = ['Execution Time of Benchmarks with Individual Optimisations Enabled',
           'Execution Time of Benchmarks with Individual Optimisations '
           ' Enabled \nRelative to an Unoptimised Run',
+          'Execution Time of Benchmarks with Individual Optimisations '
+          ' Enabled \nRelative to an Unoptimised Run (No JIT)',
           'Number of L1 Data Cache Loads Relative '
-          'to an Unoptimised Run',
+          'to an Unoptimised Run (No JIT)',
           'L1 Data Cache Load Miss Rate Relative '
-          'to an Unoptimised Run',
-          'Clock Cycles per Run Relative to an Unoptimised Run',
-          'Instructions per Clock Cycle Relative to an Unoptimised Run',
-          'Branch Instructions per Run Relative to an Unoptimised Run',
+          'to an Unoptimised Run (No JIT)',
+          'Clock Cycles per Run Relative to an Unoptimised Run (No JIT)',
+          'Instructions per Clock Cycle Relative to an Unoptimised Run '
+          '(No JIT)',
+          'Branch Instructions per Run Relative to an Unoptimised Run '
+          '(No JIT)',
           'Branch Predictor Miss Rate Relative to an Unoptimised Run']
-FIG_SIZE = [None, (8, 6), (8, 6), (8, 6), (8, 6), (8, 6), (8, 6), (8, 6)]
-TOP_PADDING = [None, None, None, None, None, None, 0.025, None]
+FIG_SIZE = [None, (8, 6),  (8, 6), (8, 6), (8, 6), (8, 6), (8, 6),
+            (8, 6), (8, 6)]
+TOP_PADDING = [None, None, None, None, None, None, None, 0.025, None]
 
 
 def usage():
@@ -160,7 +171,7 @@ if __name__ == "__main__":
 
         for opt in sorted(groups):
             if opt != 'no_opts' or not NORMALIZE[graph_no]:
-                opt_names.append(opt)
+                opt_names.append(OPT_NAMES[opt])
                 data_list.append(groups[opt])
                 errors_list.append(errors[opt])
 
