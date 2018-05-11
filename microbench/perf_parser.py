@@ -27,7 +27,7 @@ def parse_perf_string(perf_lines):
 
             # Then peices[0] is the number (which may be real or int)
             try:
-                value = int(peices[0].replace(',', ''))
+                value = float(int(peices[0].replace(',', '')))
             except ValueError:
                 # Try making it a float:
                 try:
@@ -63,16 +63,24 @@ def parse_perf_files(prefix):
     """
 
     index = 0
-    dictionaries = []
+    files = []
     while os.path.exists(prefix + str(index) + ".perf"):
-        # The file exists, so get the dictionary for it:
-        dictionaries.append(parse_perf(prefix + str(index) + ".perf"))
+        files.append(prefix + str(index) + ".perf")
         index += 1
 
     if index == 0:
         # This is likely an error, as it means no files were found.
         raise ValueError("Files starting with " + prefix + " not found. "
                          "Looked for " + prefix + str(0) + ".perf")
+    else:
+        return parse_perf_files_list(files)
+
+
+def parse_perf_files_list(files):
+    dictionaries = []
+    for file in files:
+        # The file exists, so get the dictionary for it:
+        dictionaries.append(parse_perf(file))
 
     # Finally, go through and concatenate these into a single dict.
     result_dict = {}
