@@ -6,8 +6,29 @@ import graph
 import json
 import matplotlib
 
+OPTS = ['tail_elim', 't_inline', 'pre_lower_simplify', 'copy_prop',
+        'simplify',  'byte_dce', 'peephole']
 
-def sum_times_between(data, runs, passfrom, passto):
+
+def sum_fields(data, runs, opts):
+    times = []
+
+    for key in data:
+        for opt in opts:
+            if key.startswith(opt):
+                times.append(data[key])
+
+    run_sum = []
+
+    for i in range(runs):
+        run_sum.append(0)
+        for time in times:
+            run_sum[i] += time[i]
+
+    return run_sum
+
+
+def sum_times_between(data, runs, passfrom, passto, include_opts=False):
     start_no = None
     end_no = None
 
@@ -23,9 +44,10 @@ def sum_times_between(data, runs, passfrom, passto):
 
     for key in data:
         if key != 'total' and key != 'subprocess_times':
-            pass_no = int(key[key.find('.') + 1:])
-            if start_no < pass_no and end_no >= pass_no:
-                times.append(data[key])
+            if not include_opts or key not in OPTS:
+                pass_no = int(key[key.find('.') + 1:])
+                if start_no < pass_no and end_no >= pass_no:
+                    times.append(data[key])
 
     # This is now a list of the form:
     # [run0: [lex_time, parse_time, ...]]
@@ -41,17 +63,24 @@ def sum_times_between(data, runs, passfrom, passto):
     return run_sum
 
 
-def sum_ast_times_from(data, runs):
+def sum_ast_times_from(data, runs, include_opts):
     # Get the first and last AST pass.
-    return sum_times_between(data, runs, 'input', 'lower_ast')
+    return sum_times_between(data, runs, 'input', 'lower_ast',
+                             include_opts=include_opts)
 
 
-def sum_tir_times_from(data, runs):
-    return sum_times_between(data, runs, 'lower_ast', 'lower_tir')
+def sum_tir_times_from(data, runs, include_opts):
+    return sum_times_between(data, runs, 'lower_ast', 'lower_tir',
+                             include_opts=include_opts)
 
 
-def sum_byteR_times_from(data, runs):
-    return sum_times_between(data, runs, 'lower_tir', 'output')
+def sum_byteR_times_from(data, runs, include_opts):
+    return sum_times_between(data, runs, 'lower_tir', 'output',
+                             include_opts=include_opts)
+
+
+def sum_opt_times(data, runs):
+    return sum_fields(data, runs, OPTS)
 
 
 def gen_title_for(compile_pass, benchmark):
@@ -87,13 +116,29 @@ def gen_x_label_for(compile_pass, benchmark):
     raise Exception("Need to insert a name for benchmark " + benchmark)
 
 
+def gen_y_lim_for(compile_pass, benchmark):
+    if benchmark == 'vals':
+        return 900
+    elif benchmark == 'applications':
+        return 2100
+    elif benchmark == 'functions':
+        return 1500
+    elif benchmark == 'nested_lets':
+        return 1500
+    elif benchmark == 'type_blowup':
+        return 2000
+    elif benchmark == 'expressions':
+        return 2400
+    raise Exception("Need to insert a name for benchmark " + benchmark)
+
+
 def gen_legend_string(compile_pass, benchmark):
     return compile_pass
 
 
-def generic_compile_time_graph(axis_size, run_data):
+def generic_compile_time_graph(axis_size, run_data, include_opts):
     # For this graph, split into TIR, byteR and AST.
-    number = 3
+    number = 4 if include_opts else 3
     runs = run_data['runs']
     x_data = []
     y_data = []
@@ -104,13 +149,29 @@ def generic_compile_time_graph(axis_size, run_data):
 
         y_data_dict = run_data[str(i) + '.sml']
 
-        ast_times = sum_ast_times_from(y_data_dict, runs)
-        tir_times = sum_tir_times_from(y_data_dict, runs)
-        byteR_times = sum_byteR_times_from(y_data_dict, runs)
+        ast_times = \
+            sum_ast_times_from(y_data_dict, runs,
+                               include_opts=include_opts)
+        tir_times = \
+            sum_tir_times_from(y_data_dict, runs,
+                               include_opts=include_opts)
+        if include_opts:
+            opt_times = sum_opt_times(y_data_dict, runs)
 
-        tuples = [(ast_times[i], tir_times[i] + ast_times[i],
-                   byteR_times[i] + ast_times[i] + tir_times[i])
-                  for i in range(runs)]
+        byteR_times = \
+            sum_byteR_times_from(y_data_dict, runs,
+                                 include_opts=include_opts)
+
+        if include_opts:
+            tuples = [(ast_times[i], tir_times[i] + ast_times[i],
+                       ast_times[i] + tir_times[i] + opt_times[i],
+                       ast_times[i] + tir_times[i] + opt_times[i] +
+                       byteR_times[i])
+                      for i in range(runs)]
+        else:
+            tuples = [(ast_times[i], tir_times[i] + ast_times[i],
+                       byteR_times[i] + ast_times[i] + tir_times[i])
+                      for i in range(runs)]
 
         if runs == 1:
             selected_tuple = tuples[0]
@@ -118,20 +179,31 @@ def generic_compile_time_graph(axis_size, run_data):
         else:
             # Do the min max selection by overall time.
             def select(x):
-                return x[2]
+                return x[3 if include_opts else 2]
 
             def averager(tuple):
                 s0 = 0.0
                 s1 = 0.0
                 s2 = 0.0
+                s3 = 0.0
 
-                for (x, y, z) in tuple:
-                    s0 += x
-                    s1 += y
-                    s2 += z
+                if include_opts:
+                    for (a, b, c, d) in tuple:
+                        s0 += a
+                        s1 += b
+                        s2 += c
+                        s3 += d
+                else:
+                    for (a, b, c) in tuple:
+                        s0 += a
+                        s1 += b
+                        s2 += c
 
                 n = len(tuple)
-                return (s0 / n, s1 / n, s2 / n)
+                if include_opts:
+                    return (s0 / n, s1 / n, s2 / n, s3 / n)
+                else:
+                    return (s0 / n, s1 / n, s2 / n)
 
             (min_err, max_err, selected_tuple) = \
                 graph.generate_min_max_median(tuples,
@@ -142,19 +214,34 @@ def generic_compile_time_graph(axis_size, run_data):
 
         y_data.append(selected_tuple)
 
+    if include_opts:
+        labels = ["Time spent in AST Representation",
+                  "Time spent in TIR Representation",
+                  "Time spent Optimising",
+                  "Time spent in ByteR Representation"]
+    else:
+        labels = ["Time spent in AST Representation",
+                  "Time spent in TIR Representation",
+                  "Time spent in ByteR Representation"]
+
     fig = graph.draw_stacked_line(number, x_data, y_data, errors,
                                   y_label="Compile Time (ms)",
                                   x_label=gen_x_label_for(None, benchmark),
                                   title=(gen_title_for(None, benchmark)),
-                                  legend=["Time spent in AST Representation",
-                                          "Time spent in TIR Representation",
-                                          "Time spent in ByteR " +
-                                          "Representation"])
+                                  legend=labels,
+                                  ylim_max=gen_y_lim_for(None, benchmark))
     fig.show()
-    graph.save_to(fig, benchmark + run_data['name'] + '_compile_time.eps')
+
+    if include_opts:
+        opts_string = "_with_opts_"
+    else:
+        opts_string = ""
+
+    graph.save_to(fig, benchmark + opts_string + run_data['name'] +
+                  '_compile_time.eps')
 
 
-def per_pass_compile_times(axis_size, run_data):
+def per_pass_compile_times(axis_size, run_data, include_opts):
     # Also plot a graph for each specific pass.
 
     for compile_pass in run_data['0.sml']:
@@ -179,7 +266,12 @@ def per_pass_compile_times(axis_size, run_data):
                               y_label="Time (ms)",
                               title=gen_title_for(compile_pass, benchmark))
 
-        graph.save_to(fig, benchmark + run_data['name'] + '_' +
+        if include_opts:
+            no_opts = "_with_opts_"
+        else:
+            no_opts = ""
+
+        graph.save_to(fig, benchmark + no_opts + run_data['name'] + '_' +
                       compile_pass + '.eps')
 
 
@@ -193,6 +285,9 @@ if __name__ == "__main__":
                                             "the benchmarking scripts"))
     parser.add_argument('--nohold', action='store_true', default=False,
                         help="Don't display the figure on the screen.")
+    parser.add_argument('--with-opts', action='store_true', default=False,
+                        dest='include_opts',
+                        help='Highlight time spent doing optimizations')
 
     args = parser.parse_args()
 
@@ -220,8 +315,8 @@ if __name__ == "__main__":
 
         # This is the number of times we will divide the data.
         axis_size = run_data['number']
-        generic_compile_time_graph(axis_size, run_data)
-        per_pass_compile_times(axis_size, run_data)
+        generic_compile_time_graph(axis_size, run_data, args.include_opts)
+        per_pass_compile_times(axis_size, run_data, args.include_opts)
 
         if not args.nohold:
             pyplot.show(True)
