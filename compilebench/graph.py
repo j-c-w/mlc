@@ -12,6 +12,16 @@ import numpy as np
 import random
 
 
+def draw_regression(x_data, y_data, error_bars=None,
+                    x_label=None, y_label=None, title=None,
+                    legend=None):
+    m, c = np.polyfit(x_data, y_data, 1)
+
+    fig = draw_points(x_data, y_data, error_bars=error_bars,
+                      x_label=x_label, y_label=y_label, title=title,
+                      legend=legend)
+
+
 def draw_line(x_data, y_data, error_bars=None,
               x_label=None, y_label=None, title=None,
               legend=None):
@@ -53,23 +63,50 @@ def draw_line(x_data, y_data, error_bars=None,
     return figure
 
 
-def draw_multiple_lines(x_data, y_data, error_bars=None,
+def draw_multiple_lines(x_data, y_data, colors, error_bars=None,
                         x_label=None, y_label=None, title=None, legend=None):
     figure = plt.figure()
 
     axis = figure.add_subplot(111)
     handles = []
 
-    for data in y_data:
-        handle = axis.plot(x_data, data)
-        handles += handle
+    # If the x_data has a len(y_data) dimension, then there is different
+    # x data to plot each time.
+    x_length = len(x_data)
+
+    multiple_x = x_length == len(y_data) and hasattr(x_data[0], '__iter__')
+
+    if multiple_x:
+        # Then we assume that this was multiple x things to be plotted.
+        for index in range(len(x_data)):
+            handle = axis.plot(x_data[index], y_data[index], colors[index],
+                               linewidth=1)
+            handle[0].set_color(colors[index])
+            handles += handle
+    else:
+        for index in range(len(y_data)):
+            handle = axis.plot(x_data, y_data[index], colors[index],
+                               linewidth=1)
+            handle[0].set_color(colors[index])
+            handles += handle
 
     if error_bars:
-        for (datum, error_bar) in zip(y_data, error_bars):
-            error_min = [x[0] for x in error_bar]
-            error_max = [x[1] for x in error_bar]
+        if multiple_x:
+            for index in range(len(y_data)):
+                error_min = [x[0] for x in error_bars[index]]
+                error_max = [x[1] for x in error_bars[index]]
 
-            axis.errorbar(x_data, datum, [error_min, error_max])
+                axis.errorbar(x_data[index], y_data[index],
+                              [error_min, error_max],
+                              elinewidth=1, capsize=2.5, ecolor='black',
+                              color=colors[index])
+        else:
+            for (y_datum, error_bar) in zip(y_data, error_bars):
+                error_min = [x[0] for x in error_bar]
+                error_max = [x[1] for x in error_bar]
+
+                axis.errorbar(x_data, y_datum, [error_min, error_max],
+                              elinewidth=1, capsize=2.5, ecolor='black')
 
     if x_label:
         axis.set_xlabel(x_label)
@@ -82,6 +119,17 @@ def draw_multiple_lines(x_data, y_data, error_bars=None,
 
     if legend:
         axis.legend(legend, loc=2)
+
+    axis.grid(color='black', linestyle='dashed', linewidth=1)
+
+    for index in range(len(colors)):
+        plt.gca().get_lines()[index].set_color(colors[index])
+
+    (ymin, ymax) = axis.get_ylim()
+    (xmin, xmax) = axis.get_xlim()
+
+    axis.set_ylim(0, ymax)
+    axis.set_xlim(0, xmax)
 
     return figure
 
@@ -100,7 +148,7 @@ def draw_mesh(X, Y, Z):
 
 def draw_stacked_line(number_of_points, x_data, y_data, error_bars=None,
                       colors=None, x_label=None, y_label=None, title=None,
-                      legend=None):
+                      legend=None, ylim_max=None):
     """ This takes y_data, error_bars as a list of tuples.  Each tuple
         element corresponds to a stacked line in the graph.  Colors
         are passed as a list and are generated if not specified.
@@ -115,6 +163,8 @@ def draw_stacked_line(number_of_points, x_data, y_data, error_bars=None,
         colors = []
 
         for i in range(number_of_points):
+            if legend:
+                random_seq = random.Random(2 + hash(legend[i]))
             color_value = random_seq.randint(0x100000, 0xFFFFFF)
             hex_color = "#" + hex(color_value)[2:]
             colors.append(hex_color)
@@ -153,10 +203,63 @@ def draw_stacked_line(number_of_points, x_data, y_data, error_bars=None,
     (y_min, y_max) = axis.get_ylim()
     axis.set_ylim([0, y_max + 100])
 
+    # If an explicit max was passed, then use that.
+    if ylim_max:
+        axis.set_ylim([0, ylim_max])
+
     if legend:
         axis.legend(legend, loc=2)
 
     return figure
+
+
+def draw_stacked_bar(no_stacks, no_xgroups, stacked_data, x_names,
+                     errors=None, colors=None, labels=None, y_label=None,
+                     x_label=None, title=None):
+    fig, ax = plt.subplots()
+    width = 0.66
+    x_values = range(no_xgroups)
+    handles = []
+
+    if colors is None:
+        random_seq = random.Random(0)
+        colors = []
+
+        for i in range(no_stacks):
+            if labels:
+                random_seq = random.Random(-1 + hash(labels[i]))
+
+            color_value = random_seq.randint(0x100000, 0xFFFFFF)
+            hex_color = "#" + hex(color_value)[2:]
+            colors.append(hex_color)
+
+    bottoms = [0.0] * no_xgroups
+    for i in range(no_stacks):
+        handle = ax.bar(x_values, stacked_data[i], width, color=colors[i],
+                        bottom=bottoms)
+        for j in range(len(bottoms)):
+            bottoms[j] += stacked_data[i][j]
+
+        handles.append(handle)
+
+    if title:
+        ax.set_title(title)
+
+    if y_label:
+        ax.set_ylabel(y_label)
+
+    if x_label:
+        ax.set_xlabel(x_label)
+
+    ax.set_xticks(x_values)
+    ax.set_xticklabels(x_names, rotation=70)
+
+    ax.yaxis.grid(True, linestyle='dotted')
+    if labels:
+        fig.legend(labels, loc='upper right', bbox_to_anchor=(0.9, 0.88))
+
+    fig.tight_layout()
+    return fig
 
 
 def draw_grouped_bar(no_bargroups, no_xgroups, group_data, group_names,
@@ -178,7 +281,11 @@ def draw_grouped_bar(no_bargroups, no_xgroups, group_data, group_names,
 
         for i in range(no_bargroups):
             if labels:
-                random_seq = random.Random(random_color_seed + hash(labels[i]))
+                if labels[i] == 'dse':
+                    random_seq = random.Random(random_color_seed + hash('dce'))
+                else:
+                    random_seq = \
+                            random.Random(random_color_seed + hash(labels[i]))
 
             color_value = random_seq.randint(0x100000, 0xFFFFFF)
             hex_color = "#" + hex(color_value)[2:]
